@@ -2,58 +2,32 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import plotly.express as px
 import datetime
 
-# 网页基础设置 (宽屏模式)
-st.set_page_config(page_title="小语种营销日报", page_icon="📈", layout="wide")
+# 网页基础设置 (宽屏模式，隐藏默认侧边栏)
+st.set_page_config(page_title="小语种营销日报", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 1:1 深度复刻截图 UI (终极定制 CSS)
+# 🎨 终极定制 CSS (无侧边栏纯净版)
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 整体页面背景底色 (极浅的灰蓝色，衬托白色组件) */
+/* 整体页面背景底色 (极浅的灰蓝色) */
 .stApp {
     background-color: #f4f7f9 !important;
 }
 
-/* 2. 隐藏默认的顶部导航和汉堡菜单 */
+/* 隐藏默认的顶部导航、汉堡菜单和可能存在的侧边栏呼出按钮 */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
+[data-testid="collapsedControl"] {display: none;}
 .block-container {
     padding-top: 2rem !important;
+    max-width: 95% !important;
 }
 
-/* 3. 左侧边栏重构 (纯白背景，灰色边框) */
-[data-testid="stSidebar"] {
-    background-color: #ffffff !important;
-    border-right: 1px solid #e2e8f0;
-}
-/* 隐藏侧边栏 Radio 的原生圆圈 */
-[data-testid="stSidebar"] [role="radiogroup"] label div:first-of-type { 
-    display: none; 
-}
-/* 侧边栏按钮基础样式 (对齐截图的垂直药丸) */
-[data-testid="stSidebar"] [role="radiogroup"] label {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    background-color: #ffffff;
-    color: #64748b;
-    font-weight: 600;
-    display: flex;
-    justify-content: center;
-    transition: all 0.2s;
-}
-/* 侧边栏按钮激活样式 (纯正深蓝色) */
-[data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"] {
-    background-color: #2563eb !important; 
-    color: #ffffff !important;
-    border-color: #2563eb !important;
-}
-
-/* 4. 顶部横向标签 (Pills) 样式重构 */
+/* 横向标签 (Pills) 样式重构 */
 button[data-testid="stPill"] {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
@@ -62,15 +36,17 @@ button[data-testid="stPill"] {
     border-radius: 6px !important;
     padding: 8px 24px !important;
     margin-right: 8px !important;
+    transition: all 0.2s;
 }
-/* 顶部标签激活样式 */
+/* 顶部标签激活样式 (深蓝色) */
 button[data-testid="stPill"][aria-selected="true"] {
     background-color: #2563eb !important;
     color: #ffffff !important;
     border-color: #2563eb !important;
+    font-weight: 600 !important;
 }
 
-/* 5. 数据卡片样式 (白色底，居中，亮蓝色大数字) */
+/* 数据卡片样式 (白色底，居中，亮蓝色大数字) */
 div[data-testid="metric-container"] {
     background-color: #ffffff;
     border: 1px solid #e2e8f0;
@@ -95,7 +71,7 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] > div {
 
 
 # ==========================================
-# ⚙️ 核心数据获取
+# ⚙️ 核心数据获取与清洗
 # ==========================================
 @st.cache_data(ttl="1d")
 def load_and_transform_google_sheet():
@@ -120,7 +96,6 @@ def load_and_transform_google_sheet():
                 
             first_cell = str(row[0]).strip()
             
-            # 探测国家站缩写 (假设表格写的是 Callie DE, Callie FR)
             if first_cell.startswith("Callie ") and len(first_cell) <= 10:
                 current_site = first_cell.replace("Callie ", "").strip()
                 dates_row = row[1:]
@@ -153,7 +128,7 @@ def load_and_transform_google_sheet():
         df_long = df_long.dropna(subset=['Date']) 
         return df_long
     except Exception as e:
-        st.error(f"🔌 云端连接失败: {e}")
+        st.error(f"🔌 云端连接失败，请检查密钥配置。详情: {e}")
         return pd.DataFrame()
 
 
@@ -161,20 +136,7 @@ def load_and_transform_google_sheet():
 # 📐 UI 布局与渲染
 # ==========================================
 
-# --- 1. 左侧边栏 (完美复刻垂直按钮切换) ---
-site_map = {
-    "全部站点": "ALL", "德国": "DE", "法国": "FR", 
-    "西班牙": "ES", "意大利": "IT", "荷兰": "NL", 
-    "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"
-}
-
-with st.sidebar:
-    st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 12px; writing-mode: vertical-lr; margin: 0 auto; letter-spacing: 5px;'>站点切换</div>", unsafe_allow_html=True)
-    st.write("") # 占位
-    selected_site_cn = st.radio("站点切换", list(site_map.keys()), label_visibility="collapsed")
-
-
-# --- 2. 主页面头部 (大蓝字 + 日期) ---
+# --- 1. 主页面头部 (大蓝字 + 日期) ---
 today_str = datetime.datetime.now().strftime("%Y年%m月%d日")
 st.markdown(f"""
 <div style="text-align: center; margin-bottom: 30px;">
@@ -183,58 +145,88 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-
-# --- 3. 横向导航菜单 (复刻截图) ---
-tabs = ["目标管理看板", "每日数据看板", "各站数据看板", "SEO数据看板", "谷歌购物看板", "归因数据看板", "商品数据看板"]
-selected_tab = st.pills("板块选择", tabs, default="SEO数据看板", label_visibility="collapsed")
-
-st.write("") # 增加间距
-
-# --- 4. 时间筛选器 (复刻截图) ---
-times = ["过去1天", "过去7天", "过去14天", "按月份", "自定义"]
-selected_time = st.pills("时间选择", times, default="过去1天", label_visibility="collapsed")
-
-st.write("---")
-
-# ==========================================
-# 📊 数据处理与核心板块展示
-# ==========================================
-
-with st.spinner("🚀 同步数据中..."):
+with st.spinner("🚀 正在从 Google Sheets 同步实时数据..."):
     df_master = load_and_transform_google_sheet()
 
-if not df_master.empty and selected_tab == "SEO数据看板":
+if not df_master.empty:
     
-    # 获取数据源中的最新一天作为“昨天”
+    # 建立缩写与中文映射 (根据 Callie 常见国家站)
+    cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
+    en_to_cn = {v: k for k, v in cn_to_en.items()}
+    
+    raw_sites = sorted(df_master['Site'].unique().tolist())
+    display_sites = ["全部站点"] + [en_to_cn.get(s, s) for s in raw_sites]
+    
+    # --- 2. 核心导航：居中的站点切换 (替代原本的板块切换) ---
+    col_nav1, col_nav2, col_nav3 = st.columns([1, 6, 1])
+    with col_nav2:
+        selected_site_cn = st.pills("站点切换", display_sites, default="全部站点", label_visibility="collapsed")
+    
+    st.write("") # 间距
+    
+    # --- 3. 核心导航：时间与指标扩展筛选 ---
+    col_filter1, col_filter2 = st.columns([1, 1])
+    with col_filter1:
+        # 时间快捷选择
+        times = ["过去1天", "过去7天", "过去14天", "全部数据"]
+        selected_time = st.pills("时间选择", times, default="过去1天", label_visibility="collapsed")
+    with col_filter2:
+        # 用于下方图表和表格的指标多选
+        all_metrics = sorted(df_master['Metric'].unique().tolist())
+        default_metrics = [m for m in all_metrics if "SEO流量" in m or "网站总流量" in m]
+        if not default_metrics: default_metrics = [all_metrics[0]]
+        selected_metrics = st.multiselect("📊 图表附加展示指标：", all_metrics, default=default_metrics, label_visibility="collapsed")
+
+    st.write("---")
+
+    # ==========================================
+    # 📊 数据处理与核心板块展示
+    # ==========================================
+    
+    # 1. 解析时间范围
     max_date = df_master['Date'].max()
-    prev_date = max_date - pd.Timedelta(days=1)
-    
-    # 根据侧边栏过滤站点
-    target_site_code = site_map[selected_site_cn]
-    if target_site_code != "ALL":
-        df_filtered = df_master[df_master['Site'] == target_site_code]
+    if selected_time == "过去1天":
+        start_date = max_date - pd.Timedelta(days=1)
+    elif selected_time == "过去7天":
+        start_date = max_date - pd.Timedelta(days=7)
+    elif selected_time == "过去14天":
+        start_date = max_date - pd.Timedelta(days=14)
     else:
-        df_filtered = df_master
+        start_date = df_master['Date'].min()
         
-    # 如果数据没空
+    end_date = max_date
+    prev_date = max_date - pd.Timedelta(days=1) # 永远对比前一日
+    
+    # 2. 解析站点
+    if selected_site_cn == "全部站点" or selected_site_cn is None:
+        target_sites = raw_sites
+    else:
+        # 中文转回英文代码
+        target_sites = [cn_to_en.get(selected_site_cn, selected_site_cn)]
+        
+    # 3. 过滤数据
+    mask = (df_master['Site'].isin(target_sites)) & \
+           (df_master['Date'] >= start_date) & \
+           (df_master['Date'] <= end_date)
+    df_filtered = df_master[mask]
+    
     if not df_filtered.empty:
-        # 获取昨天和前天的聚合数据
-        day_data = df_filtered[df_filtered['Date'] == max_date].groupby('Metric')['Value'].sum()
-        prev_day_data = df_filtered[df_filtered['Date'] == prev_date].groupby('Metric')['Value'].sum()
+        # 获取昨天和前天的聚合数据，用于顶部卡片计算环比
+        day_data = df_master[(df_master['Site'].isin(target_sites)) & (df_master['Date'] == max_date)].groupby('Metric')['Value'].sum()
+        prev_day_data = df_master[(df_master['Site'].isin(target_sites)) & (df_master['Date'] == prev_date)].groupby('Metric')['Value'].sum()
         
         # 🤖 智能寻找代表“销售额”的指标
         sales_metric_key = None
-        all_metrics = df_filtered['Metric'].unique()
         for m in all_metrics:
             if any(kw in m for kw in ["销售额", "转化价值", "成交额", "Sales", "Revenue"]):
                 sales_metric_key = m
                 break
                 
-        # 渲染卡片区域 (目前先放3个卡片看看效果)
-        col1, col2, col3 = st.columns(3)
+        # --- 渲染卡片区域 ---
+        col_c1, col_c2, col_c3 = st.columns(3)
         
-        with col1:
-            # 第一板块：精准展示昨日SEO销售额
+        with col_c1:
+            # 第一板块：固定展示昨日SEO销售额
             title_text = f"昨日 {sales_metric_key}" if sales_metric_key else "昨日SEO销售额"
             current_sales = day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
             prev_sales = prev_day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
@@ -247,17 +239,53 @@ if not df_master.empty and selected_tab == "SEO数据看板":
                 
             st.metric(label=title_text, value=f"${current_sales:,.2f}", delta=delta_str)
             
-        with col2:
-            # 自动找一个流量指标填充占位
+        with col_c2:
+            # 第二板块：流量指标
             traffic_metric = next((m for m in all_metrics if "流量" in m or "Traffic" in m), all_metrics[0])
             t_val = day_data.get(traffic_metric, 0.0)
             p_val = prev_day_data.get(traffic_metric, 0.0)
             d_str = f"{((t_val-p_val)/p_val)*100:+.1f}%" if p_val > 0 else "0%"
             st.metric(label=f"昨日 {traffic_metric}", value=f"{t_val:,.0f}", delta=d_str)
 
-        with col3:
-            # 占位卡片，后续可按需扩展
-            st.metric(label="当前选中站点", value=selected_site_cn, delta="状态正常")
+        with col_c3:
+            # 第三板块：状态提示
+            st.metric(label="当前分析视图", value=f"{selected_site_cn}", delta="数据同步成功")
             
+        st.write("---")
+        
+        # --- 渲染图表区域 ---
+        st.subheader("📈 核心指标时序走势")
+        
+        df_chart = df_filtered[df_filtered['Metric'].isin(selected_metrics)].copy()
+        if not df_chart.empty:
+            df_chart['Legend'] = df_chart['Site'] + " - " + df_chart['Metric']
+            fig = px.line(
+                df_chart, 
+                x="Date", y="Value", color="Legend",
+                markers=True,
+                template="plotly_white",
+                color_discrete_sequence=["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#0284c7", "#0ea5e9"]
+            )
+            fig.update_layout(
+                xaxis_title="",
+                yaxis_title="数值",
+                hovermode="x unified",
+                margin=dict(l=10, r=10, t=20, b=10),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                legend_title="指标"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        # --- 渲染表格区域 ---
+        st.write("---")
+        st.subheader("🗄️ 明细数据报表")
+        df_pivot = df_chart.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
+        df_pivot = df_pivot.sort_values(by="Date", ascending=False)
+        df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
+        st.dataframe(df_pivot, use_container_width=True, hide_index=True)
+        
     else:
-        st.warning(f"没有找到 {selected_site_cn} 的数据。")
+        st.warning(f"在所选时间范围内没有找到 {selected_site_cn} 的数据。")
+else:
+    st.info("👈 请先配置好 GCP 的 JSON 密钥，并在 Google Sheets 中开放访问权限。")
