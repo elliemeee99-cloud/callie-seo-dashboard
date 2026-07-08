@@ -6,11 +6,51 @@ import plotly.express as px
 import plotly.graph_objects as go
 import time
 
-# 网页基础设置
-st.set_page_config(page_title="全球矩阵 SEO 流量作战大屏 V1.0", page_icon="📈", layout="wide")
+# 网页基础设置 (修改网页标题为 SEO日报数据)
+st.set_page_config(page_title="SEO日报数据", page_icon="📈", layout="wide")
 
 # ==========================================
-# ⚙️ 核心数据获取与清洗引擎 (专为 Callie 日报定制)
+# 🎨 自定义 CSS 样式注入 (参考广告看板 UI 进行美化)
+# ==========================================
+st.markdown("""
+<style>
+/* 整体应用背景色偏浅灰，突出白色卡片 */
+.stApp {
+    background-color: #f8fafc;
+}
+/* 核心指标卡片样式优化 */
+div[data-testid="metric-container"] {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 文本居中 */
+    justify-content: center;
+}
+/* 指标卡片 - 标题颜色 */
+div[data-testid="metric-container"] label {
+    font-size: 15px !important;
+    color: #475569 !important;
+    font-weight: 600;
+}
+/* 指标卡片 - 主体大数字颜色 (调整为截图中亮眼的蓝色) */
+div[data-testid="metric-container"] div[data-testid="stMetricValue"] > div {
+    font-size: 34px !important;
+    font-weight: 700 !important;
+    color: #1a56db !important; 
+}
+/* 隐藏原生 Streamlit UI 顶部空白和汉堡菜单 */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# ⚙️ 核心数据获取与清洗引擎
 # ==========================================
 
 # 魔法缓存：每天自动刷新一次，避免超额调用 API
@@ -28,10 +68,10 @@ def load_and_transform_google_sheet():
         sheet_url = "https://docs.google.com/spreadsheets/d/1GLAGMkVx5DMXylG0bbdvkzuqTd8IVfDANhcRrAX6LFU/edit"
         sheet = client.open_by_url(sheet_url).sheet1
         
-        # 3. 提取所有原始数据 (这是一个嵌套列表)
+        # 3. 提取所有原始数据
         raw_data = sheet.get_all_values()
         
-        # 4. 🔥 针对 Callie 表格的“智能切割切割与翻转引擎”
+        # 4. 🔥 数据翻转与清洗引擎
         clean_records = []
         current_site = None
         dates_row = []
@@ -42,25 +82,24 @@ def load_and_transform_google_sheet():
                 
             first_cell = str(row[0]).strip()
             
-            # 探测是不是国家站的开始行 (如 "Callie FR")
+            # 探测是不是国家站的开始行
             if first_cell.startswith("Callie ") and len(first_cell) <= 10:
                 current_site = first_cell.replace("Callie ", "").strip()
-                # 日期就在这一行的后面
                 dates_row = row[1:]
                 continue
                 
-            # 探测指标行 (如果当前有国家站，且不是星期、要事记等文字描述)
+            # 探测指标行
             if current_site and first_cell not in ["星期五", "星期六", "星期日", "星期一", "星期二", "星期三", "星期四", "网站要事记", "TDK优化记录表"]:
                 metric_name = first_cell
                 values = row[1:]
                 
-                # 开始执行数据翻转：把横向日期和数值对齐拼装
+                # 开始执行数据翻转
                 for i in range(len(values)):
                     if i < len(dates_row) and dates_row[i].strip() != "":
                         date_str = dates_row[i]
                         val_str = values[i]
                         
-                        # 清洗数值：去掉美元符号、逗号、百分号，转为浮点数
+                        # 清洗数值
                         clean_val = 0.0
                         if val_str:
                             val_str = str(val_str).replace("$", "").replace(",", "").replace("%", "").strip()
@@ -79,7 +118,7 @@ def load_and_transform_google_sheet():
         # 5. 转化为标准长表 DataFrame
         df_long = pd.DataFrame(clean_records)
         df_long['Date'] = pd.to_datetime(df_long['Date'], errors='coerce')
-        df_long = df_long.dropna(subset=['Date']) # 丢弃无效日期
+        df_long = df_long.dropna(subset=['Date']) 
         
         return df_long
     except Exception as e:
@@ -90,40 +129,37 @@ def load_and_transform_google_sheet():
 # 📊 前端交互面板与可视化
 # ==========================================
 
-st.title("📈 全球矩阵 SEO 流量作战大屏")
-st.caption("数据源直连 Google Sheets：Callie小语种日报数据汇总 (后台自动转置清洗版)")
+st.title("📊 SEO日报数据")
+st.markdown("数据源: `Google Sheets (自动同步与转置)`")
+st.write("---")
 
-with st.spinner("🚀 正在从谷歌云端抽取并切割清洗海量数据，请稍候..."):
+with st.spinner("🚀 正在抽取并清洗数据，请稍候..."):
     df_master = load_and_transform_google_sheet()
 
 if not df_master.empty:
-    st.success(f"✅ 数据湖同步成功！已自动将人力宽表翻转为 {len(df_master)} 条标准时序数据单元。")
-    st.write("---")
     
-    # --- 全局控制器 ---
-    col_filter1, col_filter2, col_filter3 = st.columns(3)
+    # --- 过滤器设计 ---
+    st.subheader("📌 数据看板选项")
+    col_filter1, col_filter2, col_filter3 = st.columns([1, 1.5, 1])
     
-    # 获取所有的站点和指标名称
     all_sites = sorted(df_master['Site'].unique().tolist())
     all_metrics = sorted(df_master['Metric'].unique().tolist())
     
     with col_filter1:
-        selected_sites = st.multiselect("🌍 筛选目标分站：", all_sites, default=all_sites)
+        selected_sites = st.multiselect("🌍 目标站点：", all_sites, default=all_sites)
     with col_filter2:
-        # 默认看流量相关的核心指标
         default_metrics = [m for m in all_metrics if "SEO流量" in m or "网站总流量" in m]
         if not default_metrics: default_metrics = [all_metrics[0]]
-        selected_metrics = st.multiselect("📊 筛选对比指标：", all_metrics, default=default_metrics)
+        selected_metrics = st.multiselect("📈 对比指标：", all_metrics, default=default_metrics)
     with col_filter3:
-        # 时间范围选择器 (默认展示近 30 天)
         min_date = df_master['Date'].min()
         max_date = df_master['Date'].max()
-        selected_dates = st.date_input("📅 筛选时间区间：", [min_date, max_date], min_value=min_date, max_value=max_date)
+        selected_dates = st.date_input("📅 筛选日期范围：", [min_date, max_date], min_value=min_date, max_value=max_date)
 
     if len(selected_dates) == 2 and selected_sites and selected_metrics:
         start_date, end_date = selected_dates
         
-        # 根据用户的选择过滤数据
+        # 过滤主数据
         mask = (df_master['Site'].isin(selected_sites)) & \
                (df_master['Metric'].isin(selected_metrics)) & \
                (df_master['Date'] >= pd.to_datetime(start_date)) & \
@@ -131,38 +167,81 @@ if not df_master.empty:
         df_filtered = df_master[mask]
         
         if not df_filtered.empty:
-            st.subheader("📈 核心数据时序追踪 (Plotly 交互视图)")
             
-            # 使用 Plotly Express 绘制绚丽的折线图 (Hover 支持，可缩放)
-            # 为了在一张图里展示不同国家和不同指标，我们拼装一个组合 Label
+            # ==========================================
+            # 💡 核心数据卡片面板 (仿照广告后台大数字卡片)
+            # ==========================================
+            st.write("")
+            st.subheader("🗓️ 核心指标概览 (选定周期内最新数据)")
+            
+            # 获取选定时间范围内的最后一天数据
+            latest_date_in_range = df_filtered['Date'].max()
+            previous_date = latest_date_in_range - pd.Timedelta(days=1)
+            
+            latest_data = df_filtered[df_filtered['Date'] == latest_date_in_range].groupby('Metric')['Value'].sum()
+            prev_data = df_filtered[df_filtered['Date'] == previous_date].groupby('Metric')['Value'].sum()
+            
+            display_metrics = selected_metrics[:5]
+            metric_cols = st.columns(len(display_metrics))
+            
+            for i, metric in enumerate(display_metrics):
+                current_val = latest_data.get(metric, 0)
+                previous_val = prev_data.get(metric, 0)
+                
+                # 计算环比涨跌幅
+                delta_val = current_val - previous_val
+                if previous_val != 0:
+                    delta_pct = (delta_val / previous_val) * 100
+                    delta_str = f"{delta_pct:+.1f}% 比前日"
+                else:
+                    delta_str = "0% 比前日"
+                    
+                with metric_cols[i]:
+                    st.metric(
+                        label=metric, 
+                        value=f"{current_val:,.0f}", 
+                        delta=delta_str
+                    )
+            
+            st.write("---")
+            
+            # ==========================================
+            # 📈 折线图表
+            # ==========================================
+            st.subheader("📈 时序对比走势")
+            
             df_filtered['Legend'] = df_filtered['Site'] + " - " + df_filtered['Metric']
             
             fig = px.line(
                 df_filtered, 
                 x="Date", y="Value", color="Legend",
                 markers=True,
-                title="分站与指标多维对比走势图",
                 template="plotly_white"
             )
             
             fig.update_layout(
                 xaxis_title="日期",
                 yaxis_title="数值",
-                legend_title="图例 (分站 - 指标)",
-                hovermode="x unified" # 鼠标放上去可以一根竖线对比当天所有数据
+                legend_title="图例",
+                hovermode="x unified",
+                margin=dict(l=0, r=0, t=30, b=0),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
             )
             
             st.plotly_chart(fig, use_container_width=True)
             
+            # ==========================================
+            # 🗄️ 数据明细表格
+            # ==========================================
             st.write("---")
-            st.subheader("🗄️ 底层数据透视表 (已由横转竖，供运营直接下载审计)")
-            # Pivot 回来，让数据看起来更紧凑一点展示
+            st.subheader("🗄️ 明细数据报表")
             df_pivot = df_filtered.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
-            # 倒序排列，最新日期在上面
             df_pivot = df_pivot.sort_values(by="Date", ascending=False)
+            df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
             st.dataframe(df_pivot, use_container_width=True, hide_index=True)
             
         else:
             st.warning("所选区间或条件下无数据，请调整筛选器。")
 else:
-    st.info("👈 请先在 Streamlit Secrets 中配置好 GCP 的 JSON 密钥，并在 Google Sheets 中共享权限给 Bot 邮箱。")
+    st.info("👈 请先配置好 GCP 的 JSON 密钥，并在 Google Sheets 中开放访问权限。")
