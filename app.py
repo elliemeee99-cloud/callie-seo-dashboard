@@ -6,7 +6,7 @@ import plotly.express as px
 import datetime
 
 # 网页基础设置 (宽屏模式，隐藏默认侧边栏)
-st.set_page_config(page_title="小语种营销日报", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="小语种SEO日报", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
 # 🎨 终极定制 CSS (无侧边栏纯净版)
@@ -140,7 +140,7 @@ def load_and_transform_google_sheet():
 today_str = datetime.datetime.now().strftime("%Y年%m月%d日")
 st.markdown(f"""
 <div style="text-align: center; margin-bottom: 30px;">
-    <h1 style="color: #2563eb; font-size: 38px; font-weight: bold; margin-bottom: 8px;">小语种营销日报</h1>
+    <h1 style="color: #2563eb; font-size: 38px; font-weight: bold; margin-bottom: 8px;">小语种SEO日报</h1>
     <div style="color: #64748b; font-size: 16px;">{today_str}</div>
 </div>
 """, unsafe_allow_html=True)
@@ -157,7 +157,7 @@ if not df_master.empty:
     raw_sites = sorted(df_master['Site'].unique().tolist())
     display_sites = ["全部站点"] + [en_to_cn.get(s, s) for s in raw_sites]
     
-    # --- 2. 核心导航：居中的站点切换 (替代原本的板块切换) ---
+    # --- 2. 核心导航：居中的站点切换 ---
     col_nav1, col_nav2, col_nav3 = st.columns([1, 6, 1])
     with col_nav2:
         selected_site_cn = st.pills("站点切换", display_sites, default="全部站点", label_visibility="collapsed")
@@ -167,9 +167,9 @@ if not df_master.empty:
     # --- 3. 核心导航：时间与指标扩展筛选 ---
     col_filter1, col_filter2 = st.columns([1, 1])
     with col_filter1:
-        # 时间快捷选择
+        # 默认选中“过去7天”，让图表立刻呈现出折线趋势
         times = ["过去1天", "过去7天", "过去14天", "全部数据"]
-        selected_time = st.pills("时间选择", times, default="过去1天", label_visibility="collapsed")
+        selected_time = st.pills("时间选择", times, default="过去7天", label_visibility="collapsed")
     with col_filter2:
         # 用于下方图表和表格的指标多选
         all_metrics = sorted(df_master['Metric'].unique().tolist())
@@ -183,109 +183,114 @@ if not df_master.empty:
     # 📊 数据处理与核心板块展示
     # ==========================================
     
-    # 1. 解析时间范围
-    max_date = df_master['Date'].max()
-    if selected_time == "过去1天":
-        start_date = max_date - pd.Timedelta(days=1)
-    elif selected_time == "过去7天":
-        start_date = max_date - pd.Timedelta(days=7)
-    elif selected_time == "过去14天":
-        start_date = max_date - pd.Timedelta(days=14)
-    else:
-        start_date = df_master['Date'].min()
-        
-    end_date = max_date
-    prev_date = max_date - pd.Timedelta(days=1) # 永远对比前一日
-    
-    # 2. 解析站点
+    # 1. 解析目标站点
     if selected_site_cn == "全部站点" or selected_site_cn is None:
         target_sites = raw_sites
     else:
-        # 中文转回英文代码
         target_sites = [cn_to_en.get(selected_site_cn, selected_site_cn)]
         
-    # 3. 过滤数据
-    mask = (df_master['Site'].isin(target_sites)) & \
-           (df_master['Date'] >= start_date) & \
-           (df_master['Date'] <= end_date)
-    df_filtered = df_master[mask]
+    df_site = df_master[df_master['Site'].isin(target_sites)]
     
-    if not df_filtered.empty:
-        # 获取昨天和前天的聚合数据，用于顶部卡片计算环比
-        day_data = df_master[(df_master['Site'].isin(target_sites)) & (df_master['Date'] == max_date)].groupby('Metric')['Value'].sum()
-        prev_day_data = df_master[(df_master['Site'].isin(target_sites)) & (df_master['Date'] == prev_date)].groupby('Metric')['Value'].sum()
+    if not df_site.empty:
+        # 💡 智能寻日逻辑：寻找该站点真正在表格里填了数据的“最新一天”和“倒数第二天”
+        available_dates = sorted(df_site['Date'].dropna().unique())
         
-        # 🤖 智能寻找代表“销售额”的指标
-        sales_metric_key = None
-        for m in all_metrics:
-            if any(kw in m for kw in ["销售额", "转化价值", "成交额", "Sales", "Revenue"]):
-                sales_metric_key = m
-                break
-                
-        # --- 渲染卡片区域 ---
-        col_c1, col_c2, col_c3 = st.columns(3)
-        
-        with col_c1:
-            # 第一板块：固定展示昨日SEO销售额
-            title_text = f"昨日 {sales_metric_key}" if sales_metric_key else "昨日SEO销售额"
-            current_sales = day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
-            prev_sales = prev_day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
+        if len(available_dates) > 0:
+            latest_date = pd.Timestamp(available_dates[-1])
+            # 如果只有一天的数据，那上一天就用同一天防止报错
+            prev_date = pd.Timestamp(available_dates[-2]) if len(available_dates) >= 2 else latest_date
             
-            if prev_sales > 0:
-                sales_delta = ((current_sales - prev_sales) / prev_sales) * 100
-                delta_str = f"{sales_delta:+.1f}% 对比前日"
+            # 2. 根据表格真实的最新日期往前推算筛选范围
+            if selected_time == "过去1天":
+                start_date = latest_date - pd.Timedelta(days=1)
+            elif selected_time == "过去7天":
+                start_date = latest_date - pd.Timedelta(days=7)
+            elif selected_time == "过去14天":
+                start_date = latest_date - pd.Timedelta(days=14)
             else:
-                delta_str = "0.0% 对比前日"
+                start_date = df_site['Date'].min()
                 
-            st.metric(label=title_text, value=f"${current_sales:,.2f}", delta=delta_str)
+            # 3. 过滤出图表和明细表使用的数据
+            mask = (df_site['Date'] >= start_date) & (df_site['Date'] <= latest_date)
+            df_filtered = df_site[mask]
             
-        with col_c2:
-            # 第二板块：流量指标
-            traffic_metric = next((m for m in all_metrics if "流量" in m or "Traffic" in m), all_metrics[0])
-            t_val = day_data.get(traffic_metric, 0.0)
-            p_val = prev_day_data.get(traffic_metric, 0.0)
-            d_str = f"{((t_val-p_val)/p_val)*100:+.1f}%" if p_val > 0 else "0%"
-            st.metric(label=f"昨日 {traffic_metric}", value=f"{t_val:,.0f}", delta=d_str)
+            # 获取最新一天和上一天的聚合数据，用于顶部卡片计算环比
+            day_data = df_site[df_site['Date'] == latest_date].groupby('Metric')['Value'].sum()
+            prev_day_data = df_site[df_site['Date'] == prev_date].groupby('Metric')['Value'].sum()
+            
+            # 🤖 智能寻找代表“销售额”的指标
+            sales_metric_key = None
+            for m in all_metrics:
+                if any(kw in m for kw in ["销售额", "转化价值", "成交额", "Sales", "Revenue"]):
+                    sales_metric_key = m
+                    break
+                    
+            # --- 渲染卡片区域 ---
+            col_c1, col_c2, col_c3 = st.columns(3)
+            
+            # 为了让用户知道数据是哪天的，我们在标题加上日期的月/日
+            date_label = latest_date.strftime('%m/%d')
+            
+            with col_c1:
+                title_text = f"[{date_label}] {sales_metric_key}" if sales_metric_key else f"[{date_label}] SEO销售额"
+                current_sales = day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
+                prev_sales = prev_day_data.get(sales_metric_key, 0.0) if sales_metric_key else 0.0
+                
+                if prev_sales > 0:
+                    sales_delta = ((current_sales - prev_sales) / prev_sales) * 100
+                    delta_str = f"{sales_delta:+.1f}% 对比上一记录日"
+                else:
+                    delta_str = "0.0% 对比上一记录日"
+                    
+                st.metric(label=title_text, value=f"${current_sales:,.2f}", delta=delta_str)
+                
+            with col_c2:
+                traffic_metric = next((m for m in all_metrics if "流量" in m or "Traffic" in m), all_metrics[0])
+                t_val = day_data.get(traffic_metric, 0.0)
+                p_val = prev_day_data.get(traffic_metric, 0.0)
+                d_str = f"{((t_val-p_val)/p_val)*100:+.1f}% 对比上一记录日" if p_val > 0 else "0%"
+                st.metric(label=f"[{date_label}] {traffic_metric}", value=f"{t_val:,.0f}", delta=d_str)
 
-        with col_c3:
-            # 第三板块：状态提示
-            st.metric(label="当前分析视图", value=f"{selected_site_cn}", delta="数据同步成功")
+            with col_c3:
+                st.metric(label="当前分析视图", value=f"{selected_site_cn}", delta=f"已更新至 {date_label}")
+                
+            st.write("---")
             
-        st.write("---")
-        
-        # --- 渲染图表区域 ---
-        st.subheader("📈 核心指标时序走势")
-        
-        df_chart = df_filtered[df_filtered['Metric'].isin(selected_metrics)].copy()
-        if not df_chart.empty:
-            df_chart['Legend'] = df_chart['Site'] + " - " + df_chart['Metric']
-            fig = px.line(
-                df_chart, 
-                x="Date", y="Value", color="Legend",
-                markers=True,
-                template="plotly_white",
-                color_discrete_sequence=["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#0284c7", "#0ea5e9"]
-            )
-            fig.update_layout(
-                xaxis_title="",
-                yaxis_title="数值",
-                hovermode="x unified",
-                margin=dict(l=10, r=10, t=20, b=10),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                legend_title="指标"
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            # --- 渲染图表区域 ---
+            st.subheader("📈 核心指标时序走势")
             
-        # --- 渲染表格区域 ---
-        st.write("---")
-        st.subheader("🗄️ 明细数据报表")
-        df_pivot = df_chart.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
-        df_pivot = df_pivot.sort_values(by="Date", ascending=False)
-        df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
-        st.dataframe(df_pivot, use_container_width=True, hide_index=True)
-        
+            df_chart = df_filtered[df_filtered['Metric'].isin(selected_metrics)].copy()
+            if not df_chart.empty:
+                df_chart['Legend'] = df_chart['Site'] + " - " + df_chart['Metric']
+                fig = px.line(
+                    df_chart, 
+                    x="Date", y="Value", color="Legend",
+                    markers=True,
+                    template="plotly_white",
+                    color_discrete_sequence=["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#0284c7", "#0ea5e9"]
+                )
+                fig.update_layout(
+                    xaxis_title="",
+                    yaxis_title="数值",
+                    hovermode="x unified",
+                    margin=dict(l=10, r=10, t=20, b=10),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    legend_title="指标"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+            # --- 渲染表格区域 ---
+            st.write("---")
+            st.subheader("🗄️ 明细数据报表")
+            df_pivot = df_chart.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
+            df_pivot = df_pivot.sort_values(by="Date", ascending=False)
+            df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
+            st.dataframe(df_pivot, use_container_width=True, hide_index=True)
+            
+        else:
+            st.warning(f"在 {selected_site_cn} 站点中未解析到有效的日期格式数据。")
     else:
-        st.warning(f"在所选时间范围内没有找到 {selected_site_cn} 的数据。")
+        st.warning(f"没有找到 {selected_site_cn} 的数据，请检查谷歌表格中是否填入了该站点。")
 else:
     st.info("👈 请先配置好 GCP 的 JSON 密钥，并在 Google Sheets 中开放访问权限。")
