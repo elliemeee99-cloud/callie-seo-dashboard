@@ -11,7 +11,7 @@ from openai import OpenAI
 st.set_page_config(page_title="SEO数据看板", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 终极定制 CSS (高阶卡片与左对齐排版)
+# 🎨 终极定制 CSS (高阶卡片与排版)
 # ==========================================
 st.markdown("""
 <style>
@@ -76,27 +76,28 @@ def load_and_transform_google_sheet():
         
         clean_records = []
         
-        # --- 1. 读取 Sheet2 (专属 SEO 销售额) ---
+        # --- 1. 读取 Sheet2 (专属 SEO 销售额及底部总计) ---
+        current_month_totals = {}
         try:
             sheet2 = spreadsheet.worksheet("Sheet2")
             raw_data_2 = sheet2.get_all_values()
             if raw_data_2:
                 headers = raw_data_2[0]
-                # 提取年份
                 year_str = headers[0].replace('年', '').strip() if '年' in headers[0] else str(datetime.datetime.now().year)
                 
                 for row in raw_data_2[1:]:
                     if not row or not row[0]: continue
-                    date_str = row[0].strip()
+                    first_col = row[0].strip()
                     
-                    if "月" in date_str and "日" in date_str:
-                        month = date_str.split('月')[0].strip()
-                        day = date_str.split('月')[1].replace('日', '').strip()
+                    # 抓取日常数据
+                    if "月" in first_col and "日" in first_col:
+                        month = first_col.split('月')[0].strip()
+                        day = first_col.split('月')[1].replace('日', '').strip()
                         date_val = f"{year_str}-{month}-{day}"
                         
-                        for i in range(1, len(headers)):
+                        for i in range(1, min(len(headers), len(row))):
                             site = headers[i].strip()
-                            if site in ["总计", ""] or i >= len(row): continue
+                            if site in ["总计", ""] : continue
                             
                             val_str = row[i].strip()
                             if not val_str or val_str == "-" or val_str.lower() in ["n/a", "null", "#num!"]:
@@ -106,15 +107,36 @@ def load_and_transform_google_sheet():
                                 val = float(clean_str) if clean_str else 0.0
                                 
                             clean_records.append({
-                                "Date": date_val, 
-                                "Site": site, 
-                                "Metric": "SEO销售额", # 统一核心指标命名
-                                "Value": val
+                                "Date": date_val, "Site": site, "Metric": "SEO销售额", "Value": val
                             })
+                            
+                    # 💡 强力抓取底部的“总计”行，完美匹配你的表格
+                    elif first_col == "总计":
+                        current_month_totals = {} # 每次遇到覆盖，确保抓到的是最底下的最新总计
+                        for i in range(1, min(len(headers), len(row))):
+                            site = headers[i].strip()
+                            if site == "": continue
+                            
+                            val_str = row[i].strip()
+                            clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                            val = float(clean_str) if clean_str else 0.0
+                            
+                            if site == "总计":
+                                current_month_totals['Global'] = val
+                            else:
+                                current_month_totals[site] = val
         except Exception as e:
             print(f"Sheet2 读取跳过: {e}")
+            
+        # 将总计作为特殊指标塞入数据源（设定一个未来日期以防污染走势图）
+        if current_month_totals:
+            for site, val in current_month_totals.items():
+                s_name = "ALL" if site == "Global" else site
+                clean_records.append({
+                    "Date": "2099-12-31", "Site": s_name, "Metric": "SEO销售额_当月总计", "Value": val
+                })
 
-        # --- 2. 读取 Sheet1 (其他流量及行为指标) ---
+        # --- 2. 读取 Sheet1 (其他流量指标) ---
         sheet1 = spreadsheet.sheet1
         raw_data_1 = sheet1.get_all_values()
         current_site = None
@@ -193,13 +215,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-with st.spinner("🚀 正在融合多表数据..."):
+with st.spinner("🚀 正在抓取报表底层总计与明细..."):
     df_master = load_and_transform_google_sheet()
 
 if not df_master.empty:
     cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
     en_to_cn = {v: k for k, v in cn_to_en.items()}
-    raw_sites = sorted(df_master['Site'].unique().tolist())
+    raw_sites = sorted([s for s in df_master['Site'].unique().tolist() if s != "ALL"])
     display_sites = ["全部站点"] + [en_to_cn.get(s, s) for s in raw_sites]
     
     # ------------------------------------------
@@ -211,13 +233,13 @@ if not df_master.empty:
     with col_filter1:
         with st.container(border=True):
             st.markdown("<span style='color:#64748b; font-size:13px;'>📅 分析周期</span>", unsafe_allow_html=True)
-            times = ["过去1天", "过去7天", "过去14天", "本月累计"]
+            times = ["过去1天", "过去7天", "过去14天"]
             selected_time = st.pills("时间选择", times, default="过去7天", label_visibility="collapsed")
             
     with col_filter2:
         with st.container(border=True):
             st.markdown("<span style='color:#64748b; font-size:13px;'>📈 附加指标展示</span>", unsafe_allow_html=True)
-            all_metrics = sorted(df_master['Metric'].unique().tolist())
+            all_metrics = sorted([m for m in df_master['Metric'].unique() if "当月总计" not in m])
             default_metrics = [m for m in all_metrics if "SEO流量" in m or "网站总流量" in m]
             if not default_metrics: default_metrics = [all_metrics[0]]
             selected_metrics = st.pills("指标选择", all_metrics, default=default_metrics, selection_mode="multi", label_visibility="collapsed")
@@ -227,44 +249,12 @@ if not df_master.empty:
 
     sales_metric_key = "SEO销售额" 
     traffic_metric = next((m for m in all_metrics if m in ["SEO流量", "网站总流量"]), all_metrics[0])
+    target_sites = raw_sites if selected_site_cn == "全部站点" else [cn_to_en.get(selected_site_cn, selected_site_cn)]
 
     # ------------------------------------------
-    # 💰 2. 宏观看板置顶：本月累计SEO销售额
-    # ------------------------------------------
-    st.markdown("### 💰 本月累计SEO销售额")
-    with st.container(border=True):
-        # 计算逻辑：当月 1 号到昨天 (latest_date)
-        first_day_of_month = latest_date.replace(day=1)
-        mask_mtd = (df_master['Date'] >= first_day_of_month) & (df_master['Date'] <= latest_date)
-        df_mtd = df_master[mask_mtd]
-        
-        if not df_mtd.empty and sales_metric_key in df_mtd['Metric'].values:
-            total_mtd_sales = df_mtd[df_mtd['Metric'] == sales_metric_key]['Value'].sum()
-            
-            st.markdown(f"<div style='color:#64748b; font-size:14px;'>统计区间: {first_day_of_month.strftime('%m月%d日')} ~ {latest_date.strftime('%m月%d日')}</div>", unsafe_allow_html=True)
-            st.metric(f"🌐 全局本月累计 ({sales_metric_key})", f"${total_mtd_sales:,.2f}")
-            st.markdown("---")
-            
-            # Superset 各站点横向拆解
-            st.markdown("<span style='color:#64748b; font-size:13px;'>🌍 各站点贡献排名</span>", unsafe_allow_html=True)
-            site_sales = df_mtd[df_mtd['Metric'] == sales_metric_key].groupby('Site')['Value'].sum().sort_values(ascending=False)
-            
-            if not site_sales.empty:
-                num_cols = min(len(site_sales), 6)
-                cols = st.columns(num_cols)
-                for i, (site_code, val) in enumerate(site_sales.items()):
-                    with cols[i % num_cols]:
-                        site_name = en_to_cn.get(site_code, site_code)
-                        st.metric(site_name, f"${val:,.0f}")
-        else:
-            st.info("本月尚未录入有效的SEO销售额数据。")
-
-    # ------------------------------------------
-    # 🤖 3. 单日表现 & AI 洞察
+    # 🤖 2. 单日表现 & AI 洞察 (置于大盘顶部)
     # ------------------------------------------
     st.markdown("### 📊 昨日核心表现")
-    target_sites = raw_sites if selected_site_cn == "全部站点" else [cn_to_en.get(selected_site_cn, selected_site_cn)]
-    
     with st.container(border=True):
         df_site = df_master[df_master['Site'].isin(target_sites)]
         if not df_site.empty:
@@ -305,36 +295,71 @@ if not df_master.empty:
             st.warning(f"没有找到 {selected_site_cn} 的单日数据。")
 
     # ------------------------------------------
-    # 📈 4. 趋势图与明细报表
+    # 📈 3. 趋势图区域
     # ------------------------------------------
-    if not df_site.empty:
-        if selected_time == "过去1天": start_date = latest_date
-        elif selected_time == "过去7天": start_date = latest_date - pd.Timedelta(days=6)
-        elif selected_time == "过去14天": start_date = latest_date - pd.Timedelta(days=13)
-        else: start_date = first_day_of_month
-            
-        mask = (df_site['Date'] >= start_date) & (df_site['Date'] <= latest_date)
-        df_filtered = df_site[mask]
+    st.markdown("### 📈 时序走势明细")
+    
+    if selected_time == "过去1天": start_date = latest_date
+    elif selected_time == "过去7天": start_date = latest_date - pd.Timedelta(days=6)
+    else: start_date = latest_date - pd.Timedelta(days=13)
         
-        st.markdown("### 📈 时序走势明细")
-        with st.container(border=True):
-            df_chart = df_filtered[df_filtered['Metric'].isin(selected_metrics + [sales_metric_key])].copy()
-            if not df_chart.empty:
-                df_chart['Legend'] = df_chart['Site'] + " - " + df_chart['Metric']
-                fig = px.line(
-                    df_chart, x="Date", y="Value", color="Legend", markers=True, template="plotly_white",
-                    color_discrete_sequence=["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#0284c7"]
-                )
-                fig.update_layout(xaxis_title="", yaxis_title="数值", hovermode="x unified", margin=dict(l=10, r=10, t=20, b=10))
-                st.plotly_chart(fig, use_container_width=True)
-                
-                st.markdown("---")
-                
-                df_pivot = df_chart.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
-                df_pivot = df_pivot.sort_values(by="Date", ascending=False)
-                df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
-                st.dataframe(df_pivot, use_container_width=True, hide_index=True)
-            else:
-                st.info(f"选定区间尚未录入数据。")
+    mask = (df_site['Date'] >= start_date) & (df_site['Date'] <= latest_date)
+    df_filtered = df_site[mask]
+    
+    with st.container(border=True):
+        df_chart = df_filtered[df_filtered['Metric'].isin(selected_metrics + [sales_metric_key])].copy()
+        if not df_chart.empty:
+            df_chart['Legend'] = df_chart['Site'] + " - " + df_chart['Metric']
+            fig = px.line(
+                df_chart, x="Date", y="Value", color="Legend", markers=True, template="plotly_white",
+                color_discrete_sequence=["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#0284c7"]
+            )
+            fig.update_layout(xaxis_title="", yaxis_title="数值", hovermode="x unified", margin=dict(l=10, r=10, t=20, b=10))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info(f"选定区间尚未录入数据。")
+
+    st.write("---")
+
+    # ------------------------------------------
+    # 💰 4. 本月累计SEO销售额 (直取 Sheet2 底栏总计，放在明细正上方)
+    # ------------------------------------------
+    st.markdown("### 💰 本月累计SEO销售额")
+    with st.container(border=True):
+        mtd_data = df_master[df_master['Metric'] == 'SEO销售额_当月总计']
+        
+        if not mtd_data.empty:
+            global_val = mtd_data[mtd_data['Site'] == 'ALL']['Value'].sum()
+            st.markdown(f"<div style='color:#64748b; font-size:14px; margin-bottom:10px;'>📊 匹配数据源：Sheet2 表底『总计』行实时抓取</div>", unsafe_allow_html=True)
+            st.metric(f"🌐 全局本月累计SEO销售额", f"${global_val:,.2f}")
+            st.markdown("---")
+            
+            st.markdown("<span style='color:#64748b; font-size:13px;'>🌍 各站点累计贡献排名</span>", unsafe_allow_html=True)
+            site_mtd = mtd_data[mtd_data['Site'] != 'ALL'].set_index('Site')['Value'].sort_values(ascending=False)
+            
+            if not site_mtd.empty:
+                num_cols = min(len(site_mtd), 6)
+                cols = st.columns(num_cols)
+                for i, (site_code, val) in enumerate(site_mtd.items()):
+                    with cols[i % num_cols]:
+                        site_name = en_to_cn.get(site_code, site_code)
+                        st.metric(site_name, f"${val:,.0f}")
+        else:
+            st.info("尚未抓取到 Sheet2 的'总计'行数据。")
+
+    st.write("---")
+    
+    # ------------------------------------------
+    # 🗄️ 5. 明细数据报表
+    # ------------------------------------------
+    st.markdown("### 🗄️ 明细数据报表")
+    if not df_chart.empty:
+        df_pivot = df_chart.pivot_table(index=['Date', 'Site'], columns='Metric', values='Value', aggfunc='sum').reset_index()
+        df_pivot = df_pivot.sort_values(by="Date", ascending=False)
+        df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
+        st.dataframe(df_pivot, use_container_width=True, hide_index=True)
+    else:
+        st.write("暂无对应的明细报表。")
+            
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据湖。")
