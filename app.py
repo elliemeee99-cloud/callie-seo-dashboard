@@ -18,7 +18,7 @@ st.markdown("""
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="collapsedControl"] {display: none;}
-.block-container { padding-top: 2rem !important; max-width: 95% !important; }
+.block-container { padding-top: 2rem !important; max-width: 98% !important; }
 
 /* 圆角分区容器 */
 [data-testid="stVerticalBlockBorderWrapper"] {
@@ -97,7 +97,7 @@ latest_date = real_today - pd.Timedelta(days=1)
 
 st.markdown(f"""
 <div style="margin-bottom: 25px;">
-    <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO 月度目标完成情况</h1>
+    <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO数据看板</h1>
     <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
 </div>
 """, unsafe_allow_html=True)
@@ -109,9 +109,9 @@ if data_dict:
     sales_data = data_dict["sales"]
     target_data = data_dict["targets"]
     
-    # 强制固定业务顺序
-    fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI"]
-    en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰"}
+    # 🔥 修复：强制固定业务顺序，补上漏掉的 PL 波兰站！一共 9 个站
+    fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
+    en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰", "PL":"波兰"}
     
     # --- 计算大盘与时间进度 ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
@@ -149,8 +149,7 @@ if data_dict:
             
         with col_chart:
             st.write("")
-            
-            # 💡 彻底扁平化的单行 HTML 拼接，杜绝任何 Markdown 误判
+            # 扁平化的单行 HTML 拼接，防止解析出错
             custom_progress_html = (
                 f'<div style="padding: 0px 20px;">'
                 f'<div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">'
@@ -181,7 +180,8 @@ if data_dict:
     st.markdown("### 🌍 各站点完成明细 (业绩 vs 时间)")
     
     with st.container(border=True):
-        cols = st.columns(8)
+        # 🔥 修改为 9 列，完美容纳包含波兰在内的所有站点
+        cols = st.columns(9)
         for i, site in enumerate(fixed_sites_order):
             with cols[i]:
                 s_actual = sales_data.get(site, 0)
@@ -198,18 +198,17 @@ if data_dict:
                     delta_color=color
                 )
                 
-                # 💡 各站点底部的双轨进度条 (扁平化安全拼接)
                 bar_color = '#10b981' if s_rate >= time_progress_rate else '#f43f5e'
                 
                 site_html = (
                     f'<div style="margin-top: 5px;">'
-                    f'<div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 4px;">'
+                    f'<div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 4px;">'
                     f'<span>业绩</span><span style="font-weight: 600; color: {bar_color};">{s_rate:.1f}%</span>'
                     f'</div>'
                     f'<div style="background-color: #f1f5f9; border-radius: 10px; width: 100%; height: 6px; margin-bottom: 10px;">'
                     f'<div style="background-color: {bar_color}; border-radius: 10px; width: {min(s_rate, 100)}%; height: 100%;"></div>'
                     f'</div>'
-                    f'<div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 4px;">'
+                    f'<div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 4px;">'
                     f'<span>时间</span><span>{time_progress_rate:.1f}%</span>'
                     f'</div>'
                     f'<div style="background-color: #f1f5f9; border-radius: 10px; width: 100%; height: 6px;">'
