@@ -150,7 +150,7 @@ if data_dict:
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
     en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰", "PL":"波兰"}
     
-    # --- 原版计算逻辑 (原封不动保留) ---
+    # --- 原版计算逻辑 ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
@@ -290,22 +290,24 @@ if data_dict:
             with col_m2:
                 if total_mom_historical > 0:
                     mom_delta = ((total_actual - total_mom_historical) / total_mom_historical) * 100
-                    mom_str = f"{mom_delta:+.1f}%"
+                    # 🔥 修复重点：把符号和数字放前面，汉字括起来放后面
+                    mom_str = f"{mom_delta:+.1f}% (环比)"
                 else:
                     mom_str = "0.0% (无历史)"
                 st.metric(label=f"上月同期累计 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", 
-                          value=f"${total_mom_historical:,.2f}", delta=f"环比变化 {mom_str}")
+                          value=f"${total_mom_historical:,.2f}", delta=mom_str)
                           
             with col_m3:
                 if total_yoy_historical > 0:
                     yoy_delta = ((total_actual - total_yoy_historical) / total_yoy_historical) * 100
-                    yoy_str = f"{yoy_delta:+.1f}%"
+                    # 🔥 修复重点：把符号和数字放前面，汉字括起来放后面
+                    yoy_str = f"{yoy_delta:+.1f}% (同比)"
                 else:
                     yoy_str = "0.0% (无历史)"
                 st.metric(label=f"去年同期累计 ({start_of_last_year_month.strftime('%Y/%m/%d')}-{end_of_last_year_mtd.strftime('%m/%d')})", 
-                          value=f"${total_yoy_historical:,.2f}", delta=f"同比变化 {yoy_str}")
+                          value=f"${total_yoy_historical:,.2f}", delta=yoy_str)
         else:
-            st.info("尚未在表格中抓取到有效的历史日期数据（如 2026/7/1），同环比计算暂时休息中...")
+            st.info("尚未在表格中抓取到有效的历史日期数据，同环比计算暂时休息中...")
 
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
