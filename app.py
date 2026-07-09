@@ -8,7 +8,7 @@ import re
 from openai import OpenAI
 
 # 网页基础设置
-st.set_page_config(page_title="小语种SEO日报", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SEO数据看板", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
 # 🎨 终极定制 CSS (高阶卡片与左对齐排版)
@@ -21,7 +21,7 @@ header {visibility: hidden;}
 [data-testid="collapsedControl"] {display: none;}
 .block-container { padding-top: 2rem !important; max-width: 95% !important; }
 
-/* 站点和时间 Pills 标签样式 (仿参考图) */
+/* 站点和时间 Pills 标签样式 */
 button[data-testid="stPill"] {
     background-color: #ffffff !important; 
     border: 1px solid #e2e8f0 !important;
@@ -89,13 +89,11 @@ def load_and_transform_google_sheet():
                     if not row or not row[0]: continue
                     date_str = row[0].strip()
                     
-                    # 匹配类似 "7月1日" 的格式
                     if "月" in date_str and "日" in date_str:
                         month = date_str.split('月')[0].strip()
                         day = date_str.split('月')[1].replace('日', '').strip()
                         date_val = f"{year_str}-{month}-{day}"
                         
-                        # 遍历各个国家站点列
                         for i in range(1, len(headers)):
                             site = headers[i].strip()
                             if site in ["总计", ""] or i >= len(row): continue
@@ -110,7 +108,7 @@ def load_and_transform_google_sheet():
                             clean_records.append({
                                 "Date": date_val, 
                                 "Site": site, 
-                                "Metric": "SEO销售额", # 统一命名为核心指标
+                                "Metric": "SEO销售额", # 统一核心指标命名
                                 "Value": val
                             })
         except Exception as e:
@@ -133,7 +131,6 @@ def load_and_transform_google_sheet():
                 
             if current_site and first_cell not in ["星期五", "星期六", "星期日", "星期一", "星期二", "星期三", "星期四", "网站要事记", "TDK优化记录表"]:
                 metric_name = first_cell
-                # 为避免重复，跳过 Sheet1 里的销售额字段，全权交由 Sheet2 管理
                 if any(kw in metric_name for kw in ["销售", "Sales", "成交", "转化价值"]):
                     continue
                     
@@ -191,7 +188,7 @@ prev_date = latest_date - pd.Timedelta(days=1)
 
 st.markdown(f"""
 <div style="margin-bottom: 25px;">
-    <h1 style="color: #1e293b; font-size: 28px; font-weight: 700; margin-bottom: 4px;">广告数据看板</h1>
+    <h1 style="color: #1e293b; font-size: 28px; font-weight: 700; margin-bottom: 4px;">SEO数据看板</h1>
     <div style="color: #64748b; font-size: 13px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
 </div>
 """, unsafe_allow_html=True)
@@ -206,7 +203,7 @@ if not df_master.empty:
     display_sites = ["全部站点"] + [en_to_cn.get(s, s) for s in raw_sites]
     
     # ------------------------------------------
-    # 📌 1. 顶部全宽靠左控制台 (仿截图)
+    # 📌 1. 顶部全局控制台
     # ------------------------------------------
     selected_site_cn = st.pills("🌍 站点选择", display_sites, default="全部站点", label_visibility="collapsed")
     
@@ -228,14 +225,13 @@ if not df_master.empty:
 
     st.write("")
 
-    # --- 锁定核心指标 ---
-    sales_metric_key = "SEO销售额" # 已在上方融合引擎中强制统一命名
+    sales_metric_key = "SEO销售额" 
     traffic_metric = next((m for m in all_metrics if m in ["SEO流量", "网站总流量"]), all_metrics[0])
 
     # ------------------------------------------
-    # 💰 2. 宏观看板：本月累计 (MTD) Superset 视图
+    # 💰 2. 宏观看板置顶：本月累计SEO销售额
     # ------------------------------------------
-    st.markdown("### 💰 本月累计业绩 (MTD)")
+    st.markdown("### 💰 本月累计SEO销售额")
     with st.container(border=True):
         # 计算逻辑：当月 1 号到昨天 (latest_date)
         first_day_of_month = latest_date.replace(day=1)
@@ -261,7 +257,7 @@ if not df_master.empty:
                         site_name = en_to_cn.get(site_code, site_code)
                         st.metric(site_name, f"${val:,.0f}")
         else:
-            st.info("本月尚未录入有效的销售额数据。")
+            st.info("本月尚未录入有效的SEO销售额数据。")
 
     # ------------------------------------------
     # 🤖 3. 单日表现 & AI 洞察
