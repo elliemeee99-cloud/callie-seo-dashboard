@@ -7,14 +7,14 @@ import datetime
 import re
 
 # 网页基础设置
-st.set_page_config(page_title="SEO数据看板", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
 # 🎨 定制 CSS (极简高端排版)
 # ==========================================
 st.markdown("""
 <style>
-.stApp { background-color: #f4f7f9 !important; }
+.stApp { background-color: #f8fafc !important; }
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="collapsedControl"] {display: none;}
@@ -22,16 +22,16 @@ header {visibility: hidden;}
 
 /* 圆角分区容器 */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 12px !important;
+    border-radius: 16px !important;
     border: 1px solid #e2e8f0 !important;
     background-color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     padding: 10px;
 }
 
 /* 覆盖原生卡片字体 */
 div[data-testid="stMetricValue"] > div {
-    color: #0f172a !important; font-size: 26px !important; font-weight: 700 !important;
+    color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important;
 }
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
@@ -65,7 +65,7 @@ def load_and_transform_google_sheet():
                         
                 # 💡 抓取底部的“总计”行 (实际销售额)
                 if first_col == "总计":
-                    sales_data = {} # 保证抓到的是最底下最新的
+                    sales_data = {} 
                     for i in range(1, min(len(headers), len(row))):
                         site = headers[i].strip()
                         if site == "": continue
@@ -97,12 +97,12 @@ latest_date = real_today - pd.Timedelta(days=1)
 
 st.markdown(f"""
 <div style="margin-bottom: 25px;">
-    <h1 style="color: #1e293b; font-size: 32px; font-weight: 700; margin-bottom: 4px;">SEO目标与业绩看板</h1>
+    <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO目标与业绩看板</h1>
     <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
 </div>
 """, unsafe_allow_html=True)
 
-with st.spinner("🚀 正在生成图表数据..."):
+with st.spinner("✨ 正在召唤看板数据..."):
     data_dict = load_and_transform_google_sheet()
 
 if data_dict:
@@ -113,59 +113,60 @@ if data_dict:
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI"]
     en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰"}
     
-    # --- 计算大盘总数据 ---
-    # 如果表格总计列有“总计”数值则用它，否则将各个站点的实际销售额累加
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
-    # 自动计算总目标 (各个分站点目标之和)
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
+    capped_rate = min(total_rate, 100) # 用于控制进度条宽度不超过 100%
+
+    # --- 可爱元气文案逻辑 ---
+    if total_rate >= 100:
+        cheer_msg = "🎉 完美达标！太棒啦，大家辛苦了！"
+        st.balloons() # 🎊 达标自动撒气球彩蛋！
+    elif total_rate >= 80:
+        cheer_msg = "🔥 冲刺阶段，胜利就在眼前啦！"
+    elif total_rate >= 50:
+        cheer_msg = "🏃 稳步前行，进度已经过半咯！"
+    else:
+        cheer_msg = "✨ 起步加速中，这月也要冲鸭！"
 
     # ------------------------------------------
-    # 🏆 第一板块：全盘总目标与进度 (仪表盘)
+    # 🏆 第一板块：全盘总目标与进度 (趣味元气进度条)
     # ------------------------------------------
-    st.markdown("### 🏆 本月总计进度")
+    st.markdown("### 🎯 本月总计进度")
     with st.container(border=True):
-        col_text, col_chart = st.columns([1, 2])
+        col_text, col_chart = st.columns([1, 2.5])
         
         with col_text:
             st.write("")
-            st.write("")
             st.metric("🎯 本月 SEO 总目标", f"${total_target:,.2f}")
-            st.metric("💰 本月 累计实际完成", f"${total_actual:,.2f}", f"整体进度 {total_rate:.1f}%")
+            st.metric("💰 累计实际完成", f"${total_actual:,.2f}", f"整体进度 {total_rate:.1f}%")
             
         with col_chart:
-            # 绘制高级汽车仪表盘
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number+delta",
-                value = total_actual,
-                number = {'prefix': "$", 'valueformat': ",.0f"},
-                delta = {'reference': total_target, 'position': "top", 'valueformat': ",.0f", 'prefix': "距离目标 "},
-                title = {'text': "全站目标完成度 (%)", 'font': {'size': 18}},
-                gauge = {
-                    'axis': {'range': [0, max(total_target * 1.2, total_actual + 100)]},
-                    'bar': {'color': "#2563eb"},
-                    'steps': [
-                        {'range': [0, total_target*0.6], 'color': "#f1f5f9"},
-                        {'range': [total_target*0.6, total_target], 'color': "#dbeafe"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "#ef4444", 'width': 4},
-                        'thickness': 0.75,
-                        'value': total_target
-                    }
-                }
-            ))
-            fig_gauge.update_layout(height=280, margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig_gauge, use_container_width=True)
+            st.write("")
+            st.write("")
+            # 绘制元气小火箭进度条 HTML/CSS
+            custom_progress_html = f"""
+            <div style="padding: 10px 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">
+                    <span>{cheer_msg}</span>
+                    <span style="color: #f43f5e; font-size: 18px;">{total_rate:.1f}%</span>
+                </div>
+                <div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 28px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(90deg, #fbcfe8 0%, #f43f5e 100%); border-radius: 30px; width: {capped_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>
+                    <div style="position: absolute; top: -12px; left: calc({capped_rate}% - 20px); font-size: 32px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); transition: left 1.5s ease-in-out;">🚀</div>
+                    <div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>
+                </div>
+            </div>
+            """
+            st.markdown(custom_progress_html, unsafe_allow_html=True)
 
     st.write("---")
 
     # ------------------------------------------
-    # 🌍 第二板块：各站点目标完成情况 (强制排序展示)
+    # 🌍 第二板块：各站点目标完成情况
     # ------------------------------------------
     st.markdown("### 🌍 各站点目标完成情况")
     
-    # 准备柱状图数据
     sites_cn = []
     actuals = []
     targets = []
@@ -184,13 +185,14 @@ if data_dict:
     # --- 柱状对比图 ---
     with st.container(border=True):
         fig_bar = go.Figure(data=[
-            go.Bar(name='目标值 (Target)', x=sites_cn, y=targets, marker_color='#94a3b8', text=[f"${t:,.0f}" for t in targets], textposition='auto'),
-            go.Bar(name='实际值 (Actual)', x=sites_cn, y=actuals, marker_color='#3b82f6', text=[f"${a:,.0f}" for a in actuals], textposition='auto')
+            go.Bar(name='目标值 (Target)', x=sites_cn, y=targets, marker_color='#cbd5e1', marker_line_color='#94a3b8', marker_line_width=1.5, text=[f"${t:,.0f}" for t in targets], textposition='auto'),
+            go.Bar(name='实际值 (Actual)', x=sites_cn, y=actuals, marker_color='#3b82f6', marker_line_color='#2563eb', marker_line_width=1.5, text=[f"${a:,.0f}" for a in actuals], textposition='auto')
         ])
         fig_bar.update_layout(
             barmode='group',
-            height=400,
+            height=380,
             hovermode="x unified",
+            plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=10, r=10, t=30, b=10),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
@@ -202,17 +204,17 @@ if data_dict:
         cols = st.columns(8)
         for i, site in enumerate(fixed_sites_order):
             with cols[i]:
-                # 如果完成率超过100%，显示绿色
                 color = "normal" if rates[i] >= 100 else "off"
                 delta_str = f"完成 {rates[i]:.1f}%"
                 
                 st.metric(
-                    label=f"{en_to_cn[site]} (目标:${targets[i]:,.0f})", 
+                    label=f"{en_to_cn[site]} (🎯${targets[i]:,.0f})", 
                     value=f"${actuals[i]:,.0f}", 
                     delta=delta_str,
                     delta_color=color
                 )
-                # 底下的视觉进度条 (最高显示为100%)
+                
+                # 站点的绿色/粉色进度条
                 progress_val = min(rates[i] / 100.0, 1.0)
                 st.progress(progress_val)
 else:
