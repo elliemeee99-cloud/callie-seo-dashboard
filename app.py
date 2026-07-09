@@ -97,7 +97,7 @@ latest_date = real_today - pd.Timedelta(days=1)
 
 st.markdown(f"""
 <div style="margin-bottom: 25px;">
-    <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO目标与业绩看板</h1>
+    <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO 月度目标完成情况</h1>
     <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
 </div>
 """, unsafe_allow_html=True)
