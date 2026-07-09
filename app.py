@@ -142,7 +142,8 @@ def get_ai_insight(data_summary):
             model="deepseek-chat",
             messages=[
                 {"role": "system", "content": "你是一个资深的小语种SEO数据分析专家。请根据提供的昨日核心指标对比，用简练专业的中文给出2点核心洞察（例如趋势分析、异常跌幅预警或优化建议）。不要废话，直接给出结论。"},
-                {"role": "user", "content=f"以下是看板昨日数据的精简摘要：\n{data_summary}"}
+                # 修复了这里的冒号和引号拼写错误
+                {"role": "user", "content": f"以下是看板昨日数据的精简摘要：\n{data_summary}"}
             ]
         )
         return response.choices[0].message.content
