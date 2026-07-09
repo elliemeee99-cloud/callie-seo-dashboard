@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import plotly.express as px
 from openai import OpenAI
 import re
 
@@ -10,7 +9,7 @@ import re
 st.set_page_config(page_title="小语种SEO日报", page_icon="📈", layout="wide")
 
 # ==========================================
-# 1. 数据读取逻辑 (修复版)
+# 1. 数据读取逻辑 (增强版)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_data():
@@ -19,9 +18,12 @@ def load_data():
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
         client = gspread.authorize(creds)
         sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1GLAGMkVx5DMXylG0bbdvkzuqTd8IVfDANhcRrAX6LFU/edit").sheet1
-        raw_data = sheet.get_all_values()
         
-        # 将表格转换为 DataFrame
+        # 获取所有数据并直接转化为 DataFrame
+        raw_data = sheet.get_all_values()
+        if not raw_data: return "表格为空"
+        
+        # 假设第一行是列名
         df = pd.DataFrame(raw_data[1:], columns=raw_data[0])
         return df
     except Exception as e:
@@ -54,18 +56,20 @@ data = load_data()
 if isinstance(data, str):
     st.error(f"读取数据失败，请检查 GCP 权限: {data}")
 else:
-    # 显示基础数据表格
-    st.subheader("原始数据预览")
-    st.dataframe(data.head(5))
+    # 顶部数据概览
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.subheader("原始数据预览")
+        st.dataframe(data.tail(5), use_container_width=True)
     
-    # 触发 AI 分析
-    st.subheader("🤖 AI 智能洞察")
-    if st.button("生成今日 SEO 分析报告"):
-        with st.spinner("正在询问 DeepSeek..."):
-            # 提取最后一行作为“昨日”数据摘要
-            summary = data.iloc[-1].to_string()
-            insight = get_ai_insight(summary)
-            st.info(insight)
+    with col2:
+        # 触发 AI 分析
+        st.subheader("🤖 AI 智能洞察")
+        if st.button("生成今日 SEO 分析报告"):
+            with st.spinner("正在询问 DeepSeek..."):
+                # 提取最后一行作为数据样本
+                summary = data.iloc[-1].to_string()
+                insight = get_ai_insight(summary)
+                st.info(insight)
     
-    # 后续你可以继续在这里添加图表逻辑
-    st.success("数据已就绪，DeepSeek 接口已联通。")
+    st.success("数据已同步，DeepSeek 接口已联通。")
