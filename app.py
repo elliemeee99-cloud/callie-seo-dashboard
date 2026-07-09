@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import plotly.graph_objects as go
 import datetime
 import calendar
 import re
@@ -64,7 +63,6 @@ def load_and_transform_google_sheet():
                 if not row or not row[0]: continue
                 first_col = row[0].strip()
                         
-                # 抓取底部的“总计”行
                 if first_col == "总计":
                     sales_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -74,7 +72,6 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         sales_data[site] = float(clean_str) if clean_str else 0.0
                         
-                # 抓取“分站点目标”行
                 elif first_col == "分站点目标":
                     target_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -110,22 +107,19 @@ if data_dict:
     sales_data = data_dict["sales"]
     target_data = data_dict["targets"]
     
-    # 强制固定业务顺序
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI"]
     en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰"}
     
-    # --- 计算大盘与时间进度 ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
     capped_rate = min(total_rate, 100) 
     
-    # 时间流逝计算
+    # --- 时间流逝计算 ---
     days_in_month = calendar.monthrange(latest_date.year, latest_date.month)[1]
     current_day = latest_date.day
     time_progress_rate = (current_day / days_in_month) * 100
 
-    # --- 元气文案 ---
     if total_rate >= 100:
         cheer_msg = "🎉 完美达标！太棒啦，大家辛苦了！"
         st.balloons() 
@@ -150,29 +144,28 @@ if data_dict:
             
         with col_chart:
             st.write("")
-            
-            # 双进度条 HTML
+            # 注意：此处 HTML 必须靠左顶格，以防 Markdown 将其解析为代码块！
             custom_progress_html = f"""
-            <div style="padding: 0px 20px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">
-                    <span>{cheer_msg}</span>
-                    <span style="color: #f43f5e; font-size: 18px;">{total_rate:.1f}%</span>
-                </div>
-                <div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 28px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 22px;">
-                    <div style="background: linear-gradient(90deg, #fbcfe8 0%, #f43f5e 100%); border-radius: 30px; width: {capped_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>
-                    <div style="position: absolute; top: -12px; left: calc({capped_rate}% - 20px); font-size: 32px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); transition: left 1.5s ease-in-out;">🚀</div>
-                    <div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>
-                </div>
+<div style="padding: 0px 20px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">
+        <span>{cheer_msg}</span>
+        <span style="color: #f43f5e; font-size: 18px;">{total_rate:.1f}%</span>
+    </div>
+    <div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 28px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 22px;">
+        <div style="background: linear-gradient(90deg, #fbcfe8 0%, #f43f5e 100%); border-radius: 30px; width: {capped_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>
+        <div style="position: absolute; top: -12px; left: calc({capped_rate}% - 20px); font-size: 32px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); transition: left 1.5s ease-in-out;">🚀</div>
+        <div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>
+    </div>
 
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-weight: 500; font-size: 13px;">
-                    <span>⏳ 本月时间进度 ({current_day} / {days_in_month} 天)</span>
-                    <span>{time_progress_rate:.1f}%</span>
-                </div>
-                <div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 10px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
-                    <div style="background: linear-gradient(90deg, #bae6fd 0%, #3b82f6 100%); border-radius: 30px; width: {time_progress_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>
-                </div>
-            </div>
-            """
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-weight: 500; font-size: 13px;">
+        <span>⏳ 本月时间进度 ({current_day} / {days_in_month} 天)</span>
+        <span>{time_progress_rate:.1f}%</span>
+    </div>
+    <div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 10px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(90deg, #bae6fd 0%, #3b82f6 100%); border-radius: 30px; width: {time_progress_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>
+    </div>
+</div>
+"""
             st.markdown(custom_progress_html, unsafe_allow_html=True)
 
     st.write("---")
@@ -180,7 +173,7 @@ if data_dict:
     # ------------------------------------------
     # 🌍 第二板块：各站点目标完成情况明细卡片
     # ------------------------------------------
-    st.markdown("### 🌍 各站点完成明细")
+    st.markdown("### 🌍 各站点完成明细 (业绩 vs 时间)")
     
     with st.container(border=True):
         cols = st.columns(8)
@@ -190,8 +183,8 @@ if data_dict:
                 s_target = target_data.get(site, 0)
                 s_rate = (s_actual / s_target * 100) if s_target > 0 else 0
                 
-                color = "normal" if s_rate >= time_progress_rate else "off" # 跑赢时间进度即为绿色，落后则为红色
-                delta_str = f"完成 {s_rate:.1f}%"
+                color = "normal" if s_rate >= time_progress_rate else "off"
+                delta_str = f"差额 ${s_target - s_actual:,.0f}" if s_target > s_actual else "已达标"
                 
                 st.metric(
                     label=f"{en_to_cn[site]} (🎯${s_target:,.0f})", 
@@ -200,7 +193,26 @@ if data_dict:
                     delta_color=color
                 )
                 
-                progress_val = min(s_rate / 100.0, 1.0)
-                st.progress(progress_val)
+                # 各站点底部的 业绩/时间 双轨进度条
+                bar_color = '#10b981' if s_rate >= time_progress_rate else '#f43f5e'
+                
+                site_html = f"""
+<div style="margin-top: -5px;">
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 4px;">
+        <span>业绩进度</span><span style="font-weight: 600; color: {bar_color};">{s_rate:.1f}%</span>
+    </div>
+    <div style="background-color: #f1f5f9; border-radius: 10px; width: 100%; height: 6px; margin-bottom: 8px;">
+        <div style="background-color: {bar_color}; border-radius: 10px; width: {min(s_rate, 100)}%; height: 100%;"></div>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 4px;">
+        <span>时间进度</span><span>{time_progress_rate:.1f}%</span>
+    </div>
+    <div style="background-color: #f1f5f9; border-radius: 10px; width: 100%; height: 6px;">
+        <div style="background-color: #3b82f6; border-radius: 10px; width: {time_progress_rate}%; height: 100%;"></div>
+    </div>
+</div>
+"""
+                st.markdown(site_html, unsafe_allow_html=True)
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
