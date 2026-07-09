@@ -40,7 +40,7 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
 
 # ==========================================
-# ⚙️ 极速数据获取引擎
+# ⚙️ 极速数据获取引擎 (同时抓取当月总计与历史明细)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -53,17 +53,23 @@ def load_and_transform_google_sheet():
         
         sales_data = {}
         target_data = {}
+        historical_records = []
         
         sheet2 = spreadsheet.worksheet("Sheet2")
         raw_data_2 = sheet2.get_all_values()
         
         if raw_data_2:
             headers = raw_data_2[0]
+            # 尝试从第一行第一列提取年份，找不到就用今年
+            default_year = str(datetime.datetime.now().year)
+            if '年' in headers[0]:
+                default_year = headers[0].replace('年', '').strip()
+                
             for row in raw_data_2[1:]:
                 if not row or not row[0]: continue
                 first_col = row[0].strip()
                         
-                # 抓取底部的“总计”行
+                # 1. 抓取底部的“总计”行 (保证当前大盘绝对准确)
                 if first_col == "总计":
                     sales_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -73,7 +79,7 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         sales_data[site] = float(clean_str) if clean_str else 0.0
                         
-                # 抓取“分站点目标”行
+                # 2. 抓取“分站点目标”行 (保证目标绝对准确)
                 elif first_col == "分站点目标":
                     target_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -83,7 +89,33 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         target_data[site] = float(clean_str) if clean_str else 0.0
                         
-        return {"sales": sales_data, "targets": target_data}
+                # 3. 抓取所有带有“月”和“日”的历史明细行 (专门用于同环比计算)
+                elif "月" in first_col and "日" in first_col:
+                    try:
+                        month = first_col.split('月')[0].strip()
+                        day = first_col.split('月')[1].replace('日', '').strip()
+                        date_val = pd.to_datetime(f"{default_year}-{month}-{day}", errors='coerce')
+                        
+                        if pd.notna(date_val):
+                            for i in range(1, min(len(headers), len(row))):
+                                site = headers[i].strip()
+                                if site in ["总计", ""]: continue
+                                val_str = row[i].strip()
+                                clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                                val = float(clean_str) if clean_str else 0.0
+                                historical_records.append({
+                                    "Date": date_val,
+                                    "Site": site,
+                                    "Value": val
+                                })
+                    except:
+                        continue
+                        
+        df_hist = pd.DataFrame(historical_records)
+        if not df_hist.empty:
+            df_hist['Date'] = pd.to_datetime(df_hist['Date']).dt.normalize()
+            
+        return {"sales": sales_data, "targets": target_data, "historical_df": df_hist}
     except Exception as e:
         st.error(f"🔌 数据连接失败: {e}")
         return None
@@ -106,25 +138,26 @@ with st.spinner("✨ 正在召唤看板数据..."):
     data_dict = load_and_transform_google_sheet()
 
 if data_dict:
+    # 这是你原本完美运行的数据源
     sales_data = data_dict["sales"]
     target_data = data_dict["targets"]
+    # 这是新增的历史明细数据源，专门给同环比使用，不污染上面
+    df_hist = data_dict["historical_df"]
     
-    # 🔥 修复：强制固定业务顺序，补上漏掉的 PL 波兰站！一共 9 个站
+    # 强制固定业务顺序 (包含 9 个国家站)
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
     en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰", "PL":"波兰"}
     
-    # --- 计算大盘与时间进度 ---
+    # --- 原版计算逻辑 (原封不动保留) ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
     capped_rate = min(total_rate, 100) 
     
-    # 时间流逝计算
     days_in_month = calendar.monthrange(latest_date.year, latest_date.month)[1]
     current_day = latest_date.day
     time_progress_rate = (current_day / days_in_month) * 100
 
-    # --- 元气文案 ---
     if total_rate >= 100:
         cheer_msg = "🎉 完美达标！太棒啦，大家辛苦了！"
         st.balloons() 
@@ -136,7 +169,7 @@ if data_dict:
         cheer_msg = "✨ 稳步前行，今天也要冲鸭！"
 
     # ------------------------------------------
-    # 🏆 第一板块：全盘进度 (火箭业绩 + 时间流逝 双进度条)
+    # 🏆 第一板块：全盘进度 (火箭业绩 + 时间流逝 双进度条) -> 原封不动！
     # ------------------------------------------
     st.markdown("### 🎯 本月总计进度")
     with st.container(border=True):
@@ -149,7 +182,6 @@ if data_dict:
             
         with col_chart:
             st.write("")
-            # 扁平化的单行 HTML 拼接，防止解析出错
             custom_progress_html = (
                 f'<div style="padding: 0px 20px;">'
                 f'<div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">'
@@ -175,12 +207,11 @@ if data_dict:
     st.write("---")
 
     # ------------------------------------------
-    # 🌍 第二板块：各站点目标完成情况明细卡片
+    # 🌍 第二板块：各站点完成明细卡片 -> 原封不动！
     # ------------------------------------------
     st.markdown("### 🌍 各站点完成明细 (业绩 vs 时间)")
     
     with st.container(border=True):
-        # 🔥 修改为 9 列，完美容纳包含波兰在内的所有站点
         cols = st.columns(9)
         for i, site in enumerate(fixed_sites_order):
             with cols[i]:
@@ -217,5 +248,65 @@ if data_dict:
                     f'</div>'
                 )
                 st.markdown(site_html, unsafe_allow_html=True)
+
+    st.write("---")
+    
+    # ------------------------------------------
+    # 📈 第三板块：全新新增 MTD 同比与环比大盘分析
+    # ------------------------------------------
+    st.markdown("### 📊 全局 MTD 同环比趋势")
+    
+    with st.container(border=True):
+        # 仅当你成功抓取到历史数据时，才进行计算
+        if not df_hist.empty:
+            start_of_current_month = latest_date.replace(day=1)
+            
+            # --- 智能推算上个月同期范围 ---
+            try:
+                start_of_last_month = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
+                end_of_last_month_mtd = start_of_last_month + pd.Timedelta(days=current_day - 1)
+            except:
+                start_of_last_month = start_of_current_month - pd.DateOffset(months=1)
+                end_of_last_month_mtd = start_of_last_month + pd.DateOffset(days=current_day - 1)
+
+            # --- 智能推算去年同期范围 ---
+            start_of_last_year_month = start_of_current_month - pd.DateOffset(years=1)
+            end_of_last_year_mtd = start_of_last_year_month + pd.DateOffset(days=current_day - 1)
+            
+            # --- 分别计算历史汇总数据 ---
+            # 上月同期汇总
+            mask_mom = (df_hist['Date'] >= start_of_last_month) & (df_hist['Date'] <= end_of_last_month_mtd)
+            total_mom_historical = df_hist[mask_mom]['Value'].sum()
+            
+            # 去年同期汇总
+            mask_yoy = (df_hist['Date'] >= start_of_last_year_month) & (df_hist['Date'] <= end_of_last_year_mtd)
+            total_yoy_historical = df_hist[mask_yoy]['Value'].sum()
+            
+            # --- 渲染卡片 ---
+            col_m1, col_m2, col_m3 = st.columns(3)
+            
+            with col_m1:
+                st.metric(label=f"当前本月累计 (1日-{current_day}日)", value=f"${total_actual:,.2f}")
+                
+            with col_m2:
+                if total_mom_historical > 0:
+                    mom_delta = ((total_actual - total_mom_historical) / total_mom_historical) * 100
+                    mom_str = f"{mom_delta:+.1f}%"
+                else:
+                    mom_str = "0.0% (无历史)"
+                st.metric(label=f"上月同期累计 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", 
+                          value=f"${total_mom_historical:,.2f}", delta=f"环比变化 {mom_str}")
+                          
+            with col_m3:
+                if total_yoy_historical > 0:
+                    yoy_delta = ((total_actual - total_yoy_historical) / total_yoy_historical) * 100
+                    yoy_str = f"{yoy_delta:+.1f}%"
+                else:
+                    yoy_str = "0.0% (无历史)"
+                st.metric(label=f"去年同期累计 ({start_of_last_year_month.strftime('%Y/%m/%d')}-前日)", 
+                          value=f"${total_yoy_historical:,.2f}", delta=f"同比变化 {yoy_str}")
+        else:
+            st.info("在表格中暂时没有找到格式如“7月1日”的历史销售明细行，同环比计算暂时休息中...")
+
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
