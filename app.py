@@ -26,21 +26,21 @@ header {visibility: hidden;}
     border: 1px solid #e2e8f0 !important;
     background-color: #ffffff;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    padding: 10px;
+    padding: 12px;
 }
 
 /* 覆盖原生卡片字体 */
 div[data-testid="stMetricValue"] > div {
-    color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important;
+    color: #0f172a !important; font-size: 24px !important; font-weight: 800 !important;
 }
-div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
-div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
+div[data-testid="stMetricLabel"] { color: #475569 !important; font-size: 13px !important; font-weight: 600 !important; }
+div[data-testid="stMetricDelta"] > div { font-size: 13px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 极速数据获取引擎
+# ⚙️ 核心数据获取引擎 (支持多月/多年轻量级解析)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -51,7 +51,7 @@ def load_and_transform_google_sheet():
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1GLAGMkVx5DMXylG0bbdvkzuqTd8IVfDANhcRrAX6LFU/edit")
         
-        sales_data = {}
+        sales_records = []
         target_data = {}
         
         sheet2 = spreadsheet.worksheet("Sheet2")
@@ -59,23 +59,41 @@ def load_and_transform_google_sheet():
         
         if raw_data_2:
             headers = raw_data_2[0]
+            # 默认年份基准，如果在行里匹配到其他年份标记可以动态延伸
+            default_year = str(datetime.datetime.now().year)
+            if '年' in headers[0]:
+                default_year = headers[0].replace('年', '').strip()
+                
             for row in raw_data_2[1:]:
                 if not row or not row[0]: continue
                 first_col = row[0].strip()
                         
-                # 抓取底部的“总计”行
-                if first_col == "总计":
-                    sales_data = {} 
-                    for i in range(1, min(len(headers), len(row))):
-                        site = headers[i].strip()
-                        if site == "": continue
-                        val_str = row[i].strip()
-                        clean_str = re.sub(r'[^\d\.-]', '', val_str)
-                        sales_data[site] = float(clean_str) if clean_str else 0.0
+                # 1. 抓取历史明细行 (动态识别类似 "7月1日", "6月15日" 的所有结构)
+                if "月" in first_col and "日" in first_col:
+                    try:
+                        month = first_col.split('月')[0].strip()
+                        day = first_col.split('月')[1].replace('日', '').strip()
+                        # 组合成标准的日期字符串进行归档
+                        date_val = pd.to_datetime(f"{default_year}-{month}-{day}", errors='coerce')
                         
-                # 抓取“分站点目标”行
+                        if pd.notna(date_val):
+                            for i in range(1, min(len(headers), len(row))):
+                                site = headers[i].strip()
+                                if site in ["总计", ""]: continue
+                                val_str = row[i].strip()
+                                clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                                val = float(clean_str) if clean_str else 0.0
+                                
+                                sales_records.append({
+                                    "Date": date_val,
+                                    "Site": site,
+                                    "Value": val
+                                })
+                    except:
+                        continue
+                        
+                # 2. 抓取“分站点目标”行
                 elif first_col == "分站点目标":
-                    target_data = {} 
                     for i in range(1, min(len(headers), len(row))):
                         site = headers[i].strip()
                         if site == "": continue
@@ -83,15 +101,20 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         target_data[site] = float(clean_str) if clean_str else 0.0
                         
-        return {"sales": sales_data, "targets": target_data}
+        df_sales = pd.DataFrame(sales_records)
+        if not df_sales.empty:
+            df_sales['Date'] = pd.to_datetime(df_sales['Date']).dt.normalize()
+            
+        return {"sales_df": df_sales, "targets": target_data}
     except Exception as e:
         st.error(f"🔌 数据连接失败: {e}")
         return None
 
 # ==========================================
-# 📐 UI 布局与可视化渲染
+# 📐 UI 布局与数据大盘渲染
 # ==========================================
 
+# 锁定物理世界绝对时间
 real_today = pd.Timestamp(datetime.datetime.now().date())
 latest_date = real_today - pd.Timedelta(days=1)  
 
@@ -102,71 +125,99 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-with st.spinner("✨ 正在召唤看板数据..."):
+with st.spinner("✨ 正在深度挖掘历史同环比数据..."):
     data_dict = load_and_transform_google_sheet()
 
 if data_dict:
-    sales_data = data_dict["sales"]
+    df_sales = data_dict["sales_df"]
     target_data = data_dict["targets"]
     
-    # 🔥 修复：强制固定业务顺序，补上漏掉的 PL 波兰站！一共 9 个站
+    # 固定业务专属顺序
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
     en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰", "PL":"波兰"}
     
-    # --- 计算大盘与时间进度 ---
-    total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
-    total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
-    total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
-    capped_rate = min(total_rate, 100) 
-    
-    # 时间流逝计算
+    # --- 1. 基础时间流速变量计算 ---
     days_in_month = calendar.monthrange(latest_date.year, latest_date.month)[1]
     current_day = latest_date.day
     time_progress_rate = (current_day / days_in_month) * 100
 
-    # --- 元气文案 ---
-    if total_rate >= 100:
-        cheer_msg = "🎉 完美达标！太棒啦，大家辛苦了！"
-        st.balloons() 
-    elif total_rate >= time_progress_rate:
-        cheer_msg = "🔥 超前完成！继续保持这个节奏！"
-    elif total_rate >= 80:
-        cheer_msg = "💪 胜利就在眼前，加把劲冲刺！"
-    else:
-        cheer_msg = "✨ 稳步前行，今天也要冲鸭！"
+    # --- 2. 智能化 MTD 交叉时间窗口滑动推算 ---
+    # 【当前 MTD】
+    start_of_current_month = latest_date.replace(day=1)
+    
+    # 【环比 MTD - 上月同期】
+    # 动态推算上个月的目标日期，自动处理跨年及月份天数差异
+    try:
+        start_of_last_month = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
+        end_of_last_month_mtd = start_of_last_month + pd.Timedelta(days=current_day - 1)
+    except:
+        start_of_last_month = start_of_current_month - pd.DateOffset(months=1)
+        end_of_last_month_mtd = start_of_last_month + pd.DateOffset(days=current_day - 1)
+
+    # 【同比 MTD - 去年同期】
+    start_of_last_year_month = start_of_current_month - pd.DateOffset(years=1)
+    end_of_last_year_mtd = start_of_last_year_month + pd.DateOffset(days=current_day - 1)
+
+    # --- 3. 提取各版块实际销售额数据 ---
+    actual_sales_map = {}
+    mom_sales_map = {}
+    yoy_sales_map = {}
+    
+    for s in fixed_sites_order:
+        if not df_sales.empty:
+            # 当前 MTD 销售
+            mask_curr = (df_sales['Site'] == s) & (df_sales['Date'] >= start_of_current_month) & (df_sales['Date'] <= latest_date)
+            actual_sales_map[s] = df_sales[mask_curr]['Value'].sum()
+            
+            # 上月同期 MTD 销售
+            mask_mom = (df_sales['Site'] == s) & (df_sales['Date'] >= start_of_last_month) & (df_sales['Date'] <= end_of_last_month_mtd)
+            mom_sales_map[s] = df_sales[mask_mom]['Value'].sum()
+            
+            # 去年同期 MTD 销售
+            mask_yoy = (df_sales['Site'] == s) & (df_sales['Date'] >= start_of_last_year_month) & (df_sales['Date'] <= end_of_last_year_mtd)
+            yoy_sales_map[s] = df_sales[mask_yoy]['Value'].sum()
+        else:
+            actual_sales_map[s] = 0.0
+            mom_sales_map[s] = 0.0
+            yoy_sales_map[s] = 0.0
+
+    # 全局数据大盘汇总
+    total_actual = sum(actual_sales_map.values())
+    total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
+    total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
+    capped_rate = min(total_rate, 100) 
+    
+    total_mom_historical = sum(mom_sales_map.values())
+    total_yoy_historical = sum(yoy_sales_map.values())
 
     # ------------------------------------------
-    # 🏆 第一板块：全盘进度 (火箭业绩 + 时间流逝 双进度条)
+    # 🏆 板块一：全盘目标进度条
     # ------------------------------------------
     st.markdown("### 🎯 本月总计进度")
     with st.container(border=True):
         col_text, col_chart = st.columns([1, 2.5])
-        
         with col_text:
             st.write("")
             st.metric("🎯 本月 SEO 总目标", f"${total_target:,.2f}")
             st.metric("💰 累计实际完成", f"${total_actual:,.2f}", f"整体进度 {total_rate:.1f}%")
-            
         with col_chart:
             st.write("")
-            # 扁平化的单行 HTML 拼接，防止解析出错
+            cheer_msg = "🎉 完美达标！" if total_rate >= 100 else ("🔥 超前完成！" if total_rate >= time_progress_rate else "✨ 稳步前行，冲鸭！")
             custom_progress_html = (
                 f'<div style="padding: 0px 20px;">'
                 f'<div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 15px;">'
-                f'<span>{cheer_msg}</span>'
-                f'<span style="color: #f43f5e; font-size: 18px;">{total_rate:.1f}%</span>'
+                f'<span>{cheer_msg}</span><span style="color: #f43f5e; font-size: 18px;">{total_rate:.1f}%</span>'
                 f'</div>'
                 f'<div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 28px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 22px;">'
-                f'<div style="background: linear-gradient(90deg, #fbcfe8 0%, #f43f5e 100%); border-radius: 30px; width: {capped_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>'
-                f'<div style="position: absolute; top: -12px; left: calc({capped_rate}% - 20px); font-size: 32px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); transition: left 1.5s ease-in-out;">🚀</div>'
+                f'<div style="background: linear-gradient(90deg, #fbcfe8 0%, #f43f5e 100%); border-radius: 30px; width: {capped_rate}%; height: 100%;"></div>'
+                f'<div style="position: absolute; top: -12px; left: calc({capped_rate}% - 20px); font-size: 32px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));">🚀</div>'
                 f'<div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>'
                 f'</div>'
                 f'<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-weight: 500; font-size: 13px;">'
-                f'<span>⏳ 本月时间进度 ({current_day} / {days_in_month} 天)</span>'
-                f'<span>{time_progress_rate:.1f}%</span>'
+                f'<span>⏳ 本月时间进度 ({current_day} / {days_in_month} 天)</span><span>{time_progress_rate:.1f}%</span>'
                 f'</div>'
                 f'<div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 10px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">'
-                f'<div style="background: linear-gradient(90deg, #bae6fd 0%, #3b82f6 100%); border-radius: 30px; width: {time_progress_rate}%; height: 100%; transition: width 1.5s ease-in-out;"></div>'
+                f'<div style="background: linear-gradient(90deg, #bae6fd 0%, #3b82f6 100%); border-radius: 30px; width: {time_progress_rate}%; height: 100%;"></div>'
                 f'</div>'
                 f'</div>'
             )
@@ -175,21 +226,55 @@ if data_dict:
     st.write("---")
 
     # ------------------------------------------
-    # 🌍 第二板块：各站点目标完成情况明细卡片
+    # 📈 板块二：新增 MTD 同比与环比大盘分析
+    # ------------------------------------------
+    st.markdown("### 📊 全局 MTD 同环比分析")
+    with st.container(border=True):
+        col_m1, col_m2, col_m3 = st.columns(3)
+        
+        with col_m1:
+            st.metric(label=f"本月累计销售额 (1日-{current_day}日)", value=f"${total_actual:,.2f}")
+            
+        with col_m2:
+            # 计算环比 (MoM)
+            if total_mom_historical > 0:
+                mom_delta = ((total_actual - total_mom_historical) / total_mom_historical) * 100
+                mom_str = f"{mom_delta:+.1f}%"
+            else:
+                mom_str = "0.0% (无历史录入)"
+            st.metric(label=f"上月同期累计 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", 
+                      value=f"${total_mom_historical:,.2f}", delta=f"环比增速 {mom_str}")
+                      
+        with col_m3:
+            # 计算同比 (YoY)
+            if total_yoy_historical > 0:
+                yoy_delta = ((total_actual - total_yoy_historical) / total_yoy_historical) * 100
+                yoy_str = f"{yoy_delta:+.1f}%"
+            else:
+                yoy_str = "0.0% (无历史录入)"
+            st.metric(label=f"去年同期累计 ({start_of_last_year_month.strftime('%Y/%m/%d')}-昨日)", 
+                      value=f"${total_yoy_historical:,.2f}", delta=f"同比增速 {yoy_str}")
+
+    st.write("---")
+
+    # ------------------------------------------
+    # 🌍 板块三：各站点完成明细 (双轨业务进度条)
     # ------------------------------------------
     st.markdown("### 🌍 各站点完成明细 (业绩 vs 时间)")
-    
     with st.container(border=True):
-        # 🔥 修改为 9 列，完美容纳包含波兰在内的所有站点
         cols = st.columns(9)
         for i, site in enumerate(fixed_sites_order):
             with cols[i]:
-                s_actual = sales_data.get(site, 0)
+                s_actual = actual_sales_map[site]
                 s_target = target_data.get(site, 0)
                 s_rate = (s_actual / s_target * 100) if s_target > 0 else 0
                 
+                # 提取该站点各自的同环比数值用于前端浮动标签提示
+                s_mom_hist = mom_sales_map.get(site, 0)
+                s_mom_text = f"{((s_actual-s_mom_hist)/s_mom_hist)*100:+.0f}%" if s_mom_hist > 0 else "0%"
+                
                 color = "normal" if s_rate >= time_progress_rate else "off"
-                delta_str = f"差额 ${s_target - s_actual:,.0f}" if s_target > s_actual else "已达标"
+                delta_str = f"环比 {s_mom_text}" if s_mom_hist > 0 else f"差额 ${s_target - s_actual:,.0f}"
                 
                 st.metric(
                     label=f"{en_to_cn[site]} (🎯${s_target:,.0f})", 
