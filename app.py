@@ -118,7 +118,7 @@ def load_and_transform_google_sheet():
                     except:
                         continue
 
-        # --- 2. 读取 Sheet1 (深度定向提取 SEO总流量) ---
+        # --- 2. 读取 Sheet1 (深度定向提取 SEO流量，带强力容错清洗) ---
         try:
             sheet1 = spreadsheet.worksheet("Sheet1")
             raw_data_1 = sheet1.get_all_values()
@@ -129,14 +129,17 @@ def load_and_transform_google_sheet():
                 if not row or not row[0]: continue
                 first_cell = str(row[0]).strip()
                 
+                # 识别国家站块
                 if first_cell.startswith("Callie ") and len(first_cell) <= 12:
                     current_site = first_cell.replace("Callie ", "").strip()
                     if current_site in cn_to_en:
                         current_site = cn_to_en[current_site]
-                    dates_row = row[1:]
+                    dates_row = row[1:] # A1与A2合并时，这一行右侧就是日期
                     continue
                     
-                if current_site and first_cell == "SEO总流量":
+                # 🔥 终极防漏网清洗：去掉所有空格，只匹配核心词汇！
+                clean_metric_name = first_cell.replace(" ", "")
+                if current_site and clean_metric_name in ["SEO总流量", "SEO流量"]:
                     values = row[1:]
                     for i in range(len(values)):
                         if i < len(dates_row) and dates_row[i].strip() != "":
@@ -224,7 +227,7 @@ if data_dict:
         cheer_msg = "✨ 稳步前行，今天也要冲鸭！"
 
     # ------------------------------------------
-    # 🏆 第一板块：全盘进度 (火箭双进度条)
+    # 🏆 第一板块：全盘进度
     # ------------------------------------------
     st.markdown("### 🎯 本月总计进度")
     with st.container(border=True):
@@ -346,7 +349,7 @@ if data_dict:
     rename_dict["Date"] = "日期"
 
     # ------------------------------------------
-    # 🗄️ 第四板块：本月各站点每日销售明细表格 (绿光高亮)
+    # 🗄️ 第四板块：销售额明细表格 (绿光高亮)
     # ------------------------------------------
     st.markdown("### 🗄️ 本月各站点每日销售明细")
     with st.container(border=True):
@@ -392,7 +395,7 @@ if data_dict:
     st.write("---")
 
     # ------------------------------------------
-    # 🗄️ 第五板块：全新新增 每日SEO流量明细表格 (冰蓝高亮)
+    # 🗄️ 第五板块：SEO流量明细表格 (冰蓝高亮)
     # ------------------------------------------
     st.markdown("### 📊 SEO流量完成情况")
     with st.container(border=True):
@@ -410,7 +413,6 @@ if data_dict:
                 df_t_pivot['Date'] = df_t_pivot['Date'].dt.strftime('%Y-%m-%d')
                 df_t_pivot = df_t_pivot.rename(columns=rename_dict)
 
-                # 使用清爽的冰蓝色系渲染流量表头及高亮列
                 html_t_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">'
                 html_t_table += '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: center;">'
                 html_t_table += '<thead><tr style="background-color: #ffffff;">'
@@ -423,14 +425,15 @@ if data_dict:
                     html_t_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">'
                     for col in df_t_pivot.columns:
                         val = row[col]
-                        # 流量为纯数值格式展示，去掉美金符号并向下取整
+                        # 流量展示为纯数字不带 $ 符，千分位，无小数
                         display_val = f"{val:,.0f}" if isinstance(val, (int, float)) else str(val)
+                        
                         cell_style = "padding: 12px 10px; color: #334155;"
                         if col == "总计":
-                            # 专属高级冰蓝底色高亮拉花
                             cell_style += " background-color: #f0f9ff; font-weight: 700; color: #0369a1; border-left: 1px solid #bae6fd;"
                         elif col == "日期":
                             cell_style += " font-weight: 500; color: #475569;"
+                            
                         html_t_table += f'<td style="{cell_style}">{display_val}</td>'
                     html_t_table += '</tr>'
                 html_t_table += '</tbody></table></div>'
@@ -438,6 +441,6 @@ if data_dict:
             else:
                 st.info("本月暂无每日SEO流量明细数据。")
         else:
-            st.info("尚未在表单中抓取到格式如 2026/7/8 的有效每日流量历史行。")
+            st.info("尚未在表单中抓取到有效的每日流量历史数据。")
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
