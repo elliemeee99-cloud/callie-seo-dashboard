@@ -11,7 +11,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (极简高端排版 & 全新胶囊导航栏)
+# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
 st.markdown("""
 <style>
@@ -42,36 +42,96 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
     background-color: #f1f5f9 !important;
 }
 
-/* 🔥 全新：顶部 Tab 导航栏的胶囊/按钮风格 (完美复刻参考图) */
-div[data-baseweb="tab-list"] {
-    gap: 8px; /* 按钮之间的间距 */
-    margin-bottom: 10px;
+/* ========================================================= */
+/* 🔥 强力穿透：顶部 Tab 看板切换 -> 蓝底胶囊风格 */
+/* ========================================================= */
+div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+    gap: 12px !important;
+    border-bottom: none !important; /* 去除底部灰线 */
 }
-button[data-baseweb="tab"] { 
-    font-size: 16px !important; 
-    font-weight: 600 !important; 
-    color: #64748b !important; 
-    background-color: transparent !important;
-    border-radius: 6px !important; /* 圆角矩形 */
-    padding: 10px 24px !important;
+div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
+    display: none !important; /* 彻底隐藏原生滑动高亮条 */
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    background-color: #f1f5f9 !important;
+    border-radius: 8px !important;
+    padding: 12px 28px !important;
+    border: none !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"] p {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    font-size: 17px !important;
+    margin: 0 !important;
+}
+/* 选中状态 */
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #2563eb !important; /* 完美复刻截图中的宝蓝色 */
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p {
+    color: #ffffff !important;
+}
+
+/* ========================================================= */
+/* 🔥 强力穿透：Radio 日期聚合切换 -> 卡片式按钮 */
+/* ========================================================= */
+div[data-testid="stRadio"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"] {
+    background-color: #f1f5f9 !important;
+    padding: 8px 24px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s;
+}
+/* 隐藏丑陋的原生单选圆圈 */
+div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child {
+    display: none !important; 
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"] p {
+    color: #64748b !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+/* Radio 选中状态 */
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"],
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
+    background-color: #2563eb !important;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p,
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p {
+    color: #ffffff !important;
+}
+
+/* ========================================================= */
+/* 🔥 强力穿透：多选框站点筛选 -> 统一蓝色实心胶囊 */
+/* ========================================================= */
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+    background-color: #2563eb !important; 
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 6px 14px !important;
+    font-weight: 600 !important;
     border: none !important;
 }
-button[data-baseweb="tab"]:hover {
-    color: #1e293b !important;
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span {
+    color: #ffffff !important;
 }
-button[aria-selected="true"] { 
-    background-color: #2563eb !important; /* 选中时的专属蓝色背景 */
-    color: #ffffff !important; /* 选中时的白色文字 */
-}
-div[data-baseweb="tab-highlight"] {
-    display: none !important; /* 彻底隐藏原生底部的下划线高亮条 */
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
+    fill: #ffffff !important; /* X 关闭按钮也是白色 */
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (跨三个 Sheet 深度提取，数据逻辑原封不动)
+# ⚙️ 核心数据获取引擎 (跨三个 Sheet 深度提取)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -369,7 +429,8 @@ if data_dict:
                 mask_mtd = (df_hist['Date'] >= start_of_current_month) & (df_hist['Date'] <= latest_date)
                 df_pivot = df_hist[mask_mtd].pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
                 if "总计" not in df_pivot.columns: df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
-                df_pivot = df_pivot[['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']].sort_values('Date', ascending=False)
+                display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
+                df_pivot = df_pivot[display_cols].sort_values('Date', ascending=False)
                 df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
                 rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
                 rename_dict["Date"] = "日期"
