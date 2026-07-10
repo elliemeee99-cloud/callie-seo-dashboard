@@ -230,7 +230,7 @@ if data_dict:
     tab_dashboard, tab_details = st.tabs(["📊 SEO月度目标完成情况", "🗄️ 数据明细分析"])
 
     # ------------------------------------------
-    # 🏆 第一大看盘：原封不动，安全保护！
+    # 🏆 第一大看板：SEO月度目标完成情况
     # ------------------------------------------
     with tab_dashboard:
         st.markdown(f'<div style="color: #64748b; font-size: 14px; margin-bottom: 20px;">报表同步基准日：{latest_date.strftime("%Y-%m-%d")}</div>', unsafe_allow_html=True)
@@ -341,29 +341,33 @@ if data_dict:
         with st.container(border=True):
             if not df_hist.empty:
                 mask_mtd = (df_hist['Date'] >= start_of_current_month) & (df_hist['Date'] <= latest_date)
-                df_pivot = df_hist[mask_mtd].pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
-                if "总计" not in df_pivot.columns: df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
-                df_pivot = df_pivot[['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']].sort_values('Date', ascending=False)
-                df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
-                rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
-                rename_dict["Date"] = "日期"
-                df_pivot = df_pivot.rename(columns=rename_dict)
+                df_mtd_daily = df_hist[mask_mtd].copy()
 
-                html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: center;"><thead><tr style="background-color: #ffffff;">'
-                for col in df_pivot.columns: html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
-                html_table += '</tr></thead><tbody>'
-                for idx, row in df_pivot.iterrows():
-                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
-                    html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9;">'
-                    for col in df_pivot.columns:
-                        val = row[col]
-                        display_val = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
-                        cell_style = "padding: 12px 10px; color: #334155;"
-                        if col == "总计": cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
-                        elif col == "日期": cell_style += " font-weight: 500; color: #475569;"
-                        html_table += f'<td style="{cell_style}">{display_val}</td>'
-                    html_table += '</tr>'
-                st.markdown(html_table + '</tbody></table></div>', unsafe_allow_html=True)
+                if not df_mtd_daily.empty:
+                    df_pivot = df_mtd_daily.pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
+                    if "总计" not in df_pivot.columns: df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
+                    display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
+                    df_pivot = df_pivot[display_cols].sort_values('Date', ascending=False)
+                    df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
+                    rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
+                    rename_dict["Date"] = "日期"
+                    df_pivot = df_pivot.rename(columns=rename_dict)
+
+                    html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: center;"><thead><tr style="background-color: #ffffff;">'
+                    for col in df_pivot.columns: html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
+                    html_table += '</tr></thead><tbody>'
+                    for idx, row in df_pivot.iterrows():
+                        bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
+                        html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9;">'
+                        for col in df_pivot.columns:
+                            val = row[col]
+                            display_val = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
+                            cell_style = "padding: 12px 10px; color: #334155;"
+                            if col == "总计": cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
+                            elif col == "日期": cell_style += " font-weight: 500; color: #475569;"
+                            html_table += f'<td style="{cell_style}">{display_val}</td>'
+                        html_table += '</tr>'
+                    st.markdown(html_table + '</tbody></table></div>', unsafe_allow_html=True)
 
         st.write("---")
         st.markdown("### 📊 SEO流量目标进度")
@@ -447,19 +451,17 @@ if data_dict:
 
 
     # ------------------------------------------
-    # 🗄️ 第二大看盘：数据明细分析 (全新开辟！)
+    # 🗄️ 第二大看板：数据明细分析
     # ------------------------------------------
     with tab_details:
         st.markdown("## 📈 SEO历史销售额趋势")
         
         if not df_hist.empty:
-            # --- 核心交互控制排版舱 ---
             with st.container(border=True):
                 col_ctrl1, col_ctrl2 = st.columns([1, 3])
                 with col_ctrl1:
                     time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=2, horizontal=True)
                 with col_ctrl2:
-                    # 默认全选所有国家
                     selected_sites = st.multiselect(
                         "🌍 筛选站点",
                         options=fixed_sites_order,
@@ -468,38 +470,28 @@ if data_dict:
                     )
 
             if selected_sites:
-                # 过滤出符合选定站点的数据集
                 df_filtered = df_hist[df_hist['Site'].isin(selected_sites)].copy()
                 
-                # --- 根据颗粒度调整时间轴分布 ---
-                if time_grain == "周":
-                    df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
-                elif time_grain == "月":
-                    df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
-                else:
-                    df_filtered['Date_Axis'] = df_filtered['Date']
+                if time_grain == "周": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
+                elif time_grain == "月": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
+                else: df_filtered['Date_Axis'] = df_filtered['Date']
 
-                # ------------------------------------------
-                # 图表 1：全盘大盘总销售额趋势图
-                # ------------------------------------------
+                # --- 总销售额曲线 ---
                 df_total_trend = df_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
-                
                 fig_total = go.Figure()
                 fig_total.add_trace(go.Scatter(
                     x=df_total_trend['Date_Axis'],
                     y=df_total_trend['Value'],
                     mode='lines+markers',
                     line=dict(color='#2563eb', width=3.5),
-                    marker=dict(size=6, fillcolor='#ffffff', line=dict(color='#2563eb', width=2)),
+                    # 🔥 此处已修复 marker 参数名称 (fillcolor -> color)
+                    marker=dict(size=6, color='#ffffff', line=dict(color='#2563eb', width=2)), 
                     name='总销售额',
                     hovertemplate='<b>日期</b>: %{x}<br><b>总销售额</b>: $%{y:,.2f}<extra></extra>'
                 ))
                 fig_total.update_layout(
                     title=dict(text="📊 选定站点 SEO 总销售额趋势", font=dict(size=16, color='#1e293b', weight='bold')),
-                    height=350,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    hovermode='x unified',
-                    margin=dict(l=20, r=20, t=50, b=20),
+                    height=350, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', margin=dict(l=20, r=20, t=50, b=20),
                     xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
                     yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
                 )
@@ -508,41 +500,28 @@ if data_dict:
                 with st.container(border=True):
                     st.plotly_chart(fig_total, use_container_width=True)
 
-                # ------------------------------------------
-                # 图表 2：多站点分线横向对比图
-                # ------------------------------------------
+                # --- 站点细分曲线 ---
                 df_site_trend = df_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
-                
                 fig_sites = go.Figure()
-                
-                # 定义一套高端、区分度高的配色调色盘
                 color_palette = ['#3b82f6', '#10b981', '#f43f5e', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#64748b']
                 
                 for idx, site in enumerate(fixed_sites_order):
                     if site in selected_sites:
                         df_single_site = df_site_trend[df_site_trend['Site'] == site]
                         site_label = en_to_cn.get(site, site)
-                        
                         fig_sites.add_trace(go.Scatter(
-                            x=df_single_site['Date_Axis'],
-                            y=df_single_site['Value'],
-                            mode='lines',
-                            line=dict(width=2, color=color_palette[idx % len(color_palette)]),
-                            name=site_label,
-                            hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
+                            x=df_single_site['Date_Axis'], y=df_single_site['Value'],
+                            mode='lines', line=dict(width=2, color=color_palette[idx % len(color_palette)]),
+                            name=site_label, hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
                         ))
                         
                 fig_sites.update_layout(
                     title=dict(text="🌍 各站点 SEO 销售额独立分线趋势对比", font=dict(size=16, color='#1e293b', weight='bold')),
-                    height=400,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    hovermode='x unified',
-                    margin=dict(l=20, r=20, t=50, b=20),
+                    height=400, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', margin=dict(l=20, r=20, t=50, b=20),
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                     xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
                     yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
                 )
-                
                 with st.container(border=True):
                     st.plotly_chart(fig_sites, use_container_width=True)
             else:
