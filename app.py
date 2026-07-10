@@ -11,7 +11,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (极简高端排版)
+# 🎨 定制 CSS (极简高端排版 & 全新胶囊导航栏)
 # ==========================================
 st.markdown("""
 <style>
@@ -37,20 +37,41 @@ div[data-testid="stMetricValue"] > div {
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
-/* 优化 Tabs 的视觉外观 */
-button[data-baseweb="tab"] { font-size: 18px !important; font-weight: 700 !important; color: #64748b !important; }
-button[aria-selected="true"] { color: #2563eb !important; }
-
 /* 自定义精美 HTML 表格悬浮效果 */
 .custom-table-row:hover {
     background-color: #f1f5f9 !important;
+}
+
+/* 🔥 全新：顶部 Tab 导航栏的胶囊/按钮风格 (完美复刻参考图) */
+div[data-baseweb="tab-list"] {
+    gap: 8px; /* 按钮之间的间距 */
+    margin-bottom: 10px;
+}
+button[data-baseweb="tab"] { 
+    font-size: 16px !important; 
+    font-weight: 600 !important; 
+    color: #64748b !important; 
+    background-color: transparent !important;
+    border-radius: 6px !important; /* 圆角矩形 */
+    padding: 10px 24px !important;
+    border: none !important;
+}
+button[data-baseweb="tab"]:hover {
+    color: #1e293b !important;
+}
+button[aria-selected="true"] { 
+    background-color: #2563eb !important; /* 选中时的专属蓝色背景 */
+    color: #ffffff !important; /* 选中时的白色文字 */
+}
+div[data-baseweb="tab-highlight"] {
+    display: none !important; /* 彻底隐藏原生底部的下划线高亮条 */
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (跨三个 Sheet 深度提取)
+# ⚙️ 核心数据获取引擎 (跨三个 Sheet 深度提取，数据逻辑原封不动)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -224,6 +245,13 @@ if data_dict:
         "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
     }
 
+    st.markdown(f"""
+    <div style="margin-bottom: 25px;">
+        <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO数据全局看板</h1>
+        <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # ==========================================
     # 🎛️ 顶层双大盘看板导航切换系统
     # ==========================================
@@ -233,8 +261,6 @@ if data_dict:
     # 🏆 第一大看板：SEO月度目标完成情况
     # ------------------------------------------
     with tab_dashboard:
-        st.markdown(f'<div style="color: #64748b; font-size: 14px; margin-bottom: 20px;">报表同步基准日：{latest_date.strftime("%Y-%m-%d")}</div>', unsafe_allow_html=True)
-        
         # 基础计算
         days_in_month = calendar.monthrange(latest_date.year, latest_date.month)[1]
         current_day = latest_date.day
@@ -341,33 +367,29 @@ if data_dict:
         with st.container(border=True):
             if not df_hist.empty:
                 mask_mtd = (df_hist['Date'] >= start_of_current_month) & (df_hist['Date'] <= latest_date)
-                df_mtd_daily = df_hist[mask_mtd].copy()
+                df_pivot = df_hist[mask_mtd].pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
+                if "总计" not in df_pivot.columns: df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
+                df_pivot = df_pivot[['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']].sort_values('Date', ascending=False)
+                df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
+                rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
+                rename_dict["Date"] = "日期"
+                df_pivot = df_pivot.rename(columns=rename_dict)
 
-                if not df_mtd_daily.empty:
-                    df_pivot = df_mtd_daily.pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
-                    if "总计" not in df_pivot.columns: df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
-                    display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
-                    df_pivot = df_pivot[display_cols].sort_values('Date', ascending=False)
-                    df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
-                    rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
-                    rename_dict["Date"] = "日期"
-                    df_pivot = df_pivot.rename(columns=rename_dict)
-
-                    html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: center;"><thead><tr style="background-color: #ffffff;">'
-                    for col in df_pivot.columns: html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
-                    html_table += '</tr></thead><tbody>'
-                    for idx, row in df_pivot.iterrows():
-                        bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
-                        html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9;">'
-                        for col in df_pivot.columns:
-                            val = row[col]
-                            display_val = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
-                            cell_style = "padding: 12px 10px; color: #334155;"
-                            if col == "总计": cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
-                            elif col == "日期": cell_style += " font-weight: 500; color: #475569;"
-                            html_table += f'<td style="{cell_style}">{display_val}</td>'
-                        html_table += '</tr>'
-                    st.markdown(html_table + '</tbody></table></div>', unsafe_allow_html=True)
+                html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: center;"><thead><tr style="background-color: #ffffff;">'
+                for col in df_pivot.columns: html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
+                html_table += '</tr></thead><tbody>'
+                for idx, row in df_pivot.iterrows():
+                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
+                    html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9;">'
+                    for col in df_pivot.columns:
+                        val = row[col]
+                        display_val = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
+                        cell_style = "padding: 12px 10px; color: #334155;"
+                        if col == "总计": cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
+                        elif col == "日期": cell_style += " font-weight: 500; color: #475569;"
+                        html_table += f'<td style="{cell_style}">{display_val}</td>'
+                    html_table += '</tr>'
+                st.markdown(html_table + '</tbody></table></div>', unsafe_allow_html=True)
 
         st.write("---")
         st.markdown("### 📊 SEO流量目标进度")
@@ -480,14 +502,10 @@ if data_dict:
                 df_total_trend = df_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
                 fig_total = go.Figure()
                 fig_total.add_trace(go.Scatter(
-                    x=df_total_trend['Date_Axis'],
-                    y=df_total_trend['Value'],
-                    mode='lines+markers',
-                    line=dict(color='#2563eb', width=3.5),
-                    # 🔥 此处已修复 marker 参数名称 (fillcolor -> color)
+                    x=df_total_trend['Date_Axis'], y=df_total_trend['Value'],
+                    mode='lines+markers', line=dict(color='#2563eb', width=3.5),
                     marker=dict(size=6, color='#ffffff', line=dict(color='#2563eb', width=2)), 
-                    name='总销售额',
-                    hovertemplate='<b>日期</b>: %{x}<br><b>总销售额</b>: $%{y:,.2f}<extra></extra>'
+                    name='总销售额', hovertemplate='<b>日期</b>: %{x}<br><b>总销售额</b>: $%{y:,.2f}<extra></extra>'
                 ))
                 fig_total.update_layout(
                     title=dict(text="📊 选定站点 SEO 总销售额趋势", font=dict(size=16, color='#1e293b', weight='bold')),
