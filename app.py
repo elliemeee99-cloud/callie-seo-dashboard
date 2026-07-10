@@ -45,7 +45,7 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
 
 # ==========================================
-# ⚙️ 极速数据获取引擎 (同时抓取当月总计与历史明细)
+# ⚙️ 核心数据获取引擎 (融合多表深度清洗)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -56,16 +56,21 @@ def load_and_transform_google_sheet():
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1GLAGMkVx5DMXylG0bbdvkzuqTd8IVfDANhcRrAX6LFU/edit")
         
+        cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
+        
         sales_data = {}
         target_data = {}
         historical_records = []
+        traffic_records = []
         
+        default_year = str(datetime.datetime.now().year)
+
+        # --- 1. 读取 Sheet2 (专属 销售额与目标) ---
         sheet2 = spreadsheet.worksheet("Sheet2")
         raw_data_2 = sheet2.get_all_values()
         
         if raw_data_2:
             headers = raw_data_2[0]
-            default_year = str(datetime.datetime.now().year)
             if '年' in headers[0]:
                 default_year = headers[0].replace('年', '').strip()
                 
@@ -73,7 +78,6 @@ def load_and_transform_google_sheet():
                 if not row or not row[0]: continue
                 first_col = row[0].strip()
                         
-                # 1. 抓取底部的“总计”行
                 if first_col == "总计":
                     sales_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -83,7 +87,6 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         sales_data[site] = float(clean_str) if clean_str else 0.0
                         
-                # 2. 抓取“分站点目标”行
                 elif first_col == "分站点目标":
                     target_data = {} 
                     for i in range(1, min(len(headers), len(row))):
@@ -93,7 +96,6 @@ def load_and_transform_google_sheet():
                         clean_str = re.sub(r'[^\d\.-]', '', val_str)
                         target_data[site] = float(clean_str) if clean_str else 0.0
                         
-                # 3. 智能抓取所有历史明细行
                 elif re.search(r'\d', first_col): 
                     try:
                         if "月" in first_col and "日" in first_col:
@@ -111,18 +113,63 @@ def load_and_transform_google_sheet():
                                 clean_str = re.sub(r'[^\d\.-]', '', val_str)
                                 val = float(clean_str) if clean_str else 0.0
                                 historical_records.append({
-                                    "Date": date_val,
-                                    "Site": site,
-                                    "Value": val
+                                    "Date": date_val, "Site": site, "Value": val
                                 })
                     except:
                         continue
+
+        # --- 2. 读取 Sheet1 (深度定向提取 SEO总流量) ---
+        try:
+            sheet1 = spreadsheet.worksheet("Sheet1")
+            raw_data_1 = sheet1.get_all_values()
+            current_site = None
+            dates_row = []
+            
+            for row in raw_data_1:
+                if not row or not row[0]: continue
+                first_cell = str(row[0]).strip()
+                
+                if first_cell.startswith("Callie ") and len(first_cell) <= 12:
+                    current_site = first_cell.replace("Callie ", "").strip()
+                    if current_site in cn_to_en:
+                        current_site = cn_to_en[current_site]
+                    dates_row = row[1:]
+                    continue
+                    
+                if current_site and first_cell == "SEO总流量":
+                    values = row[1:]
+                    for i in range(len(values)):
+                        if i < len(dates_row) and dates_row[i].strip() != "":
+                            date_str = dates_row[i].strip()
+                            try:
+                                if "月" in date_str and "日" in date_str:
+                                    month = date_str.split('月')[0].strip()
+                                    day = date_str.split('月')[1].replace('日', '').strip()
+                                    date_val = pd.to_datetime(f"{default_year}-{month}-{day}", errors='coerce')
+                                else:
+                                    date_val = pd.to_datetime(date_str, errors='coerce')
+                                    
+                                if pd.notna(date_val):
+                                    val_str = str(values[i]).strip()
+                                    clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                                    val = float(clean_str) if clean_str else 0.0
+                                    traffic_records.append({
+                                        "Date": date_val, "Site": current_site, "Value": val
+                                    })
+                            except:
+                                continue
+        except Exception as e:
+            print(f"Sheet1 读取失败: {e}")
                         
         df_hist = pd.DataFrame(historical_records)
         if not df_hist.empty:
             df_hist['Date'] = pd.to_datetime(df_hist['Date']).dt.normalize()
             
-        return {"sales": sales_data, "targets": target_data, "historical_df": df_hist}
+        df_traffic = pd.DataFrame(traffic_records)
+        if not df_traffic.empty:
+            df_traffic['Date'] = pd.to_datetime(df_traffic['Date']).dt.normalize()
+            
+        return {"sales": sales_data, "targets": target_data, "historical_df": df_hist, "traffic_df": df_traffic}
     except Exception as e:
         st.error(f"🔌 数据连接失败: {e}")
         return None
@@ -141,31 +188,22 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-with st.spinner("✨ 正在召唤看板数据..."):
+with st.spinner("✨ 正在召唤全盘大盘数据..."):
     data_dict = load_and_transform_google_sheet()
 
 if data_dict:
     sales_data = data_dict["sales"]
     target_data = data_dict["targets"]
     df_hist = data_dict["historical_df"]
+    df_traffic = data_dict["traffic_df"]
     
-    # 强制固定业务顺序
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
     
-    # 🔥 核心升级：在这里直接为国家名字前加上高颜值国旗 Emoji，全局通用！
     en_to_cn = {
-        "DE": "🇩🇪 德国", 
-        "FR": "🇫🇷 法国", 
-        "ES": "🇪🇸 西班牙", 
-        "IT": "🇮🇹 意大利", 
-        "NL": "🇳🇱 荷兰", 
-        "NO": "🇳🇴 挪威", 
-        "SE": "🇸🇪 瑞典", 
-        "FI": "🇫🇮 芬兰", 
-        "PL": "🇵🇱 波兰"
+        "DE": "🇩🇪 德国", "FR": "🇫🇷 法国", "ES": "🇪🇸 西班牙", "IT": "🇮🇹 意大利", 
+        "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
     }
     
-    # --- 原版计算逻辑 ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
@@ -186,12 +224,11 @@ if data_dict:
         cheer_msg = "✨ 稳步前行，今天也要冲鸭！"
 
     # ------------------------------------------
-    # 🏆 第一板块：全盘进度 (火箭业绩 + 时间流逝 双进度条)
+    # 🏆 第一板块：全盘进度 (火箭双进度条)
     # ------------------------------------------
     st.markdown("### 🎯 本月总计进度")
     with st.container(border=True):
         col_text, col_chart = st.columns([1, 2.5])
-        
         with col_text:
             st.write("")
             st.metric("🎯 本月 SEO 总目标", f"${total_target:,.2f}")
@@ -227,7 +264,6 @@ if data_dict:
     # 🌍 第二板块：各站点完成明细卡片
     # ------------------------------------------
     st.markdown("### 🌍 各站点完成明细 (业绩 vs 时间)")
-    
     with st.container(border=True):
         cols = st.columns(9)
         for i, site in enumerate(fixed_sites_order):
@@ -272,11 +308,9 @@ if data_dict:
     # 📈 第三板块：MTD 同比与环比大盘分析
     # ------------------------------------------
     st.markdown("### 📊 全局 MTD 同环比趋势")
-    
     with st.container(border=True):
         if not df_hist.empty:
             start_of_current_month = latest_date.replace(day=1)
-            
             try:
                 start_of_last_month = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
                 end_of_last_month_mtd = start_of_last_month + pd.Timedelta(days=current_day - 1)
@@ -294,99 +328,116 @@ if data_dict:
             total_yoy_historical = df_hist[mask_yoy]['Value'].sum()
             
             col_m1, col_m2, col_m3 = st.columns(3)
-            
             with col_m1:
                 st.metric(label=f"当前本月累计 (1日-{current_day}日)", value=f"${total_actual:,.2f}")
-                
             with col_m2:
-                if total_mom_historical > 0:
-                    mom_delta = ((total_actual - total_mom_historical) / total_mom_historical) * 100
-                    mom_str = f"{mom_delta:+.1f}% (环比)"
-                else:
-                    mom_str = "0.0% (无历史)"
-                st.metric(label=f"上月同期累计 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", 
-                          value=f"${total_mom_historical:,.2f}", delta=mom_str)
-                          
+                mom_str = f"{((total_actual - total_mom_historical) / total_mom_historical) * 100:+.1f}% (环比)" if total_mom_historical > 0 else "0.0% (无历史)"
+                st.metric(label=f"上月同期累计 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", value=f"${total_mom_historical:,.2f}", delta=mom_str)
             with col_m3:
-                if total_yoy_historical > 0:
-                    yoy_delta = ((total_actual - total_yoy_historical) / total_yoy_historical) * 100
-                    yoy_str = f"{yoy_delta:+.1f}% (同比)"
-                else:
-                    yoy_str = "0.0% (无历史)"
-                st.metric(label=f"去年同期累计 ({start_of_last_year_month.strftime('%Y/%m/%d')}-{end_of_last_year_mtd.strftime('%m/%d')})", 
-                          value=f"${total_yoy_historical:,.2f}", delta=yoy_str)
+                yoy_str = f"{((total_actual - total_yoy_historical) / total_yoy_historical) * 100:+.1f}% (同比)" if total_yoy_historical > 0 else "0.0% (无历史)"
+                st.metric(label=f"去年同期累计 ({start_of_last_year_month.strftime('%Y/%m/%d')}-{end_of_last_year_mtd.strftime('%m/%d')})", value=f"${total_yoy_historical:,.2f}", delta=yoy_str)
         else:
             st.info("尚未在表格中抓取到有效的历史日期数据，同环比计算暂时休息中...")
 
     st.write("---")
 
+    start_of_current_month = latest_date.replace(day=1)
+    rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
+    rename_dict["Date"] = "日期"
+
     # ------------------------------------------
-    # 🗄️ 第四板块：高级 HTML 报表 (带精美表头国旗图标)
+    # 🗄️ 第四板块：本月各站点每日销售明细表格 (绿光高亮)
     # ------------------------------------------
     st.markdown("### 🗄️ 本月各站点每日销售明细")
     with st.container(border=True):
         if not df_hist.empty:
-            start_of_current_month = latest_date.replace(day=1)
-            
             mask_mtd = (df_hist['Date'] >= start_of_current_month) & (df_hist['Date'] <= latest_date)
             df_mtd_daily = df_hist[mask_mtd].copy()
 
             if not df_mtd_daily.empty:
                 df_pivot = df_mtd_daily.pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
-
                 if "总计" not in df_pivot.columns:
-                    avail_sites = [s for s in fixed_sites_order if s in df_pivot.columns]
-                    df_pivot['总计'] = df_pivot[avail_sites].sum(axis=1)
+                    df_pivot['总计'] = df_pivot[[s for s in fixed_sites_order if s in df_pivot.columns]].sum(axis=1)
 
                 display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
-                df_pivot = df_pivot[display_cols]
-                
-                df_pivot = df_pivot.sort_values('Date', ascending=False)
+                df_pivot = df_pivot[display_cols].sort_values('Date', ascending=False)
                 df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
-
-                # 重命名中文字段 (自动带上漂亮的国旗)
-                rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
-                rename_dict["Date"] = "日期"
                 df_pivot = df_pivot.rename(columns=rename_dict)
 
-                # HTML 表格构建
                 html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">'
                 html_table += '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: center;">'
-                
-                # 表头渲染 (国旗图标将在此完美呈现)
                 html_table += '<thead><tr style="background-color: #ffffff;">'
                 for col in df_pivot.columns:
                     html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
                 html_table += '</tr></thead><tbody>'
                 
-                # 数据行渲染
                 for idx, row in df_pivot.iterrows():
                     bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
                     html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">'
-                    
                     for col in df_pivot.columns:
                         val = row[col]
-                        if isinstance(val, (int, float)):
-                            display_val = f"${val:,.2f}" if val != 0 else "$0.00"
-                        else:
-                            display_val = str(val)
-                        
+                        display_val = f"${val:,.2f}" if isinstance(val, (int, float)) else str(val)
                         cell_style = "padding: 12px 10px; color: #334155;"
                         if col == "总计":
                             cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
                         elif col == "日期":
                             cell_style += " font-weight: 500; color: #475569;"
-                            
                         html_table += f'<td style="{cell_style}">{display_val}</td>'
-                        
                     html_table += '</tr>'
                 html_table += '</tbody></table></div>'
-
                 st.markdown(html_table, unsafe_allow_html=True)
             else:
-                st.info("本月暂无每日明细数据。")
-        else:
-            st.info("尚未抓取到历史明细数据。")
+                st.info("本月暂无每日销售明细数据。")
 
+    st.write("---")
+
+    # ------------------------------------------
+    # 🗄️ 第五板块：全新新增 每日SEO流量明细表格 (冰蓝高亮)
+    # ------------------------------------------
+    st.markdown("### 📊 SEO流量完成情况")
+    with st.container(border=True):
+        if not df_traffic.empty:
+            mask_traffic = (df_traffic['Date'] >= start_of_current_month) & (df_traffic['Date'] <= latest_date)
+            df_t_daily = df_traffic[mask_traffic].copy()
+
+            if not df_t_daily.empty:
+                df_t_pivot = df_t_daily.pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
+                if "总计" not in df_t_pivot.columns:
+                    df_t_pivot['总计'] = df_t_pivot[[s for s in fixed_sites_order if s in df_t_pivot.columns]].sum(axis=1)
+
+                display_t_cols = ['Date'] + [s for s in fixed_sites_order if s in df_t_pivot.columns] + ['总计']
+                df_t_pivot = df_t_pivot[display_t_cols].sort_values('Date', ascending=False)
+                df_t_pivot['Date'] = df_t_pivot['Date'].dt.strftime('%Y-%m-%d')
+                df_t_pivot = df_t_pivot.rename(columns=rename_dict)
+
+                # 使用清爽的冰蓝色系渲染流量表头及高亮列
+                html_t_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">'
+                html_t_table += '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: center;">'
+                html_t_table += '<thead><tr style="background-color: #ffffff;">'
+                for col in df_t_pivot.columns:
+                    html_t_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
+                html_t_table += '</tr></thead><tbody>'
+                
+                for idx, row in df_t_pivot.iterrows():
+                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
+                    html_t_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">'
+                    for col in df_t_pivot.columns:
+                        val = row[col]
+                        # 流量为纯数值格式展示，去掉美金符号并向下取整
+                        display_val = f"{val:,.0f}" if isinstance(val, (int, float)) else str(val)
+                        cell_style = "padding: 12px 10px; color: #334155;"
+                        if col == "总计":
+                            # 专属高级冰蓝底色高亮拉花
+                            cell_style += " background-color: #f0f9ff; font-weight: 700; color: #0369a1; border-left: 1px solid #bae6fd;"
+                        elif col == "日期":
+                            cell_style += " font-weight: 500; color: #475569;"
+                        html_t_table += f'<td style="{cell_style}">{display_val}</td>'
+                    html_t_table += '</tr>'
+                html_t_table += '</tbody></table></div>'
+                st.markdown(html_t_table, unsafe_allow_html=True)
+            else:
+                st.info("本月暂无每日SEO流量明细数据。")
+        else:
+            st.info("尚未在表单中抓取到格式如 2026/7/8 的有效每日流量历史行。")
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
