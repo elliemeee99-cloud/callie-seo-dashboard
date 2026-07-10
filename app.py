@@ -115,32 +115,37 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"Sheet2 读取失败: {e}")
 
-        # --- 2. 读取 Sheet3 (🔥 修复版：专属 SEO流量目标，强力清洗表头) ---
+        # --- 2. 读取 Sheet3 (🔥 终极修复版：智能寻找真实表头) ---
         try:
             sheet3 = spreadsheet.worksheet("Sheet3")
             raw_data_3 = sheet3.get_all_values()
             if raw_data_3:
-                headers_3 = raw_data_3[0]
-                for row in raw_data_3[1:]:
-                    if not row or not row[0]: continue
-                    first_col = str(row[0]).strip()
-                    # 只要带有“目标”二字就抓取
-                    if "目标" in first_col or "Target" in first_col:
-                        for i in range(1, min(len(headers_3), len(row))):
-                            raw_site = str(headers_3[i]).strip()
-                            if raw_site == "": continue
-                            
-                            # 清洗类似 "Callie DE" 或 "德国" 的表头
-                            clean_site = raw_site.replace("Callie ", "").strip()
-                            if clean_site in cn_to_en:
-                                clean_site = cn_to_en[clean_site]
+                # 动态寻找真正的表头行 (避开第一行的合并大标题)
+                headers_3 = []
+                for row in raw_data_3:
+                    row_strs = [str(x).strip() for x in row]
+                    if "DE" in row_strs or "FR" in row_strs or "Callie DE" in row_strs or "德国" in row_strs:
+                        headers_3 = row_strs
+                        break
+                
+                if headers_3:
+                    for row in raw_data_3:
+                        if not row or not row[0]: continue
+                        first_col = str(row[0]).strip()
+                        # 匹配含有“目标”的行 (如 "7月份目标")
+                        if "目标" in first_col: 
+                            for i in range(1, min(len(headers_3), len(row))):
+                                raw_site = headers_3[i]
+                                if not raw_site: continue
                                 
-                            val_str = str(row[i]).strip()
-                            clean_str = re.sub(r'[^\d\.-]', '', val_str)
-                            
-                            # 只有清洗后属于核心站点的，才录入流量目标系统
-                            if clean_site in fixed_sites_order:
-                                target_traffic_data[clean_site] = float(clean_str) if clean_str else 0.0
+                                clean_site = raw_site.replace("Callie ", "").strip()
+                                if clean_site in cn_to_en:
+                                    clean_site = cn_to_en[clean_site]
+                                
+                                if clean_site in fixed_sites_order:
+                                    val_str = str(row[i]).strip()
+                                    clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                                    target_traffic_data[clean_site] = float(clean_str) if clean_str else 0.0
         except Exception as e:
             print(f"Sheet3 读取失败: {e}")
 
@@ -349,7 +354,7 @@ if data_dict:
         else:
             st.info("尚未在表格中抓取到有效的历史日期数据，同环比计算暂时休息中...")
 
-    # [4] 销售额明细表格 (绿光高亮)
+    # [4] 销售额明细表格
     st.markdown("### 🗄️ 本月各站点每日销售明细")
     with st.container(border=True):
         if not df_hist.empty:
@@ -461,7 +466,7 @@ if data_dict:
                 )
                 st.markdown(site_html, unsafe_allow_html=True)
 
-    # [3] 流量明细表格 (冰蓝高亮)
+    # [3] 流量明细表格
     st.markdown("### 🗄️ 本月各站点每日SEO流量明细")
     with st.container(border=True):
         if not df_traffic.empty:
