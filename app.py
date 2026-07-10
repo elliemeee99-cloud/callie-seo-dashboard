@@ -10,7 +10,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (极简高端排版 & 报表悬浮特效)
+# 🎨 定制 CSS (极简高端排版)
 # ==========================================
 st.markdown("""
 <style>
@@ -149,9 +149,23 @@ if data_dict:
     target_data = data_dict["targets"]
     df_hist = data_dict["historical_df"]
     
+    # 强制固定业务顺序
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
-    en_to_cn = {"DE":"德国", "FR":"法国", "ES":"西班牙", "IT":"意大利", "NL":"荷兰", "NO":"挪威", "SE":"瑞典", "FI":"芬兰", "PL":"波兰"}
     
+    # 🔥 核心升级：在这里直接为国家名字前加上高颜值国旗 Emoji，全局通用！
+    en_to_cn = {
+        "DE": "🇩🇪 德国", 
+        "FR": "🇫🇷 法国", 
+        "ES": "🇪🇸 西班牙", 
+        "IT": "🇮🇹 意大利", 
+        "NL": "🇳🇱 荷兰", 
+        "NO": "🇳🇴 挪威", 
+        "SE": "🇸🇪 瑞典", 
+        "FI": "🇫🇮 芬兰", 
+        "PL": "🇵🇱 波兰"
+    }
+    
+    # --- 原版计算逻辑 ---
     total_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
     total_target = sum([target_data.get(s, 0) for s in fixed_sites_order])
     total_rate = (total_actual / total_target * 100) if total_target > 0 else 0
@@ -307,14 +321,13 @@ if data_dict:
     st.write("---")
 
     # ------------------------------------------
-    # 🗄️ 第四板块：全新定制的高级 HTML 报表 (完美复刻你的截图风格)
+    # 🗄️ 第四板块：高级 HTML 报表 (带精美表头国旗图标)
     # ------------------------------------------
     st.markdown("### 🗄️ 本月各站点每日销售明细")
     with st.container(border=True):
         if not df_hist.empty:
             start_of_current_month = latest_date.replace(day=1)
             
-            # 过滤出本月 1 号到昨天的数据
             mask_mtd = (df_hist['Date'] >= start_of_current_month) & (df_hist['Date'] <= latest_date)
             df_mtd_daily = df_hist[mask_mtd].copy()
 
@@ -325,49 +338,43 @@ if data_dict:
                     avail_sites = [s for s in fixed_sites_order if s in df_pivot.columns]
                     df_pivot['总计'] = df_pivot[avail_sites].sum(axis=1)
 
-                # 严格固定列顺序
                 display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
                 df_pivot = df_pivot[display_cols]
                 
-                # 倒序排列，格式化日期
                 df_pivot = df_pivot.sort_values('Date', ascending=False)
                 df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
 
-                # 重命名中文字段
+                # 重命名中文字段 (自动带上漂亮的国旗)
                 rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
                 rename_dict["Date"] = "日期"
                 df_pivot = df_pivot.rename(columns=rename_dict)
 
-                # 🔥 构建自定义 HTML 渲染引擎，完美复刻截图的高级报表样式
+                # HTML 表格构建
                 html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">'
                 html_table += '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: center;">'
                 
-                # --- 表头 (深蓝色字体，无底色) ---
+                # 表头渲染 (国旗图标将在此完美呈现)
                 html_table += '<thead><tr style="background-color: #ffffff;">'
                 for col in df_pivot.columns:
                     html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
                 html_table += '</tr></thead><tbody>'
                 
-                # --- 数据行 (交替底色，总计列浅绿高亮) ---
+                # 数据行渲染
                 for idx, row in df_pivot.iterrows():
-                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc" # 斑马纹交替行
+                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc"
                     html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">'
                     
                     for col in df_pivot.columns:
                         val = row[col]
-                        # 数字格式化补上千分位和金钱符
                         if isinstance(val, (int, float)):
                             display_val = f"${val:,.2f}" if val != 0 else "$0.00"
                         else:
                             display_val = str(val)
                         
-                        # 针对不同列单独定制单元格样式
                         cell_style = "padding: 12px 10px; color: #334155;"
                         if col == "总计":
-                            # 为“总计”列加上截图风格的浅绿拉花
                             cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
                         elif col == "日期":
-                            # 日期加粗
                             cell_style += " font-weight: 500; color: #475569;"
                             
                         html_table += f'<td style="{cell_style}">{display_val}</td>'
@@ -375,7 +382,6 @@ if data_dict:
                     html_table += '</tr>'
                 html_table += '</tbody></table></div>'
 
-                # 输出手写的精美报表
                 st.markdown(html_table, unsafe_allow_html=True)
             else:
                 st.info("本月暂无每日明细数据。")
