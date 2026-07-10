@@ -10,7 +10,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (极简高端排版)
+# 🎨 定制 CSS (极简高端排版 & 报表悬浮特效)
 # ==========================================
 st.markdown("""
 <style>
@@ -36,8 +36,10 @@ div[data-testid="stMetricValue"] > div {
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
-/* 优化 DataFrame 表格显示 */
-[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+/* 自定义精美 HTML 表格悬浮效果 */
+.custom-table-row:hover {
+    background-color: #f1f5f9 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,7 +106,6 @@ def load_and_transform_google_sheet():
                         if pd.notna(date_val):
                             for i in range(1, min(len(headers), len(row))):
                                 site = headers[i].strip()
-                                # 🔥 修复：不再跳过“总计”列，一并抓取用于明细表！
                                 if site == "": continue
                                 val_str = row[i].strip()
                                 clean_str = re.sub(r'[^\d\.-]', '', val_str)
@@ -306,7 +307,7 @@ if data_dict:
     st.write("---")
 
     # ------------------------------------------
-    # 🗄️ 第四板块：全新新增 每日明细表格
+    # 🗄️ 第四板块：全新定制的高级 HTML 报表 (完美复刻你的截图风格)
     # ------------------------------------------
     st.markdown("### 🗄️ 本月各站点每日销售明细")
     with st.container(border=True):
@@ -318,29 +319,64 @@ if data_dict:
             df_mtd_daily = df_hist[mask_mtd].copy()
 
             if not df_mtd_daily.empty:
-                # 把一维数据透视为二维报表
                 df_pivot = df_mtd_daily.pivot_table(index='Date', columns='Site', values='Value', aggfunc='sum').reset_index()
 
-                # 如果底表没有完美抓取到“总计”列，系统在此处提供自动安全托底计算
                 if "总计" not in df_pivot.columns:
                     avail_sites = [s for s in fixed_sites_order if s in df_pivot.columns]
                     df_pivot['总计'] = df_pivot[avail_sites].sum(axis=1)
 
-                # 严格按照你要求的顺序排列列：Date, 德法西意荷挪瑞芬波, 总计
+                # 严格固定列顺序
                 display_cols = ['Date'] + [s for s in fixed_sites_order if s in df_pivot.columns] + ['总计']
                 df_pivot = df_pivot[display_cols]
-
-                # 格式化日期并倒序排（最近的日子在最上面）
+                
+                # 倒序排列，格式化日期
                 df_pivot = df_pivot.sort_values('Date', ascending=False)
                 df_pivot['Date'] = df_pivot['Date'].dt.strftime('%Y-%m-%d')
 
-                # 把表头英文字母转换为更友好的中文名
+                # 重命名中文字段
                 rename_dict = {s: en_to_cn.get(s, s) for s in fixed_sites_order}
                 rename_dict["Date"] = "日期"
                 df_pivot = df_pivot.rename(columns=rename_dict)
 
-                # 渲染最终表格
-                st.dataframe(df_pivot, use_container_width=True, hide_index=True)
+                # 🔥 构建自定义 HTML 渲染引擎，完美复刻截图的高级报表样式
+                html_table = '<div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">'
+                html_table += '<table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: center;">'
+                
+                # --- 表头 (深蓝色字体，无底色) ---
+                html_table += '<thead><tr style="background-color: #ffffff;">'
+                for col in df_pivot.columns:
+                    html_table += f'<th style="color: #2563eb; font-weight: 600; padding: 14px 10px; border-bottom: 2px solid #e2e8f0;">{col}</th>'
+                html_table += '</tr></thead><tbody>'
+                
+                # --- 数据行 (交替底色，总计列浅绿高亮) ---
+                for idx, row in df_pivot.iterrows():
+                    bg_color = "#ffffff" if idx % 2 == 0 else "#f8fafc" # 斑马纹交替行
+                    html_table += f'<tr class="custom-table-row" style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;">'
+                    
+                    for col in df_pivot.columns:
+                        val = row[col]
+                        # 数字格式化补上千分位和金钱符
+                        if isinstance(val, (int, float)):
+                            display_val = f"${val:,.2f}" if val != 0 else "$0.00"
+                        else:
+                            display_val = str(val)
+                        
+                        # 针对不同列单独定制单元格样式
+                        cell_style = "padding: 12px 10px; color: #334155;"
+                        if col == "总计":
+                            # 为“总计”列加上截图风格的浅绿拉花
+                            cell_style += " background-color: #ecfdf5; font-weight: 700; color: #065f46; border-left: 1px solid #d1fae5;"
+                        elif col == "日期":
+                            # 日期加粗
+                            cell_style += " font-weight: 500; color: #475569;"
+                            
+                        html_table += f'<td style="{cell_style}">{display_val}</td>'
+                        
+                    html_table += '</tr>'
+                html_table += '</tbody></table></div>'
+
+                # 输出手写的精美报表
+                st.markdown(html_table, unsafe_allow_html=True)
             else:
                 st.info("本月暂无每日明细数据。")
         else:
