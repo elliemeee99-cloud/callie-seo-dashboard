@@ -600,13 +600,17 @@ if data_dict:
                 else:
                     start_date, end_date = start_of_current_month.date(), latest_date.date()
 
-                # 将底层时间的时分秒裁掉，纯按日比对
                 mask_date = (df_hist['Date'].dt.date >= start_date) & (df_hist['Date'].dt.date <= end_date)
                 df_filtered = df_hist[mask_date & df_hist['Site'].isin(selected_sites)].copy()
                 
                 if time_grain == "周": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
                 elif time_grain == "月": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
                 else: df_filtered['Date_Axis'] = df_filtered['Date']
+
+                # ==========================================
+                # 🔥 全新调色盘：Apache ECharts 经典清新淡雅饱和度配色
+                # ==========================================
+                color_palette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC']
 
                 # --- 图表 1：总销售额曲线 ---
                 df_total_trend = df_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
@@ -628,10 +632,9 @@ if data_dict:
                 with st.container(border=True):
                     st.plotly_chart(fig_total, use_container_width=True)
 
-                # --- 图表 2：混合型柱状图 + 总折线图 ---
+                # --- 图表 2：混合型柱状图 + 总折线图 (使用全新配色) ---
                 df_site_trend = df_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
                 fig_sites = go.Figure()
-                color_palette = ['#3b82f6', '#10b981', '#f43f5e', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#64748b']
                 
                 # 添加堆叠柱状图 (代表各分站)
                 for idx, site in enumerate(fixed_sites_order):
@@ -655,9 +658,8 @@ if data_dict:
                 fig_sites.update_layout(
                     title=dict(text="🌍 各站点 SEO 销售额成分对比 (柱线混合图)", font=dict(size=16, color='#1e293b', weight='bold')),
                     height=450, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', 
-                    barmode='stack', # 开启堆叠模式
-                    margin=dict(l=20, r=20, t=50, b=80), # 增加底部 margin 容纳图例
-                    # 图例转移到底部居中平铺
+                    barmode='stack', 
+                    margin=dict(l=20, r=20, t=50, b=80), 
                     legend=dict(
                         orientation="h", 
                         yanchor="top", y=-0.15, 
