@@ -42,15 +42,13 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
     background-color: #f1f5f9 !important;
 }
 
-/* ========================================================= */
-/* 🔥 强力穿透：顶部 Tab 看板切换 -> 蓝底胶囊风格 */
-/* ========================================================= */
+/* 🔥 顶部 Tab 看板切换 -> 蓝底胶囊风格 */
 div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
     gap: 12px !important;
-    border-bottom: none !important; /* 去除底部灰线 */
+    border-bottom: none !important;
 }
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
-    display: none !important; /* 彻底隐藏原生滑动高亮条 */
+    display: none !important; 
 }
 div[data-testid="stTabs"] button[data-baseweb="tab"] {
     background-color: #f1f5f9 !important;
@@ -66,18 +64,15 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] p {
     font-size: 17px !important;
     margin: 0 !important;
 }
-/* 选中状态 */
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #2563eb !important; /* 完美复刻截图中的宝蓝色 */
+    background-color: #2563eb !important; 
     box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
 }
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p {
     color: #ffffff !important;
 }
 
-/* ========================================================= */
-/* 🔥 强力穿透：Radio 日期聚合切换 -> 卡片式按钮 */
-/* ========================================================= */
+/* 🔥 Radio 日期聚合切换 -> 卡片式按钮 */
 div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: row !important;
@@ -90,7 +85,6 @@ div[data-testid="stRadio"] label[data-baseweb="radio"] {
     cursor: pointer !important;
     transition: all 0.2s;
 }
-/* 隐藏丑陋的原生单选圆圈 */
 div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child {
     display: none !important; 
 }
@@ -99,7 +93,6 @@ div[data-testid="stRadio"] label[data-baseweb="radio"] p {
     font-weight: 600 !important;
     margin: 0 !important;
 }
-/* Radio 选中状态 */
 div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"],
 div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
     background-color: #2563eb !important;
@@ -109,9 +102,7 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p {
     color: #ffffff !important;
 }
 
-/* ========================================================= */
-/* 🔥 强力穿透：多选框站点筛选 -> 统一蓝色实心胶囊 */
-/* ========================================================= */
+/* 🔥 多选框站点筛选 -> 统一蓝色实心胶囊 */
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
     background-color: #2563eb !important; 
     color: #ffffff !important;
@@ -124,14 +115,14 @@ div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span {
     color: #ffffff !important;
 }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
-    fill: #ffffff !important; /* X 关闭按钮也是白色 */
+    fill: #ffffff !important; 
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (跨三个 Sheet 深度提取)
+# ⚙️ 核心数据获取引擎 (适配全新中文 Sheet 名称)
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -153,33 +144,47 @@ def load_and_transform_google_sheet():
         
         default_year = str(datetime.datetime.now().year)
 
-        # --- 1. 读取 Sheet2 (专属 销售额与目标) ---
+        # --- 1. 读取 SEO销售额目标完成情况 (原 Sheet2) ---
         try:
-            sheet2 = spreadsheet.worksheet("Sheet2")
+            sheet2 = spreadsheet.worksheet("SEO销售额目标完成情况")
             raw_data_2 = sheet2.get_all_values()
             if raw_data_2:
-                headers = raw_data_2[0]
-                if '年' in headers[0]:
-                    default_year = headers[0].replace('年', '').strip()
-                for row in raw_data_2[1:]:
+                headers_2 = []
+                for row in raw_data_2:
+                    row_strs = [str(x).strip() for x in row]
+                    if any(k in row_strs for k in ["DE", "FR", "德国", "法国", "Callie DE"]):
+                        headers_2 = row_strs
+                        break
+                
+                if not headers_2:
+                    headers_2 = raw_data_2[0] 
+                
+                for row in raw_data_2:
                     if not row or not row[0]: continue
-                    first_col = row[0].strip()
+                    first_col = str(row[0]).strip()
+                    
                     if first_col == "总计":
-                        sales_data = {} 
-                        for i in range(1, min(len(headers), len(row))):
-                            site = headers[i].strip()
-                            if site == "": continue
+                        for i in range(1, min(len(headers_2), len(row))):
+                            raw_site = headers_2[i].strip()
+                            clean_site = raw_site.replace("Callie ", "").strip()
+                            if clean_site in cn_to_en: clean_site = cn_to_en[clean_site]
+                            if clean_site not in fixed_sites_order: continue
+                            
                             val_str = row[i].strip()
                             clean_str = re.sub(r'[^\d\.-]', '', val_str)
-                            sales_data[site] = float(clean_str) if clean_str else 0.0
+                            sales_data[clean_site] = float(clean_str) if clean_str else 0.0
+                            
                     elif "目标" in first_col: 
-                        target_sales_data = {} 
-                        for i in range(1, min(len(headers), len(row))):
-                            site = headers[i].strip()
-                            if site == "": continue
+                        for i in range(1, min(len(headers_2), len(row))):
+                            raw_site = headers_2[i].strip()
+                            clean_site = raw_site.replace("Callie ", "").strip()
+                            if clean_site in cn_to_en: clean_site = cn_to_en[clean_site]
+                            if clean_site not in fixed_sites_order: continue
+                            
                             val_str = row[i].strip()
                             clean_str = re.sub(r'[^\d\.-]', '', val_str)
-                            target_sales_data[site] = float(clean_str) if clean_str else 0.0
+                            target_sales_data[clean_site] = float(clean_str) if clean_str else 0.0
+                            
                     elif re.search(r'\d', first_col): 
                         try:
                             if "月" in first_col and "日" in first_col:
@@ -188,28 +193,32 @@ def load_and_transform_google_sheet():
                                 date_val = pd.to_datetime(f"{default_year}-{month}-{day}", errors='coerce')
                             else:
                                 date_val = pd.to_datetime(first_col, errors='coerce')
+                                
                             if pd.notna(date_val):
-                                for i in range(1, min(len(headers), len(row))):
-                                    site = headers[i].strip()
-                                    if site == "": continue
+                                for i in range(1, min(len(headers_2), len(row))):
+                                    raw_site = headers_2[i].strip()
+                                    clean_site = raw_site.replace("Callie ", "").strip()
+                                    if clean_site in cn_to_en: clean_site = cn_to_en[clean_site]
+                                    if clean_site not in fixed_sites_order: continue
+                                    
                                     val_str = row[i].strip()
                                     clean_str = re.sub(r'[^\d\.-]', '', val_str)
                                     val = float(clean_str) if clean_str else 0.0
-                                    historical_records.append({"Date": date_val, "Site": site, "Value": val})
+                                    historical_records.append({"Date": date_val, "Site": clean_site, "Value": val})
                         except:
                             continue
         except Exception as e:
-            print(f"Sheet2 读取失败: {e}")
+            print(f"SEO销售额目标完成情况 读取失败: {e}")
 
-        # --- 2. 读取 Sheet3 (专属 SEO流量目标) ---
+        # --- 2. 读取 SEO月度流量目标 (原 Sheet3) ---
         try:
-            sheet3 = spreadsheet.worksheet("Sheet3")
+            sheet3 = spreadsheet.worksheet("SEO月度流量目标")
             raw_data_3 = sheet3.get_all_values()
             if raw_data_3:
                 headers_3 = []
                 for row in raw_data_3:
                     row_strs = [str(x).strip() for x in row]
-                    if "DE" in row_strs or "FR" in row_strs or "Callie DE" in row_strs or "德国" in row_strs:
+                    if any(k in row_strs for k in ["DE", "FR", "德国", "法国", "Callie DE"]):
                         headers_3 = row_strs
                         break
                 
@@ -217,9 +226,9 @@ def load_and_transform_google_sheet():
                     for row in raw_data_3:
                         if not row or not row[0]: continue
                         first_col = str(row[0]).strip()
-                        if "目标" in first_col: 
+                        if "目标" in first_col or "Target" in first_col: 
                             for i in range(1, min(len(headers_3), len(row))):
-                                raw_site = headers_3[i]
+                                raw_site = headers_3[i].strip()
                                 if not raw_site: continue
                                 clean_site = raw_site.replace("Callie ", "").strip()
                                 if clean_site in cn_to_en:
@@ -229,11 +238,11 @@ def load_and_transform_google_sheet():
                                     clean_str = re.sub(r'[^\d\.-]', '', val_str)
                                     target_traffic_data[clean_site] = float(clean_str) if clean_str else 0.0
         except Exception as e:
-            print(f"Sheet3 读取失败: {e}")
+            print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 Sheet1 (提取日常历史 SEO流量) ---
+        # --- 3. 读取 All (原 Sheet1) ---
         try:
-            sheet1 = spreadsheet.worksheet("Sheet1")
+            sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
             current_site = None
             dates_row = []
@@ -267,7 +276,7 @@ def load_and_transform_google_sheet():
                             except:
                                 continue
         except Exception as e:
-            print(f"Sheet1 读取失败: {e}")
+            print(f"All 读取失败: {e}")
                         
         df_hist = pd.DataFrame(historical_records)
         if not df_hist.empty:
