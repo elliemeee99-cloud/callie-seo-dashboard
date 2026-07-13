@@ -11,7 +11,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (🚀 包含同步按钮美化)
+# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
 st.markdown("""
 <style>
@@ -139,7 +139,7 @@ div[data-testid="stButton"] button:hover {
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 
+# ⚙️ 核心数据获取引擎
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -331,7 +331,6 @@ if data_dict:
         "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
     }
 
-    # 🔥 顶部标题与一键同步数据按钮布局
     col_header, col_refresh = st.columns([5, 1])
     with col_header:
         st.markdown(f"""
@@ -341,10 +340,10 @@ if data_dict:
         </div>
         """, unsafe_allow_html=True)
     with col_refresh:
-        st.write("") # 增加一点顶部间距以对齐
+        st.write("") 
         if st.button("🔄 同步最新数据", use_container_width=True):
-            load_and_transform_google_sheet.clear() # 清空该函数的独立缓存
-            st.rerun() # 强制重新渲染页面
+            load_and_transform_google_sheet.clear() 
+            st.rerun() 
 
     # ==========================================
     # 🎛️ 顶层双大盘看板导航切换系统
@@ -575,10 +574,16 @@ if data_dict:
         
         if not df_hist.empty:
             with st.container(border=True):
-                col_ctrl1, col_ctrl2 = st.columns([1, 3])
+                col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1, 1.2, 2.5])
                 with col_ctrl1:
-                    time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=2, horizontal=True)
+                    time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=0, horizontal=True)
                 with col_ctrl2:
+                    date_range = st.date_input(
+                        "📅 自定义日期范围", 
+                        value=(start_of_current_month.date(), latest_date.date()),
+                        max_value=latest_date.date()
+                    )
+                with col_ctrl3:
                     selected_sites = st.multiselect(
                         "🌍 筛选站点",
                         options=fixed_sites_order,
@@ -587,13 +592,23 @@ if data_dict:
                     )
 
             if selected_sites:
-                df_filtered = df_hist[df_hist['Site'].isin(selected_sites)].copy()
+                # 解析用户选择的日期边界
+                if len(date_range) == 2:
+                    start_date, end_date = date_range
+                elif len(date_range) == 1:
+                    start_date = end_date = date_range[0]
+                else:
+                    start_date, end_date = start_of_current_month.date(), latest_date.date()
+
+                # 将底层时间的时分秒裁掉，纯按日比对
+                mask_date = (df_hist['Date'].dt.date >= start_date) & (df_hist['Date'].dt.date <= end_date)
+                df_filtered = df_hist[mask_date & df_hist['Site'].isin(selected_sites)].copy()
                 
                 if time_grain == "周": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
                 elif time_grain == "月": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
                 else: df_filtered['Date_Axis'] = df_filtered['Date']
 
-                # --- 总销售额曲线 ---
+                # --- 图表 1：总销售额曲线 ---
                 df_total_trend = df_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
                 fig_total = go.Figure()
                 fig_total.add_trace(go.Scatter(
@@ -613,25 +628,42 @@ if data_dict:
                 with st.container(border=True):
                     st.plotly_chart(fig_total, use_container_width=True)
 
-                # --- 站点细分曲线 ---
+                # --- 图表 2：混合型柱状图 + 总折线图 ---
                 df_site_trend = df_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
                 fig_sites = go.Figure()
                 color_palette = ['#3b82f6', '#10b981', '#f43f5e', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#64748b']
                 
+                # 添加堆叠柱状图 (代表各分站)
                 for idx, site in enumerate(fixed_sites_order):
                     if site in selected_sites:
                         df_single_site = df_site_trend[df_site_trend['Site'] == site]
                         site_label = en_to_cn.get(site, site)
-                        fig_sites.add_trace(go.Scatter(
+                        fig_sites.add_trace(go.Bar(
                             x=df_single_site['Date_Axis'], y=df_single_site['Value'],
-                            mode='lines', line=dict(width=2, color=color_palette[idx % len(color_palette)]),
-                            name=site_label, hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
+                            name=site_label, marker_color=color_palette[idx % len(color_palette)],
+                            hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
                         ))
+                
+                # 叠加一条虚线折线图 (代表选定站点的每日总和)
+                fig_sites.add_trace(go.Scatter(
+                    x=df_total_trend['Date_Axis'], y=df_total_trend['Value'],
+                    mode='lines+markers', line=dict(color='#1e293b', width=2, dash='dot'),
+                    marker=dict(size=5, color='#1e293b'),
+                    name='选定站点总计', hovertemplate='<b>总计</b>: $%{y:,.2f}<extra></extra>'
+                ))
                         
                 fig_sites.update_layout(
-                    title=dict(text="🌍 各站点 SEO 销售额独立分线趋势对比", font=dict(size=16, color='#1e293b', weight='bold')),
-                    height=400, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', margin=dict(l=20, r=20, t=50, b=20),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                    title=dict(text="🌍 各站点 SEO 销售额成分对比 (柱线混合图)", font=dict(size=16, color='#1e293b', weight='bold')),
+                    height=450, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', 
+                    barmode='stack', # 开启堆叠模式
+                    margin=dict(l=20, r=20, t=50, b=80), # 增加底部 margin 容纳图例
+                    # 图例转移到底部居中平铺
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="top", y=-0.15, 
+                        xanchor="center", x=0.5,
+                        font=dict(size=12)
+                    ),
                     xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
                     yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
                 )
@@ -640,7 +672,7 @@ if data_dict:
             else:
                 st.warning("⚠️ 请至少选择一个国家站点进行数据趋势观察。")
         else:
-            st.info("尚未在底表中扫描到 2025 年至今的历史明细销售数据。")
+            st.info("尚未在底表中扫描到历史明细销售数据。")
 
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
