@@ -122,7 +122,7 @@ div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (适配全新中文 Sheet 名称)
+# ⚙️ 核心数据获取引擎 
 # ==========================================
 @st.cache_data(ttl="1h")
 def load_and_transform_google_sheet():
@@ -144,7 +144,7 @@ def load_and_transform_google_sheet():
         
         default_year = str(datetime.datetime.now().year)
 
-        # --- 1. 读取 SEO销售额目标完成情况 (原 Sheet2) ---
+        # --- 1. 读取 SEO销售额目标完成情况 ---
         try:
             sheet2 = spreadsheet.worksheet("SEO销售额目标完成情况")
             raw_data_2 = sheet2.get_all_values()
@@ -174,7 +174,8 @@ def load_and_transform_google_sheet():
                             clean_str = re.sub(r'[^\d\.-]', '', val_str)
                             sales_data[clean_site] = float(clean_str) if clean_str else 0.0
                             
-                    elif "目标" in first_col: 
+                    # 🔥 修复重点：精准匹配“分站点目标”，防止被底下的“7月SEO总目标”覆盖数据！
+                    elif first_col == "分站点目标": 
                         for i in range(1, min(len(headers_2), len(row))):
                             raw_site = headers_2[i].strip()
                             clean_site = raw_site.replace("Callie ", "").strip()
@@ -210,7 +211,7 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO销售额目标完成情况 读取失败: {e}")
 
-        # --- 2. 读取 SEO月度流量目标 (原 Sheet3) ---
+        # --- 2. 读取 SEO月度流量目标 ---
         try:
             sheet3 = spreadsheet.worksheet("SEO月度流量目标")
             raw_data_3 = sheet3.get_all_values()
@@ -240,7 +241,7 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 All (原 Sheet1) ---
+        # --- 3. 读取 All ---
         try:
             sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
