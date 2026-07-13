@@ -11,7 +11,7 @@ import re
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
+# 🎨 定制 CSS (🚀 包含同步按钮美化)
 # ==========================================
 st.markdown("""
 <style>
@@ -117,6 +117,23 @@ div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span {
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
     fill: #ffffff !important; 
 }
+
+/* 🔥 同步数据按钮样式优化 */
+div[data-testid="stButton"] button {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    transition: all 0.2s ease !important;
+}
+div[data-testid="stButton"] button:hover {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+    background-color: #f8fafc !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -174,7 +191,6 @@ def load_and_transform_google_sheet():
                             clean_str = re.sub(r'[^\d\.-]', '', val_str)
                             sales_data[clean_site] = float(clean_str) if clean_str else 0.0
                             
-                    # 🔥 修复重点：精准匹配“分站点目标”，防止被底下的“7月SEO总目标”覆盖数据！
                     elif first_col == "分站点目标": 
                         for i in range(1, min(len(headers_2), len(row))):
                             raw_site = headers_2[i].strip()
@@ -315,12 +331,20 @@ if data_dict:
         "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
     }
 
-    st.markdown(f"""
-    <div style="margin-bottom: 25px;">
-        <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO数据全局看板</h1>
-        <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # 🔥 顶部标题与一键同步数据按钮布局
+    col_header, col_refresh = st.columns([5, 1])
+    with col_header:
+        st.markdown(f"""
+        <div style="margin-bottom: 25px;">
+            <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO数据全局看板</h1>
+            <div style="color: #64748b; font-size: 14px;">报表同步基准日：{latest_date.strftime('%Y-%m-%d')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_refresh:
+        st.write("") # 增加一点顶部间距以对齐
+        if st.button("🔄 同步最新数据", use_container_width=True):
+            load_and_transform_google_sheet.clear() # 清空该函数的独立缓存
+            st.rerun() # 强制重新渲染页面
 
     # ==========================================
     # 🎛️ 顶层双大盘看板导航切换系统
