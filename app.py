@@ -342,8 +342,12 @@ if data_dict:
     with col_refresh:
         st.write("") 
         if st.button("🔄 同步最新数据", use_container_width=True):
-            load_and_transform_google_sheet.clear() 
-            st.rerun() 
+            load_and_transform_google_sheet.clear()
+            # 兼容所有 Streamlit 版本的强制刷新
+            if hasattr(st, "rerun"):
+                st.rerun() 
+            else:
+                st.experimental_rerun()
 
     # ==========================================
     # 🎛️ 顶层双大盘看板导航切换系统
@@ -592,24 +596,28 @@ if data_dict:
                     )
 
             if selected_sites:
-                # 解析用户选择的日期边界
-                if len(date_range) == 2:
-                    start_date, end_date = date_range
-                elif len(date_range) == 1:
-                    start_date = end_date = date_range[0]
+                # 强化版日期过滤逻辑，防止因点击过快导致解析 TypeError
+                if isinstance(date_range, (tuple, list)):
+                    if len(date_range) == 2:
+                        start_date, end_date = date_range
+                    elif len(date_range) == 1:
+                        start_date = end_date = date_range[0]
+                    else:
+                        start_date, end_date = start_of_current_month.date(), latest_date.date()
                 else:
-                    start_date, end_date = start_of_current_month.date(), latest_date.date()
-
-                mask_date = (df_hist['Date'].dt.date >= start_date) & (df_hist['Date'].dt.date <= end_date)
+                    start_date = end_date = date_range
+                
+                # 转换回 Pandas 标准时间，避免出现 dt.date 和 datetime.date 格式打架
+                start_dt = pd.to_datetime(start_date)
+                end_dt = pd.to_datetime(end_date)
+                
+                mask_date = (df_hist['Date'] >= start_dt) & (df_hist['Date'] <= end_dt)
                 df_filtered = df_hist[mask_date & df_hist['Site'].isin(selected_sites)].copy()
                 
                 if time_grain == "周": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
                 elif time_grain == "月": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
                 else: df_filtered['Date_Axis'] = df_filtered['Date']
 
-                # ==========================================
-                # 🔥 全新调色盘：Apache ECharts 经典清新淡雅饱和度配色
-                # ==========================================
                 color_palette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC']
 
                 # --- 图表 1：总销售额曲线 ---
@@ -632,11 +640,11 @@ if data_dict:
                 with st.container(border=True):
                     st.plotly_chart(fig_total, use_container_width=True)
 
-                # --- 图表 2：混合型柱状图 + 总折线图 (使用全新配色) ---
+                # --- 图表 2：混合型柱状图 + 总折线图 ---
                 df_site_trend = df_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
                 fig_sites = go.Figure()
                 
-                # 添加堆叠柱状图 (代表各分站)
+                # 添加堆叠柱状图
                 for idx, site in enumerate(fixed_sites_order):
                     if site in selected_sites:
                         df_single_site = df_site_trend[df_site_trend['Site'] == site]
@@ -647,7 +655,7 @@ if data_dict:
                             hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
                         ))
                 
-                # 叠加一条虚线折线图 (代表选定站点的每日总和)
+                # 叠加一条虚线折线图
                 fig_sites.add_trace(go.Scatter(
                     x=df_total_trend['Date_Axis'], y=df_total_trend['Value'],
                     mode='lines+markers', line=dict(color='#1e293b', width=2, dash='dot'),
