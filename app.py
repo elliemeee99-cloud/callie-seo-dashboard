@@ -98,7 +98,7 @@ div[data-testid="stButton"] button:hover {
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (🔥 流式解析防崩溃版)
+# ⚙️ 核心数据获取引擎 (🔥 彻底修复版：精准数据锁定技术)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_and_transform_google_sheet():
@@ -215,33 +215,35 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 All (🔥 核心内存优化段落) ---
+        # --- 3. 读取 All (🔥 核心内存优化段落 + 流量精准锁定) ---
         try:
             sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
             
             dates_row = []
             current_site = None
+            captured_traffic = False # 🔥 防重复抓取锁
             
-            # 流式处理，直接抽成3列格式，不用把整个宽表塞进 DataFrame
             for row in raw_data_1:
                 if not row: continue
                 first_cell = str(row[0]).strip()
                 
-                # 动态捕捉日期行 (识别带有 202x 的行作为日期基准)
-                if len(row) > 1 and "202" in str(row[1]):
+                # 🔥 精确识别日期行：第一列必定为空，第二列必定带有 "202"
+                if first_cell == "" and len(row) > 1 and "202" in str(row[1]):
                     dates_row = [str(x).strip() for x in row[1:]]
+                    continue
                     
                 # 识别当前国家块
                 if first_cell.startswith("Callie ") and len(first_cell) <= 15:
                     current_site = first_cell.replace("Callie ", "").strip()
                     if current_site in cn_to_en:
                         current_site = cn_to_en[current_site]
+                    captured_traffic = False # 切换站点，重置抓取锁
                     continue
                 
+                # 🔥 严苛的数据锁定：只抓名字叫 "SEO总流量" 或 "SEO流量" 的行
                 clean_metric_name = first_cell.replace(" ", "")
-                # 仅在遇到目标行时抓取数据
-                if current_site and clean_metric_name in ["SEO总流量", "SEO流量", "SEO站内流量"]:
+                if current_site and clean_metric_name in ["SEO总流量", "SEO流量"] and not captured_traffic:
                     values = row[1:]
                     for i in range(len(values)):
                         if i < len(dates_row) and dates_row[i] != "":
@@ -250,6 +252,7 @@ def load_and_transform_google_sheet():
                                 clean_str = re.sub(r'[^\d\.-]', '', v_str)
                                 val = float(clean_str) if clean_str else 0.0
                                 traffic_records.append({"Date": dates_row[i], "Site": current_site, "Value": val})
+                    captured_traffic = True # 锁定！当前站点不再抓取任何疑似流量的数据
         except Exception as e:
             print(f"All 读取失败: {e}")
                         
