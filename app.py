@@ -548,74 +548,72 @@ if data_dict:
 
 
     # ------------------------------------------
-    # 🗄️ 第二大看板：数据明细分析 (🔥 内存稳健版筛选器)
+    # 🗄️ 第二大看板：数据明细分析 (🔥 全新联动体系)
     # ------------------------------------------
     with tab_details:
-        st.markdown("## 📈 SEO历史销售额趋势")
-        
-        if not df_hist.empty:
-            with st.container(border=True):
-                col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1, 1.2, 2.5])
-                with col_ctrl1:
-                    time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=0, horizontal=True)
-                with col_ctrl2:
-                    date_range = st.date_input(
-                        "📅 自定义日期范围", 
-                        value=(start_of_current_month.date(), latest_date.date()),
-                        max_value=latest_date.date()
-                    )
-                with col_ctrl3:
-                    selected_sites = st.multiselect(
-                        "🌍 筛选站点",
-                        options=fixed_sites_order,
-                        default=fixed_sites_order,
-                        format_func=lambda x: en_to_cn.get(x, x)
-                    )
+        # --- 统一控制中枢 ---
+        with st.container(border=True):
+            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1, 1.2, 2.5])
+            with col_ctrl1:
+                time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=0, horizontal=True)
+            with col_ctrl2:
+                date_range = st.date_input(
+                    "📅 自定义日期范围", 
+                    value=(start_of_current_month.date(), latest_date.date()),
+                    max_value=latest_date.date()
+                )
+            with col_ctrl3:
+                selected_sites = st.multiselect(
+                    "🌍 筛选站点",
+                    options=fixed_sites_order,
+                    default=fixed_sites_order,
+                    format_func=lambda x: en_to_cn.get(x, x)
+                )
 
-            if selected_sites:
-                # 强化版日期过滤逻辑，杜绝解析崩溃
-                if isinstance(date_range, (tuple, list)):
-                    if len(date_range) == 2:
-                        start_date, end_date = date_range
-                    elif len(date_range) == 1:
-                        start_date = end_date = date_range[0]
-                    else:
-                        start_date, end_date = start_of_current_month.date(), latest_date.date()
+        if selected_sites:
+            # 安全解析日期
+            if isinstance(date_range, (tuple, list)):
+                if len(date_range) == 2:
+                    start_date, end_date = date_range
+                elif len(date_range) == 1:
+                    start_date = end_date = date_range[0]
                 else:
-                    start_date = end_date = date_range
-                
-                # 保障开始时间一定不大于结束时间
-                if start_date > end_date:
-                    start_date, end_date = end_date, start_date
-                
-                start_dt = pd.to_datetime(start_date)
-                end_dt = pd.to_datetime(end_date)
-                
-                # 安全进行日期匹配
-                mask_date = (df_hist['Date'] >= start_dt) & (df_hist['Date'] <= end_dt)
-                df_filtered = df_hist[mask_date & df_hist['Site'].isin(selected_sites)].copy()
-                
-                # 🔥 终极防崩溃拦截：如果在选定的日期范围内完全没有数据
-                if not df_filtered.empty:
-                    if time_grain == "周": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('W').dt.to_timestamp()
-                    elif time_grain == "月": df_filtered['Date_Axis'] = df_filtered['Date'].dt.to_period('M').dt.to_timestamp()
-                    else: df_filtered['Date_Axis'] = df_filtered['Date']
+                    start_date, end_date = start_of_current_month.date(), latest_date.date()
+            else:
+                start_date = end_date = date_range
+            
+            if start_date > end_date:
+                start_date, end_date = end_date, start_date
+            
+            start_dt = pd.to_datetime(start_date)
+            end_dt = pd.to_datetime(end_date)
+            
+            # ECharts 经典清新高饱和配色
+            color_palette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC']
 
-                    # ==========================================
-                    # 🔥 全新调色盘：Apache ECharts 清新高饱和配色
-                    # ==========================================
-                    color_palette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC']
+            # ==========================================
+            # 📈 销售额趋势部分
+            # ==========================================
+            st.markdown("## 📈 SEO历史销售额趋势")
+            if not df_hist.empty:
+                mask_s_date = (df_hist['Date'] >= start_dt) & (df_hist['Date'] <= end_dt)
+                df_s_filtered = df_hist[mask_s_date & df_hist['Site'].isin(selected_sites)].copy()
+                
+                if not df_s_filtered.empty:
+                    if time_grain == "周": df_s_filtered['Date_Axis'] = df_s_filtered['Date'].dt.to_period('W').dt.to_timestamp()
+                    elif time_grain == "月": df_s_filtered['Date_Axis'] = df_s_filtered['Date'].dt.to_period('M').dt.to_timestamp()
+                    else: df_s_filtered['Date_Axis'] = df_s_filtered['Date']
 
-                    # --- 图表 1：总销售额曲线 ---
-                    df_total_trend = df_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
-                    fig_total = go.Figure()
-                    fig_total.add_trace(go.Scatter(
-                        x=df_total_trend['Date_Axis'], y=df_total_trend['Value'],
+                    # --- 销售额：总趋势曲线 ---
+                    df_s_total_trend = df_s_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
+                    fig_s_total = go.Figure()
+                    fig_s_total.add_trace(go.Scatter(
+                        x=df_s_total_trend['Date_Axis'], y=df_s_total_trend['Value'],
                         mode='lines+markers', line=dict(color='#2563eb', width=3.5),
                         marker=dict(size=6, color='#ffffff', line=dict(color='#2563eb', width=2)), 
                         name='总销售额', hovertemplate='<b>日期</b>: %{x}<br><b>总销售额</b>: $%{y:,.2f}<extra></extra>'
                     ))
-                    fig_total.update_layout(
+                    fig_s_total.update_layout(
                         title=dict(text="📊 选定站点 SEO 总销售额趋势", font=dict(size=16, color='#1e293b', weight='bold')),
                         height=350, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', margin=dict(l=20, r=20, t=50, b=20),
                         xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
@@ -624,51 +622,117 @@ if data_dict:
                     
                     st.write("")
                     with st.container(border=True):
-                        st.plotly_chart(fig_total, use_container_width=True)
+                        st.plotly_chart(fig_s_total, use_container_width=True)
 
-                    # --- 图表 2：混合型柱状图 + 总折线图 ---
-                    df_site_trend = df_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
-                    fig_sites = go.Figure()
+                    # --- 销售额：混合柱状图 ---
+                    df_s_site_trend = df_s_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
+                    fig_s_sites = go.Figure()
                     
                     for idx, site in enumerate(fixed_sites_order):
                         if site in selected_sites:
-                            df_single_site = df_site_trend[df_site_trend['Site'] == site]
+                            df_s_single = df_s_site_trend[df_s_site_trend['Site'] == site]
                             site_label = en_to_cn.get(site, site)
-                            fig_sites.add_trace(go.Bar(
-                                x=df_single_site['Date_Axis'], y=df_single_site['Value'],
+                            fig_s_sites.add_trace(go.Bar(
+                                x=df_s_single['Date_Axis'], y=df_s_single['Value'],
                                 name=site_label, marker_color=color_palette[idx % len(color_palette)],
                                 hovertemplate=f'<b>{site_label}</b>: $%%{{y:,.2f}}<extra></extra>'
                             ))
                     
-                    fig_sites.add_trace(go.Scatter(
-                        x=df_total_trend['Date_Axis'], y=df_total_trend['Value'],
+                    fig_s_sites.add_trace(go.Scatter(
+                        x=df_s_total_trend['Date_Axis'], y=df_s_total_trend['Value'],
                         mode='lines+markers', line=dict(color='#1e293b', width=2, dash='dot'),
                         marker=dict(size=5, color='#1e293b'),
                         name='选定站点总计', hovertemplate='<b>总计</b>: $%{y:,.2f}<extra></extra>'
                     ))
                             
-                    fig_sites.update_layout(
+                    fig_s_sites.update_layout(
                         title=dict(text="🌍 各站点 SEO 销售额成分对比 (柱线混合图)", font=dict(size=16, color='#1e293b', weight='bold')),
-                        height=450, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', 
-                        barmode='stack', 
+                        height=450, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', barmode='stack', 
                         margin=dict(l=20, r=20, t=50, b=80), 
-                        legend=dict(
-                            orientation="h", 
-                            yanchor="top", y=-0.15, 
-                            xanchor="center", x=0.5,
-                            font=dict(size=12)
-                        ),
+                        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5, font=dict(size=12)),
                         xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
                         yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
                     )
                     with st.container(border=True):
-                        st.plotly_chart(fig_sites, use_container_width=True)
+                        st.plotly_chart(fig_s_sites, use_container_width=True)
                 else:
-                    st.info("💡 当前选定的日期范围内，尚未抓取到任何站点的有效销售数据。请尝试扩大日期范围或检查数据源。")
+                    st.info("💡 当前选定的日期范围内，尚未抓取到有效【销售数据】。")
             else:
-                st.warning("⚠️ 请至少选择一个国家站点进行数据趋势观察。")
+                st.info("💡 底表中缺乏历史【销售明细数据】。")
+
+            st.write("---")
+
+            # ==========================================
+            # 🌊 流量趋势部分 (新增)
+            # ==========================================
+            st.markdown("## 🌊 SEO历史流量趋势")
+            if not df_traffic.empty:
+                mask_t_date = (df_traffic['Date'] >= start_dt) & (df_traffic['Date'] <= end_dt)
+                df_t_filtered = df_traffic[mask_t_date & df_traffic['Site'].isin(selected_sites)].copy()
+                
+                if not df_t_filtered.empty:
+                    if time_grain == "周": df_t_filtered['Date_Axis'] = df_t_filtered['Date'].dt.to_period('W').dt.to_timestamp()
+                    elif time_grain == "月": df_t_filtered['Date_Axis'] = df_t_filtered['Date'].dt.to_period('M').dt.to_timestamp()
+                    else: df_t_filtered['Date_Axis'] = df_t_filtered['Date']
+
+                    # --- 流量：总趋势曲线 ---
+                    df_t_total_trend = df_t_filtered.groupby('Date_Axis')['Value'].sum().reset_index()
+                    fig_t_total = go.Figure()
+                    fig_t_total.add_trace(go.Scatter(
+                        x=df_t_total_trend['Date_Axis'], y=df_t_total_trend['Value'],
+                        mode='lines+markers', line=dict(color='#0284c7', width=3.5), # 使用湖蓝色区分销售额
+                        marker=dict(size=6, color='#ffffff', line=dict(color='#0284c7', width=2)), 
+                        name='总流量', hovertemplate='<b>日期</b>: %{x}<br><b>总流量</b>: %{y:,.0f}<extra></extra>'
+                    ))
+                    fig_t_total.update_layout(
+                        title=dict(text="📊 选定站点 SEO 总流量趋势", font=dict(size=16, color='#1e293b', weight='bold')),
+                        height=350, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', margin=dict(l=20, r=20, t=50, b=20),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
+                        yaxis=dict(showgrid=True, gridcolor='#f1f5f9')
+                    )
+                    
+                    st.write("")
+                    with st.container(border=True):
+                        st.plotly_chart(fig_t_total, use_container_width=True)
+
+                    # --- 流量：混合柱状图 ---
+                    df_t_site_trend = df_t_filtered.groupby(['Date_Axis', 'Site'])['Value'].sum().reset_index()
+                    fig_t_sites = go.Figure()
+                    
+                    for idx, site in enumerate(fixed_sites_order):
+                        if site in selected_sites:
+                            df_t_single = df_t_site_trend[df_t_site_trend['Site'] == site]
+                            site_label = en_to_cn.get(site, site)
+                            fig_t_sites.add_trace(go.Bar(
+                                x=df_t_single['Date_Axis'], y=df_t_single['Value'],
+                                name=site_label, marker_color=color_palette[idx % len(color_palette)],
+                                hovertemplate=f'<b>{site_label}</b>: %{{y:,.0f}}<extra></extra>'
+                            ))
+                    
+                    fig_t_sites.add_trace(go.Scatter(
+                        x=df_t_total_trend['Date_Axis'], y=df_t_total_trend['Value'],
+                        mode='lines+markers', line=dict(color='#1e293b', width=2, dash='dot'),
+                        marker=dict(size=5, color='#1e293b'),
+                        name='选定站点总计', hovertemplate='<b>总计</b>: %{y:,.0f}<extra></extra>'
+                    ))
+                            
+                    fig_t_sites.update_layout(
+                        title=dict(text="🌍 各站点 SEO 流量成分对比 (柱线混合图)", font=dict(size=16, color='#1e293b', weight='bold')),
+                        height=450, plot_bgcolor='rgba(0,0,0,0)', hovermode='x unified', barmode='stack', 
+                        margin=dict(l=20, r=20, t=50, b=80), 
+                        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5, font=dict(size=12)),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickformat='%Y-%m-%d' if time_grain=='日' else '%Y-%m'),
+                        yaxis=dict(showgrid=True, gridcolor='#f1f5f9')
+                    )
+                    with st.container(border=True):
+                        st.plotly_chart(fig_t_sites, use_container_width=True)
+                else:
+                    st.info("💡 当前选定的日期范围内，尚未抓取到有效【流量数据】。")
+            else:
+                st.info("💡 底表中缺乏历史【流量明细数据】。")
+
         else:
-            st.info("💡 尚未在底表中扫描到历史明细销售数据。")
+            st.warning("⚠️ 请至少选择一个国家站点进行数据趋势观察。")
 
 else:
     st.info("👈 请配置 GCP JSON 密钥以接入数据。")
