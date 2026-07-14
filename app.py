@@ -14,7 +14,7 @@ import gc
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS
+# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
 st.markdown("""
 <style>
@@ -34,7 +34,9 @@ header {visibility: hidden;}
 }
 
 /* 覆盖原生卡片字体 */
-div[data-testid="stMetricValue"] > div { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
+div[data-testid="stMetricValue"] > div {
+    color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important;
+}
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
@@ -42,35 +44,61 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 .custom-table-row:hover { background-color: #f1f5f9 !important; }
 
 /* 🔥 顶部 Tab 看板切换 -> 蓝底胶囊风格 */
-div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
+div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+    gap: 12px !important;
+    border-bottom: none !important;
+}
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
-div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; box-shadow: none !important; transition: all 0.3s ease; }
-div[data-testid="stTabs"] button[data-baseweb="tab"] p { color: #64748b !important; font-weight: 700 !important; font-size: 17px !important; margin: 0 !important; }
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] { background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    background-color: #f1f5f9 !important;
+    border-radius: 8px !important;
+    padding: 12px 28px !important;
+    border: none !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"] p {
+    color: #64748b !important; font-weight: 700 !important; font-size: 17px !important; margin: 0 !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
+}
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff !important; }
 
 /* 🔥 Radio 日期聚合切换 -> 卡片式按钮 */
 div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] {
+    background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s;
+}
 div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
 div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !important; font-weight: 600 !important; margin: 0 !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
+    background-color: #2563eb !important;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p {
+    color: #ffffff !important;
+}
 
 /* 🔥 多选框站点筛选 -> 统一蓝色实心胶囊 */
-div[data-testid="stMultiSelect"] span[data-baseweb="tag"] { background-color: #2563eb !important; color: #ffffff !important; border-radius: 8px !important; padding: 6px 14px !important; font-weight: 600 !important; border: none !important; }
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+    background-color: #2563eb !important; color: #ffffff !important; border-radius: 8px !important; padding: 6px 14px !important; font-weight: 600 !important; border: none !important;
+}
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span { color: #ffffff !important; }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg { fill: #ffffff !important; }
 
 /* 🔥 同步数据按钮样式优化 */
-div[data-testid="stButton"] button { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; font-weight: 600 !important; border-radius: 8px !important; padding: 10px 16px !important; transition: all 0.2s ease !important; }
-div[data-testid="stButton"] button:hover { border-color: #2563eb !important; color: #2563eb !important; background-color: #f8fafc !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important; }
+div[data-testid="stButton"] button {
+    background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; font-weight: 600 !important; border-radius: 8px !important; padding: 10px 16px !important; transition: all 0.2s ease !important;
+}
+div[data-testid="stButton"] button:hover {
+    border-color: #2563eb !important; color: #2563eb !important; background-color: #f8fafc !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (🔥 终极防空识别版)
+# ⚙️ 核心数据获取引擎 (🔥 内存优化 + 智能锁定双核驱动)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_and_transform_google_sheet():
@@ -187,34 +215,27 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 All (🔥 终极容错版日期扫描 + 智能排雷流量锁定) ---
+        # --- 3. 读取 All (🔥 全能日期抓取与流式处理) ---
         try:
             sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
             
             dates_row = []
             current_site = None
-            captured_traffic = False # 🔥 防重复抓取锁
+            captured_traffic = False # 防止同一站点重复抓取站内/Blog流量
             
             for row in raw_data_1:
                 if not row: continue
                 first_cell = str(row[0]).strip()
                 
-                # 🔥 智能时间轴捕捉：只要前几列出现了日期特征，强行锁定！
+                # 智能识别日期行: 只要第2或第3列包含 "202" 年份标识，即锁定为时间轴
                 if len(row) > 1:
                     check_val = str(row[1]).strip()
                     if not check_val and len(row) > 2:
                         check_val = str(row[2]).strip()
                     
                     is_date_row = False
-                    # 支持 2024/11/1 或 2024-11-01
-                    if re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', check_val):
-                        is_date_row = True
-                    # 支持 11月1日
-                    elif "月" in check_val and "日" in check_val:
-                        is_date_row = True
-                    # 支持 11/1 或 11-1
-                    elif re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
+                    if re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', check_val) or ("月" in check_val and "日" in check_val) or re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
                         is_date_row = True
                         
                     if is_date_row:
@@ -223,13 +244,13 @@ def load_and_transform_google_sheet():
                     
                 # 识别当前国家块
                 if first_cell.startswith("Callie ") and len(first_cell) <= 15:
-                    current_site = first_cell.split()[-1].strip() # 'Callie FR' -> 'FR'
+                    current_site = first_cell.split()[-1].strip() # 提取最后的缩写
                     if current_site in cn_to_en:
                         current_site = cn_to_en[current_site]
-                    captured_traffic = False # 切换站点，重置锁
+                    captured_traffic = False # 切换站点，重置抓取锁
                     continue
                 
-                # 🔥 终极模糊排雷匹配：包含 SEO+流量，但排斥 站内/Blog
+                # 终极模糊排雷匹配：包含 SEO+流量，但绝对不含站内、BLOG
                 clean_metric_name = re.sub(r'\s+', '', first_cell).upper()
                 if current_site and "SEO" in clean_metric_name and "流量" in clean_metric_name and not captured_traffic:
                     if "站内" not in clean_metric_name and "BLOG" not in clean_metric_name:
@@ -245,7 +266,6 @@ def load_and_transform_google_sheet():
                                         val = 0.0
                                     
                                     d_str = dates_row[i]
-                                    # 处理表格里中文日期的兼容
                                     if "月" in d_str and "日" in d_str:
                                         try:
                                             m = d_str.split('月')[0].strip()
@@ -255,7 +275,7 @@ def load_and_transform_google_sheet():
                                             pass
                                             
                                     traffic_records.append({"Date": d_str, "Site": current_site, "Value": val})
-                        captured_traffic = True # 该站点已抓到总流量，立刻上锁跳过后续疑似项
+                        captured_traffic = True # 锁定当前区块的流量抓取
         except Exception as e:
             print(f"All 读取失败: {e}")
                         
@@ -669,7 +689,7 @@ if data_dict:
             st.write("---")
 
             # ==========================================
-            # 🌊 流量趋势部分 (新增)
+            # 🌊 流量趋势部分
             # ==========================================
             st.markdown("## 🌊 SEO历史流量趋势")
             if not df_traffic.empty:
