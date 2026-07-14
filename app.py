@@ -14,7 +14,7 @@ import gc
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
+# 🎨 定制 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -228,8 +228,8 @@ def load_and_transform_google_sheet():
                 if not row: continue
                 first_cell = str(row[0]).strip()
                 
-                # 🔥 精确识别日期行：第一列必定为空，第二列必定带有 "202"
-                if first_cell == "" and len(row) > 1 and "202" in str(row[1]):
+                # 🔥 强化日期行识别：不再要求首格为空，只要第2列是典型的时间格式，即锁定为时间轴
+                if len(row) > 1 and "202" in str(row[1]) and ("/" in str(row[1]) or "-" in str(row[1])):
                     dates_row = [str(x).strip() for x in row[1:]]
                     continue
                     
@@ -241,8 +241,8 @@ def load_and_transform_google_sheet():
                     captured_traffic = False # 切换站点，重置抓取锁
                     continue
                 
-                # 🔥 严苛的数据锁定：只抓名字叫 "SEO总流量" 或 "SEO流量" 的行
-                clean_metric_name = first_cell.replace(" ", "")
+                # 🔥 严苛的数据锁定：支持各种空格的写法，只抓名字叫 "SEO总流量" 或 "SEO流量" 的行
+                clean_metric_name = first_cell.replace(" ", "").upper()
                 if current_site and clean_metric_name in ["SEO总流量", "SEO流量"] and not captured_traffic:
                     values = row[1:]
                     for i in range(len(values)):
