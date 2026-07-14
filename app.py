@@ -21,7 +21,6 @@ st.markdown("""
 .stApp { background-color: #f8fafc !important; }
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
-[data-testid="collapsedControl"] {display: none;}
 .block-container { padding-top: 2rem !important; max-width: 98% !important; }
 
 /* 圆角分区容器 */
