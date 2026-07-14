@@ -34,9 +34,7 @@ header {visibility: hidden;}
 }
 
 /* 覆盖原生卡片字体 */
-div[data-testid="stMetricValue"] > div {
-    color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important;
-}
+div[data-testid="stMetricValue"] > div { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 
@@ -44,61 +42,35 @@ div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
 .custom-table-row:hover { background-color: #f1f5f9 !important; }
 
 /* 🔥 顶部 Tab 看板切换 -> 蓝底胶囊风格 */
-div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
-    gap: 12px !important;
-    border-bottom: none !important;
-}
+div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
-div[data-testid="stTabs"] button[data-baseweb="tab"] {
-    background-color: #f1f5f9 !important;
-    border-radius: 8px !important;
-    padding: 12px 28px !important;
-    border: none !important;
-    box-shadow: none !important;
-    transition: all 0.3s ease;
-}
-div[data-testid="stTabs"] button[data-baseweb="tab"] p {
-    color: #64748b !important; font-weight: 700 !important; font-size: 17px !important; margin: 0 !important;
-}
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
-}
+div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; box-shadow: none !important; transition: all 0.3s ease; }
+div[data-testid="stTabs"] button[data-baseweb="tab"] p { color: #64748b !important; font-weight: 700 !important; font-size: 17px !important; margin: 0 !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] { background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff !important; }
 
 /* 🔥 Radio 日期聚合切换 -> 卡片式按钮 */
 div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] {
-    background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s;
-}
+div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
 div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
 div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !important; font-weight: 600 !important; margin: 0 !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
-    background-color: #2563eb !important;
-}
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p {
-    color: #ffffff !important;
-}
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
 
 /* 🔥 多选框站点筛选 -> 统一蓝色实心胶囊 */
-div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
-    background-color: #2563eb !important; color: #ffffff !important; border-radius: 8px !important; padding: 6px 14px !important; font-weight: 600 !important; border: none !important;
-}
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] { background-color: #2563eb !important; color: #ffffff !important; border-radius: 8px !important; padding: 6px 14px !important; font-weight: 600 !important; border: none !important; }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span { color: #ffffff !important; }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg { fill: #ffffff !important; }
 
 /* 🔥 同步数据按钮样式优化 */
-div[data-testid="stButton"] button {
-    background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; font-weight: 600 !important; border-radius: 8px !important; padding: 10px 16px !important; transition: all 0.2s ease !important;
-}
-div[data-testid="stButton"] button:hover {
-    border-color: #2563eb !important; color: #2563eb !important; background-color: #f8fafc !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-}
+div[data-testid="stButton"] button { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; font-weight: 600 !important; border-radius: 8px !important; padding: 10px 16px !important; transition: all 0.2s ease !important; }
+div[data-testid="stButton"] button:hover { border-color: #2563eb !important; color: #2563eb !important; background-color: #f8fafc !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (🔥 彻底修复版：精准数据锁定技术)
+# ⚙️ 核心数据获取引擎 (🔥 终极防空识别版)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_and_transform_google_sheet():
@@ -215,7 +187,7 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 All (🔥 核心内存优化段落 + 流量精准锁定) ---
+        # --- 3. 读取 All (🔥 终极容错版日期扫描 + 智能排雷流量锁定) ---
         try:
             sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
@@ -228,31 +200,62 @@ def load_and_transform_google_sheet():
                 if not row: continue
                 first_cell = str(row[0]).strip()
                 
-                # 🔥 强化日期行识别：不再要求首格为空，只要第2列是典型的时间格式，即锁定为时间轴
-                if len(row) > 1 and "202" in str(row[1]) and ("/" in str(row[1]) or "-" in str(row[1])):
-                    dates_row = [str(x).strip() for x in row[1:]]
-                    continue
+                # 🔥 智能时间轴捕捉：只要前几列出现了日期特征，强行锁定！
+                if len(row) > 1:
+                    check_val = str(row[1]).strip()
+                    if not check_val and len(row) > 2:
+                        check_val = str(row[2]).strip()
+                    
+                    is_date_row = False
+                    # 支持 2024/11/1 或 2024-11-01
+                    if re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}', check_val):
+                        is_date_row = True
+                    # 支持 11月1日
+                    elif "月" in check_val and "日" in check_val:
+                        is_date_row = True
+                    # 支持 11/1 或 11-1
+                    elif re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
+                        is_date_row = True
+                        
+                    if is_date_row:
+                        dates_row = [str(x).strip() for x in row[1:]]
+                        continue
                     
                 # 识别当前国家块
                 if first_cell.startswith("Callie ") and len(first_cell) <= 15:
-                    current_site = first_cell.replace("Callie ", "").strip()
+                    current_site = first_cell.split()[-1].strip() # 'Callie FR' -> 'FR'
                     if current_site in cn_to_en:
                         current_site = cn_to_en[current_site]
-                    captured_traffic = False # 切换站点，重置抓取锁
+                    captured_traffic = False # 切换站点，重置锁
                     continue
                 
-                # 🔥 严苛的数据锁定：支持各种空格的写法，只抓名字叫 "SEO总流量" 或 "SEO流量" 的行
-                clean_metric_name = first_cell.replace(" ", "").upper()
-                if current_site and clean_metric_name in ["SEO总流量", "SEO流量"] and not captured_traffic:
-                    values = row[1:]
-                    for i in range(len(values)):
-                        if i < len(dates_row) and dates_row[i] != "":
-                            v_str = str(values[i]).strip()
-                            if v_str:
-                                clean_str = re.sub(r'[^\d\.-]', '', v_str)
-                                val = float(clean_str) if clean_str else 0.0
-                                traffic_records.append({"Date": dates_row[i], "Site": current_site, "Value": val})
-                    captured_traffic = True # 锁定！当前站点不再抓取任何疑似流量的数据
+                # 🔥 终极模糊排雷匹配：包含 SEO+流量，但排斥 站内/Blog
+                clean_metric_name = re.sub(r'\s+', '', first_cell).upper()
+                if current_site and "SEO" in clean_metric_name and "流量" in clean_metric_name and not captured_traffic:
+                    if "站内" not in clean_metric_name and "BLOG" not in clean_metric_name:
+                        values = row[1:]
+                        for i in range(len(values)):
+                            if i < len(dates_row) and dates_row[i] != "":
+                                v_str = str(values[i]).strip()
+                                if v_str:
+                                    clean_str = re.sub(r'[^\d\.-]', '', v_str)
+                                    try:
+                                        val = float(clean_str) if clean_str else 0.0
+                                    except ValueError:
+                                        val = 0.0
+                                    
+                                    d_str = dates_row[i]
+                                    # 处理表格里中文日期的兼容
+                                    if "月" in d_str and "日" in d_str:
+                                        try:
+                                            m = d_str.split('月')[0].strip()
+                                            d = d_str.split('月')[1].replace('日', '').strip()
+                                            d_str = f"{default_year}-{m}-{d}"
+                                        except:
+                                            pass
+                                            
+                                    traffic_records.append({"Date": d_str, "Site": current_site, "Value": val})
+                        captured_traffic = True # 该站点已抓到总流量，立刻上锁跳过后续疑似项
         except Exception as e:
             print(f"All 读取失败: {e}")
                         
