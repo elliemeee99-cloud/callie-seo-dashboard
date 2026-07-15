@@ -35,7 +35,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 站点全量明细数据引擎 (保留原汁原味格式)
+# ⚙️ 站点全量明细数据引擎 (🔥 修复同行识别 Bug)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_site_full_details():
@@ -60,13 +60,12 @@ def load_site_full_details():
             if not row: continue
             first_cell = str(row[0]).strip()
             
-            # 1. 捕捉时间轴
+            # 1. 捕捉时间轴 (去掉了 continue，防止跳过同行的 Callie 站点名)
             if len(row) > 1:
                 check_val = str(row[1]).strip()
                 if not check_val and len(row) > 2: check_val = str(row[2]).strip()
                 if "202" in check_val or ("月" in check_val and "日" in check_val) or re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
                     dates_row = [str(x).strip() for x in row[1:]]
-                    continue
                 
             # 2. 捕捉国家区块
             if first_cell.startswith("Callie ") and len(first_cell) <= 15:
@@ -79,7 +78,7 @@ def load_site_full_details():
             if current_site and first_cell and first_cell not in ["", "总计"]:
                 metric_name = first_cell
                 # 排除星期几这种无用行
-                if metric_name in ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]:
+                if metric_name in ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日", "占比情况"]:
                     continue
                     
                 values = row[1:]
@@ -105,9 +104,11 @@ def load_site_full_details():
                             })
                             
         df = pd.DataFrame(records)
-        # 将日期转换为标准时间格式以便过滤
-        df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
-        df = df.dropna(subset=['Date'])
+        
+        # 🔥 增加安全判定锁，防止空表报错
+        if not df.empty:
+            df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
+            df = df.dropna(subset=['Date'])
         
         del raw_data
         gc.collect()
@@ -161,9 +162,9 @@ if df_all is not None and not df_all.empty:
     df_filtered = df_all[mask].copy()
 
     if df_filtered.empty:
-        st.warning("⚠️ 所选时间范围内没有提取到任何数据，请尝试放宽时间。")
+        st.warning(f"⚠️ 在 {start_date} 至 {end_date} 期间没有提取到任何数据，请尝试放宽时间范围。")
     else:
-        # 指定严格的展示顺序
+        # 指定严格的展示顺序: 德法西意荷挪瑞芬波
         fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
         en_to_cn = {
             "DE": "🇩🇪 德国 (Callie DE)", "FR": "🇫🇷 法国 (Callie FR)", "ES": "🇪🇸 西班牙 (Callie ES)", 
@@ -195,13 +196,13 @@ if df_all is not None and not df_all.empty:
                     df_pivot = df_pivot[sorted_dates]
                     df_pivot.columns = [d.strftime('%Y-%m-%d') for d in df_pivot.columns]
                     
-                    # 使用 Streamlit 自带的交互式表格渲染，支持横向滚动和全屏
+                    # 使用 Streamlit 自带的交互式表格渲染
                     st.dataframe(
                         df_pivot, 
                         use_container_width=True,
-                        height=400 # 固定一个比较舒适的高度
+                        height=400 
                     )
                     
                     st.markdown("</div>", unsafe_allow_html=True)
 else:
-    st.info("尚未扫描到有效的站点数据。")
+    st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
