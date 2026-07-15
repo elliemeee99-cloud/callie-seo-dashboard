@@ -12,15 +12,15 @@ import gc
 # 网页基础设置
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="expanded")
-
 # ==========================================
-# 🎨 定制 CSS
+# 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
 st.markdown("""
 <style>
 .stApp { background-color: #f8fafc !important; }
 #MainMenu {visibility: hidden;}
-.block-container { padding-top: 2rem !important; max-width: 98% !important; }
+/* 这里已经彻底清除了隐藏 Header 和侧边栏的代码 */
+.block-container { padding-top: 3rem !important; max-width: 98% !important; }
 
 /* 圆角分区容器 */
 [data-testid="stVerticalBlockBorderWrapper"] {
