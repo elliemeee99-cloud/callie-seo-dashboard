@@ -12,7 +12,7 @@ import gc
 st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide")
 
 # ==========================================
-# 🎨 现代 SaaS 顶级视觉重构 (Stripe / Vercel 风格)
+# 🎨 现代 SaaS 顶级视觉重构 
 # ==========================================
 st.markdown("""
 <style>
@@ -22,22 +22,27 @@ st.markdown("""
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-/* 2. 隐藏原生顶部的多余留白 */
-.block-container { padding-top: 2rem !important; max-width: 96% !important; }
+/* 2. 增加顶部留白，防止与顶层导航栏重叠拥挤 */
+.block-container { padding-top: 5rem !important; max-width: 96% !important; }
 
-/* 3. Vercel 风格的极简控制器 (药丸按钮) */
+/* 3. Vercel 风格的极简控制器 (纯净胶囊按钮) */
 div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
 div[role="radiogroup"] label {
     background-color: #ffffff !important;
     border: 1px solid #E5E7EB !important;
-    padding: 8px 20px !important;
+    padding: 8px 24px !important;
     border-radius: 30px !important;
     cursor: pointer !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 div[role="radiogroup"] label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
-div[role="radiogroup"] label > div:first-child { display: none !important; } 
+
+/* 🔥 彻底隐藏原生单选圆圈 (多重靶向狙击，绝不漏网) */
+div[role="radiogroup"] label > div:first-child,
+label[data-baseweb="radio"] > div:first-child { 
+    display: none !important; 
+} 
 
 div[role="radiogroup"] label p, div[role="radiogroup"] label div {
     margin: 0 !important;
@@ -45,12 +50,13 @@ div[role="radiogroup"] label p, div[role="radiogroup"] label div {
     color: #4B5563 !important;
     font-size: 14px !important;
 }
-/* 选中态：Linear 风格的高级深邃黑 */
+
+/* 🔥 选中态：替换为清爽的科技蓝 */
 div[role="radiogroup"] label[aria-checked="true"], 
 div[role="radiogroup"] label:has(input:checked) {
-    background-color: #111827 !important;
-    border-color: #111827 !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
 }
 div[role="radiogroup"] label[aria-checked="true"] p, 
 div[role="radiogroup"] label:has(input:checked) p,
@@ -187,7 +193,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 纯原生 HTML 卡片渲染工厂 (🔥 压缩成单行，防 Markdown 解析污染)
+# 💎 纯原生 HTML 卡片渲染工厂 
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -200,19 +206,17 @@ def render_kpi_card(label, value, theme, highlight=False):
     bg = themes[theme]["bg"] if highlight else themes["default"]["bg"]
     border = themes[theme]["border"] if highlight else themes["default"]["border"]
     dot = themes[theme]["dot"]
-    # 强制压缩成单行，绝对禁止 Streamlit 的代码块拦截
     return f'<div style="background: {bg}; border: 1px solid {border}; border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: {dot}; font-size: 12px;">●</span> {label}</div><div style="font-size: 40px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
 def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
-    # 强制压缩成单行
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
 
 # ==========================================
 # 📐 全局交互层
 # ==========================================
-st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
 st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
 
 with st.spinner("✨ 正在同步最新数据仓库..."):
@@ -232,7 +236,6 @@ if df_all is not None and not df_all.empty:
     
     col_c1, col_c2 = st.columns([2.5, 1])
     with col_c1:
-        # 🔥 直接赋值给单选框，彻底修复 session_state 引发的 IndexError 崩溃
         selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
     with col_c2:
         time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
@@ -253,7 +256,7 @@ if df_all is not None and not df_all.empty:
         df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
     
     # ==========================================
-    # 🏆 四大独立模块渲染 (完美拼接，杜绝乱码)
+    # 🏆 四大独立模块渲染
     # ==========================================
     if not df_target.empty:
         
@@ -278,7 +281,7 @@ if df_all is not None and not df_all.empty:
         backlink_count = get_metric(['外链'], df_target, 'latest')
         backlink_domain = get_metric(['外链域名广度'], df_target, 'latest')
 
-        # [区块 1] 销售额数据 (全部代码压缩，防泄漏)
+        # [区块 1] 销售额数据 
         sales_cards = "".join([
             render_kpi_card('Superset SEO销售额', f"${ss_seo_sales:,.2f}", 'blue', highlight=True),
             render_kpi_card('Superset 总销售额', f"${ss_total_sales:,.2f}", 'blue'),
