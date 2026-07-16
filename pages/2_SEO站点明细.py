@@ -15,7 +15,7 @@ st.markdown("""
 <style>
 .stApp { background-color: #f8fafc !important; }
 
-/* 站点明细表格的样式 */
+/* 站点明细表格的底色样式 */
 .site-header {
     background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
     color: white;
@@ -33,71 +33,64 @@ st.markdown("""
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }
-
-/* 🎨 全新四区块与卡片样式 */
 .overview-title {
     font-size: 24px;
     font-weight: 800;
     color: #1e293b;
     margin-bottom: 5px;
 }
-.section-box {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    height: 100%;
+
+/* 🔥 终极 Radio 按钮卡片化 CSS (作为兜底方案) */
+div[role="radiogroup"] {
+    gap: 0.8rem !important;
+    flex-wrap: wrap;
 }
-.section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #334155;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    border-bottom: 2px solid #f1f5f9;
-    padding-bottom: 10px;
+div[role="radiogroup"] label {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 20px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s;
 }
-.kpi-card {
-    background-color: #f8fafc;
-    border: 1px solid #f1f5f9;
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
-    transition: all 0.2s ease;
-    height: 100%;
+div[role="radiogroup"] label:hover {
+    border-color: #94a3b8 !important;
+    background-color: #f1f5f9 !important;
 }
-.kpi-card:hover {
-    background-color: #ffffff;
-    border-color: #2563eb;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+div[role="radiogroup"] label div:first-child {
+    display: none !important; /* 彻底隐藏原生小圆圈 */
 }
-.kpi-title {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 8px;
+div[role="radiogroup"] label[aria-checked="true"],
+div[role="radiogroup"] label:has(input:checked) {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
 }
-.kpi-value {
-    color: #2563eb;
-    font-size: 24px;
-    font-weight: 800;
+div[role="radiogroup"] label p {
+    margin: 0 !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    font-size: 14px !important;
+}
+div[role="radiogroup"] label[aria-checked="true"] p,
+div[role="radiogroup"] label:has(input:checked) p {
+    color: #ffffff !important;
 }
 
-/* 🔥 让 Radio 按钮看起来像卡片标签 (完美复刻胶囊样式) */
-div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 12px !important; flex-wrap: wrap; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; padding: 10px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
-div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #475569 !important; font-weight: 600 !important; margin: 0 !important; font-size: 15px !important;}
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; border-color: #2563eb !important; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2) !important;}
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
+/* 美化原生 metric 组件的字体颜色 */
+[data-testid="stMetricValue"] {
+    color: #2563eb !important;
+    font-weight: 800 !important;
+}
+[data-testid="stMetricLabel"] {
+    color: #64748b !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 安全数值转换函数 (🔥 彻底解决 String to Float 报错)
+# ⚙️ 安全数值转换函数
 # ==========================================
 def safe_to_float(val):
     try:
@@ -134,21 +127,18 @@ def load_site_full_details():
             if not row: continue
             first_cell = str(row[0]).strip()
             
-            # 捕捉时间轴
             if len(row) > 1:
                 check_val = str(row[1]).strip()
                 if not check_val and len(row) > 2: check_val = str(row[2]).strip()
                 if "202" in check_val or ("月" in check_val and "日" in check_val) or re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
                     dates_row = [str(x).strip() for x in row[1:]]
                 
-            # 捕捉国家区块
             if first_cell.startswith("Callie ") and len(first_cell) <= 15:
                 current_site = first_cell.replace("Callie ", "").strip()
                 if current_site in cn_to_en:
                     current_site = cn_to_en[current_site]
                 continue
             
-            # 动态抓取指标
             if current_site and first_cell and first_cell not in ["", "总计"]:
                 metric_name = first_cell
                 if metric_name in ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]:
@@ -179,8 +169,6 @@ def load_site_full_details():
         if not df.empty:
             df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
             df = df.dropna(subset=['Date'])
-            
-            # 🔥 统一且安全地进行数据清洗
             df['Numeric_Value'] = df['Value'].apply(safe_to_float)
             df['Clean_Metric'] = df['Metric'].apply(lambda x: str(x).replace(' ', '').upper())
         
@@ -205,15 +193,6 @@ def get_metric(metric_name, df_data, agg_type='sum'):
         return sub['Numeric_Value'].iloc[-1]
     return 0.0
 
-def render_kpi(title, value_str):
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">{title}</div>
-        <div class="kpi-value">{value_str}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
 # ==========================================
 # 📐 页面布局与交互
 # ==========================================
@@ -229,20 +208,44 @@ if df_all is not None and not df_all.empty:
     cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
     en_to_cn = {v: k for k, v in cn_to_en.items()}
 
-    # 核心防错逻辑：找出真正有数据的最后一天作为“昨日”
     mask_valid = (df_all['Clean_Metric'].isin(['网站总流量', 'SUPERSET总销售额'])) & (df_all['Numeric_Value'] > 0)
     valid_dates = df_all[mask_valid]['Date']
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
     # ==========================================
-    # 🎛️ 顶部控制器
+    # 🎛️ 顶部控制器 (完美包裹在卡片中)
     # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
-    selected_site_cn = st.radio("🌍 选择分析站点", site_options, horizontal=True, label_visibility="collapsed")
     
-    st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
-    time_view = st.radio("⏱️ 数据时间维度", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
-    st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        col_ctrl1, col_ctrl2 = st.columns([2, 1])
+        
+        with col_ctrl1:
+            st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🌍 选择分析站点</div>", unsafe_allow_html=True)
+            # 智能调用最新组件，老版本自动降级并应用 CSS
+            try:
+                selected_site_cn = st.pills("站点", site_options, default="全部站点", label_visibility="collapsed")
+                if not selected_site_cn: selected_site_cn = "全部站点"
+            except AttributeError:
+                try:
+                    selected_site_cn = st.segmented_control("站点", site_options, default="全部站点", label_visibility="collapsed")
+                    if not selected_site_cn: selected_site_cn = "全部站点"
+                except AttributeError:
+                    selected_site_cn = st.radio("站点", site_options, horizontal=True, label_visibility="collapsed")
+                    
+        with col_ctrl2:
+            st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>⏱️ 时间维度</div>", unsafe_allow_html=True)
+            try:
+                time_view = st.pills("时间", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
+                if not time_view: time_view = "昨日数据"
+            except AttributeError:
+                try:
+                    time_view = st.segmented_control("时间", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
+                    if not time_view: time_view = "昨日数据"
+                except AttributeError:
+                    time_view = st.radio("时间", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
+
+    st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
     # --- 数据过滤 ---
     if time_view == "昨日数据":
@@ -259,10 +262,9 @@ if df_all is not None and not df_all.empty:
         df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
     
     # ==========================================
-    # 🏆 四大指标区块展示 (🔥重构排版)
+    # 🏆 四大指标区块展示 (原生 Container 完美排版)
     # ==========================================
     if not df_target.empty:
-        # 实时抽取与计算数据
         ss_seo_sales = get_metric('Superset SEO销售额', df_target, 'sum')
         ss_total_sales = get_metric('Superset 总销售额', df_target, 'sum')
         ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
@@ -282,53 +284,49 @@ if df_all is not None and not df_all.empty:
         backlink_count = get_metric('外链', df_target, 'latest')
         backlink_domain = get_metric('外链域名广度', df_target, 'latest')
 
-        # --- 区块 1: 销售额数据 (占满全宽) ---
-        st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>💰 销售额数据</div>", unsafe_allow_html=True)
-        cols1 = st.columns(6)
-        with cols1[0]: render_kpi("Superset SEO销售额", f"${ss_seo_sales:,.2f}")
-        with cols1[1]: render_kpi("Superset 总销售额", f"${ss_total_sales:,.2f}")
-        with cols1[2]: render_kpi("Superset 占比情况", f"{ss_ratio:.2f}%")
-        with cols1[3]: render_kpi("GA4 SEO销售额", f"${ga4_seo_sales:,.2f}")
-        with cols1[4]: render_kpi("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
-        with cols1[5]: render_kpi("GA4 占比情况", f"{ga4_ratio:.2f}%")
-        st.markdown("</div>", unsafe_allow_html=True)
+        # --- 区块 1: 销售额数据 (占满全宽的独立卡片) ---
+        with st.container(border=True):
+            st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>💰 销售额数据</h4>", unsafe_allow_html=True)
+            cols1 = st.columns(6)
+            cols1[0].metric("Superset SEO销售额", f"${ss_seo_sales:,.2f}")
+            cols1[1].metric("Superset 总销售额", f"${ss_total_sales:,.2f}")
+            cols1[2].metric("Superset 占比", f"{ss_ratio:.2f}%")
+            cols1[3].metric("GA4 SEO销售额", f"${ga4_seo_sales:,.2f}")
+            cols1[4].metric("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
+            cols1[5].metric("GA4 占比", f"{ga4_ratio:.2f}%")
         
-        # --- 区块 2、3、4: 流量、AI、收录数据 (三区并排，更协调) ---
+        # --- 区块 2、3、4: 三区并排 (每块都有独立的边框卡片) ---
         col_flow, col_ai, col_google = st.columns([2, 1.5, 2])
         
         with col_flow:
-            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='section-title'>🌊 流量数据</div>", unsafe_allow_html=True)
-            rt1, rt2, rt3 = st.columns(3)
-            with rt1: render_kpi("SEO流量", f"{seo_traffic:,.0f}")
-            with rt2: render_kpi("网站总流量", f"{total_traffic:,.0f}")
-            with rt3: render_kpi("跳出率", f"{bounce_rate:.2f}%")
-            st.markdown("</div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🌊 流量数据</h4>", unsafe_allow_html=True)
+                rt1, rt2, rt3 = st.columns(3)
+                rt1.metric("SEO流量", f"{seo_traffic:,.0f}")
+                rt2.metric("网站总流量", f"{total_traffic:,.0f}")
+                rt3.metric("跳出率", f"{bounce_rate:.2f}%")
 
         with col_ai:
-            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='section-title'>🤖 AI Assistant</div>", unsafe_allow_html=True)
-            ra1, ra2 = st.columns(2)
-            with ra1: render_kpi("AI销售额", f"${ai_sales:,.2f}")
-            with ra2: render_kpi("AI流量", f"{ai_traffic:,.0f}")
-            st.markdown("</div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🤖 AI Assistant</h4>", unsafe_allow_html=True)
+                ra1, ra2 = st.columns(2)
+                ra1.metric("AI销售额", f"${ai_sales:,.2f}")
+                ra2.metric("AI流量", f"{ai_traffic:,.0f}")
 
         with col_google:
-            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='section-title'>🔗 Google 收录与外链</div>", unsafe_allow_html=True)
-            rg1, rg2, rg3 = st.columns(3)
-            with rg1: render_kpi("收录", f"{index_count:,.0f}")
-            with rg2: render_kpi("外链", f"{backlink_count:,.0f}")
-            with rg3: render_kpi("域名广度", f"{backlink_domain:,.0f}")
-            st.markdown("</div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🔗 Google 收录与外链</h4>", unsafe_allow_html=True)
+                rg1, rg2, rg3 = st.columns(3)
+                rg1.metric("收录", f"{index_count:,.0f}")
+                rg2.metric("外链", f"{backlink_count:,.0f}")
+                rg3.metric("域名广度", f"{backlink_domain:,.0f}")
     else:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
     st.write("---")
 
     # ==========================================
-    # 🗄️ 底部区域：各站点底层全量明细表 (雷打不动)
+    # 🗄️ 底部区域：各站点底层全量明细表
     # ==========================================
     st.markdown("<div class='overview-title' style='margin-top:20px;'>🗄️ 分站点底层原始数据明细</div>", unsafe_allow_html=True)
     st.markdown("<div style='color: #64748b; margin-bottom: 20px;'>下方表格展示最近 15 天的全量底层指标，时间按从左向右（升序）排列。</div>", unsafe_allow_html=True)
@@ -353,12 +351,10 @@ if df_all is not None and not df_all.empty:
                     aggfunc=lambda x: ' '.join(str(v) for v in x)
                 )
                 
-                # 时间顺序修改：从左往右（升序）
                 sorted_dates = sorted(df_pivot.columns, reverse=False)
                 df_pivot = df_pivot[sorted_dates]
                 df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns] 
                 
-                # 🔥 修复 Streamlit 新版本废弃参数警告
                 st.dataframe(df_pivot, width='stretch')
                 st.markdown("</div>", unsafe_allow_html=True)
 
