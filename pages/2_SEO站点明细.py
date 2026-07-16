@@ -48,6 +48,7 @@ st.markdown("""
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    height: 100%;
 }
 .section-title {
     font-size: 16px;
@@ -66,6 +67,7 @@ st.markdown("""
     padding: 16px;
     text-align: center;
     transition: all 0.2s ease;
+    height: 100%;
 }
 .kpi-card:hover {
     background-color: #ffffff;
@@ -99,9 +101,7 @@ div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, d
 # ==========================================
 def safe_to_float(val):
     try:
-        # 去除所有非数字、非小数点、非负号的字符
         clean_str = re.sub(r'[^\d\.-]', '', str(val))
-        # 过滤掉完全为空，或者只剩小数点、负号这种无法转换的异常情况
         if not clean_str or clean_str in ['-', '.', '-.']:
             return 0.0
         return float(clean_str)
@@ -259,7 +259,7 @@ if df_all is not None and not df_all.empty:
         df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
     
     # ==========================================
-    # 🏆 四大指标区块展示
+    # 🏆 四大指标区块展示 (🔥重构排版)
     # ==========================================
     if not df_target.empty:
         # 实时抽取与计算数据
@@ -282,24 +282,22 @@ if df_all is not None and not df_all.empty:
         backlink_count = get_metric('外链', df_target, 'latest')
         backlink_domain = get_metric('外链域名广度', df_target, 'latest')
 
-        # --- 区块 1 & 2: 销售额与流量 (并排) ---
-        col_main1, col_main2 = st.columns(2)
-        with col_main1:
-            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='section-title'>💰 销售额数据</div>", unsafe_allow_html=True)
-            r1c1, r1c2, r1c3 = st.columns(3)
-            with r1c1: render_kpi("Superset SEO销售额", f"${ss_seo_sales:,.2f}")
-            with r1c2: render_kpi("Superset 总销售额", f"${ss_total_sales:,.2f}")
-            with r1c3: render_kpi("Superset 占比情况", f"{ss_ratio:.2f}%")
-            
-            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-            r2c1, r2c2, r2c3 = st.columns(3)
-            with r2c1: render_kpi("GA4 SEO销售额", f"${ga4_seo_sales:,.2f}")
-            with r2c2: render_kpi("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
-            with r2c3: render_kpi("GA4 占比情况", f"{ga4_ratio:.2f}%")
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-        with col_main2:
+        # --- 区块 1: 销售额数据 (占满全宽) ---
+        st.markdown("<div class='section-box'>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>💰 销售额数据</div>", unsafe_allow_html=True)
+        cols1 = st.columns(6)
+        with cols1[0]: render_kpi("Superset SEO销售额", f"${ss_seo_sales:,.2f}")
+        with cols1[1]: render_kpi("Superset 总销售额", f"${ss_total_sales:,.2f}")
+        with cols1[2]: render_kpi("Superset 占比情况", f"{ss_ratio:.2f}%")
+        with cols1[3]: render_kpi("GA4 SEO销售额", f"${ga4_seo_sales:,.2f}")
+        with cols1[4]: render_kpi("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
+        with cols1[5]: render_kpi("GA4 占比情况", f"{ga4_ratio:.2f}%")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # --- 区块 2、3、4: 流量、AI、收录数据 (三区并排，更协调) ---
+        col_flow, col_ai, col_google = st.columns([2, 1.5, 2])
+        
+        with col_flow:
             st.markdown("<div class='section-box'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'>🌊 流量数据</div>", unsafe_allow_html=True)
             rt1, rt2, rt3 = st.columns(3)
@@ -308,24 +306,22 @@ if df_all is not None and not df_all.empty:
             with rt3: render_kpi("跳出率", f"{bounce_rate:.2f}%")
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # --- 区块 3 & 4: AI 与 谷歌外链 (嵌套在右侧下半部或者直接并排) ---
-            col_sub1, col_sub2 = st.columns(2)
-            with col_sub1:
-                st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-                st.markdown("<div class='section-title'>🤖 AI Assistant 数据</div>", unsafe_allow_html=True)
-                ra1, ra2 = st.columns(2)
-                with ra1: render_kpi("AI销售额", f"${ai_sales:,.2f}")
-                with ra2: render_kpi("AI流量", f"{ai_traffic:,.0f}")
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-            with col_sub2:
-                st.markdown("<div class='section-box'>", unsafe_allow_html=True)
-                st.markdown("<div class='section-title'>🔗 Google 收录与外链</div>", unsafe_allow_html=True)
-                rg1, rg2, rg3 = st.columns(3)
-                with rg1: render_kpi("收录", f"{index_count:,.0f}")
-                with rg2: render_kpi("外链", f"{backlink_count:,.0f}")
-                with rg3: render_kpi("域名广度", f"{backlink_domain:,.0f}")
-                st.markdown("</div>", unsafe_allow_html=True)
+        with col_ai:
+            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'>🤖 AI Assistant</div>", unsafe_allow_html=True)
+            ra1, ra2 = st.columns(2)
+            with ra1: render_kpi("AI销售额", f"${ai_sales:,.2f}")
+            with ra2: render_kpi("AI流量", f"{ai_traffic:,.0f}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_google:
+            st.markdown("<div class='section-box'>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'>🔗 Google 收录与外链</div>", unsafe_allow_html=True)
+            rg1, rg2, rg3 = st.columns(3)
+            with rg1: render_kpi("收录", f"{index_count:,.0f}")
+            with rg2: render_kpi("外链", f"{backlink_count:,.0f}")
+            with rg3: render_kpi("域名广度", f"{backlink_domain:,.0f}")
+            st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
