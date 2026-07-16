@@ -14,12 +14,14 @@ st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide"
 st.markdown("""
 <style>
 .stApp { background-color: #f8fafc !important; }
+
+/* 站点明细表格的样式 */
 .site-header {
     background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
     color: white;
     padding: 12px 24px;
     border-radius: 12px 12px 0 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     margin-top: 30px;
 }
@@ -33,11 +35,17 @@ st.markdown("""
 }
 
 /* 🎨 KPI 卡片样式 */
+.overview-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 15px;
+}
 .section-title {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: 700;
     color: #475569;
-    margin-top: 15px;
+    margin-top: 20px;
     margin-bottom: 10px;
     border-bottom: 2px solid #f1f5f9;
     padding-bottom: 8px;
@@ -66,6 +74,14 @@ st.markdown("""
     font-size: 24px;
     font-weight: 800;
 }
+
+/* 🔥 让 Radio 按钮看起来像卡片标签 */
+div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; flex-wrap: wrap; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !important; font-weight: 600 !important; margin: 0 !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; border-color: #2563eb !important;}
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,21 +166,16 @@ def load_site_full_details():
         return None
 
 # ==========================================
-# 📊 核心计算逻辑：提取并聚合 KPI (🔥修复参数顺序)
+# 📊 核心计算逻辑：提取并聚合 KPI 
 # ==========================================
-# 将参数顺序修改为与调用时一致：先传关键词列表，再传数据表
 def extract_metric(metric_keywords, df_data, agg_type='sum'):
-    # 模糊匹配指标名 (去除空格，转大写)
     clean_keywords = [k.replace(' ', '').upper() for k in metric_keywords]
-    
-    # 使用原生 apply lambda 替代 .str 引擎，100% 免疫 TypeError
     mask = df_data['Metric'].apply(lambda x: str(x).replace(' ', '').upper()).isin(clean_keywords)
     df_sub = df_data[mask]
     
     if df_sub.empty: 
         return 0.0
         
-    # 清洗数值时同样使用 apply，规避潜在风险
     cleaned_vals = df_sub['Value'].apply(lambda x: re.sub(r'[^\d\.-]', '', str(x)))
     num_vals = pd.to_numeric(cleaned_vals, errors='coerce').fillna(0.0)
     
@@ -173,7 +184,6 @@ def extract_metric(metric_keywords, df_data, agg_type='sum'):
     elif agg_type == 'mean':
         return num_vals.mean()
     elif agg_type == 'latest':
-        # 针对快照数据（如收录、外链），取所选时间范围内的最新一日数据
         latest_date = df_sub['Date'].max()
         latest_val_str = df_sub[df_sub['Date'] == latest_date]['Value'].iloc[0]
         try: return float(re.sub(r'[^\d\.-]', '', str(latest_val_str)))
@@ -188,6 +198,7 @@ def render_kpi(title, value_str):
     </div>
     """, unsafe_allow_html=True)
 
+
 # ==========================================
 # 📐 页面布局与交互
 # ==========================================
@@ -198,70 +209,62 @@ with st.spinner("✨ 正在逐行扫描底层表单并聚合分析..."):
 
 if df_all is not None and not df_all.empty:
     
-    # 顶部时间切换控件 (单选按钮)
-    st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
-    time_view = st.radio("⏱️ 数据时间维度", ["昨日数据", "过去7天数据"], horizontal=True)
-    st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
-
+    # 字典配置
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
-    en_to_cn = {
-        "DE": "🇩🇪 德国", "FR": "🇫🇷 法国", "ES": "🇪🇸 西班牙", 
-        "IT": "🇮🇹 意大利", "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", 
-        "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
-    }
+    cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
+    en_to_cn = {v: k for k, v in cn_to_en.items()}
 
-    # 按顺序遍历国家渲染瀑布流
-    for site in fixed_sites_order:
-        df_site = df_all[df_all['Site'] == site]
-        if df_site.empty: continue
+    # ==========================================
+    # 🏆 第一部分：全局 / 单站 核心指标总览
+    # ==========================================
+    with st.container(border=True):
+        st.markdown("<div class='overview-title'>📊 核心指标总览</div>", unsafe_allow_html=True)
         
-        # 计算该站点的日期基准
-        max_date = df_site['Date'].max()
+        # 1. 站点控制器
+        site_options = ["全部站点", "德国", "法国", "西班牙", "意大利", "荷兰", "挪威", "瑞典", "芬兰", "波兰"]
+        selected_site_cn = st.radio("切换站点", site_options, horizontal=True, label_visibility="collapsed")
+        
+        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+        
+        # 2. 时间控制器
+        time_view = st.radio("时间维度", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+        
+        # --- 数据过滤 (仅针对上面的 KPI 卡片) ---
+        max_date = df_all['Date'].max()
         if time_view == "昨日数据":
             target_dates = [max_date]
         else:
-            # 过去 7 天
             target_dates = pd.date_range(end=max_date, periods=7).tolist()
             
-        df_target = df_site[df_site['Date'].isin(target_dates)]
-        if df_target.empty: continue
-
-        # ==========================================
-        # 🧮 获取各项 KPI 计算结果
-        # ==========================================
-        # 1. 销售额
-        ss_seo_sales = extract_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_target, 'sum')
-        ss_total_sales = extract_metric(['Superset 总销售额', 'Superset总销售额'], df_target, 'sum')
-        ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
+        if selected_site_cn == "全部站点":
+            df_overview = df_all[df_all['Date'].isin(target_dates)]
+        else:
+            site_code = cn_to_en[selected_site_cn]
+            df_overview = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
         
-        ga4_seo_sales = extract_metric(['GA4 SEO销售额', 'GA4SEO销售额'], df_target, 'sum')
-        ga4_total_sales = extract_metric(['GA4 网站总销售额', 'GA4网站总销售额', 'GA4总销售额'], df_target, 'sum')
-        ga4_ratio = (ga4_seo_sales / ga4_total_sales * 100) if ga4_total_sales > 0 else 0.0
-        
-        # 2. 流量
-        seo_traffic = extract_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_target, 'sum')
-        total_traffic = extract_metric(['网站总流量'], df_target, 'sum')
-        bounce_rate = extract_metric(['跳出率'], df_target, 'mean') # 跳出率求均值
-        
-        # 3. AI
-        ai_sales = extract_metric(['AI Assistant 销售额', 'AIAssistant销售额'], df_target, 'sum')
-        ai_traffic = extract_metric(['AI Assistant 流量', 'AIAssistant流量'], df_target, 'sum')
-        
-        # 4. 快照指标 (仅取最新一日)
-        index_count = extract_metric(['收录'], df_target, 'latest')
-        backlink_count = extract_metric(['外链'], df_target, 'latest')
-        backlink_domain = extract_metric(['外链域名广度'], df_target, 'latest')
-
-        # ==========================================
-        # 🎨 渲染站点卡片
-        # ==========================================
-        site_title = en_to_cn.get(site, f"🌍 {site}")
-        st.markdown(f"<div class='site-header'>{site_title}</div>", unsafe_allow_html=True)
-        
-        with st.container():
-            st.markdown("<div class='site-container'>", unsafe_allow_html=True)
+        # --- 计算 KPI ---
+        if not df_overview.empty:
+            ss_seo_sales = extract_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_overview, 'sum')
+            ss_total_sales = extract_metric(['Superset 总销售额', 'Superset总销售额'], df_overview, 'sum')
+            ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
             
-            # --- 板块 1: 销售额数据 ---
+            ga4_seo_sales = extract_metric(['GA4 SEO销售额', 'GA4SEO销售额'], df_overview, 'sum')
+            ga4_total_sales = extract_metric(['GA4 网站总销售额', 'GA4网站总销售额', 'GA4总销售额'], df_overview, 'sum')
+            ga4_ratio = (ga4_seo_sales / ga4_total_sales * 100) if ga4_total_sales > 0 else 0.0
+            
+            seo_traffic = extract_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_overview, 'sum')
+            total_traffic = extract_metric(['网站总流量'], df_overview, 'sum')
+            bounce_rate = extract_metric(['跳出率'], df_overview, 'mean')
+            
+            ai_sales = extract_metric(['AI Assistant 销售额', 'AIAssistant销售额'], df_overview, 'sum')
+            ai_traffic = extract_metric(['AI Assistant 流量', 'AIAssistant流量'], df_overview, 'sum')
+            
+            index_count = extract_metric(['收录'], df_overview, 'latest')
+            backlink_count = extract_metric(['外链'], df_overview, 'latest')
+            backlink_domain = extract_metric(['外链域名广度'], df_overview, 'latest')
+
+            # --- 渲染卡片 ---
             st.markdown("<div class='section-title'>💰 销售额数据</div>", unsafe_allow_html=True)
             cols1 = st.columns(6)
             with cols1[0]: render_kpi("Superset SEO销售额", f"${ss_seo_sales:,.2f}")
@@ -271,7 +274,6 @@ if df_all is not None and not df_all.empty:
             with cols1[4]: render_kpi("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
             with cols1[5]: render_kpi("GA4 占比情况", f"{ga4_ratio:.2f}%")
             
-            # --- 板块 2: 流量数据 ---
             st.markdown("<div class='section-title'>🌊 流量数据</div>", unsafe_allow_html=True)
             cols2 = st.columns(3)
             with cols2[0]: render_kpi("SEO流量", f"{seo_traffic:,.0f}")
@@ -279,39 +281,57 @@ if df_all is not None and not df_all.empty:
             with cols2[2]: render_kpi("跳出率", f"{bounce_rate:.2f}%")
             
             cols_bottom1, cols_bottom2 = st.columns(2)
-            
-            # --- 板块 3: AI Assistant数据 ---
             with cols_bottom1:
                 st.markdown("<div class='section-title'>🤖 AI Assistant 数据</div>", unsafe_allow_html=True)
                 c_ai1, c_ai2 = st.columns(2)
                 with c_ai1: render_kpi("AI Assistant 销售额", f"${ai_sales:,.2f}")
                 with c_ai2: render_kpi("AI Assistant 流量", f"{ai_traffic:,.0f}")
                 
-            # --- 板块 4: Google 收录与外链 ---
             with cols_bottom2:
                 st.markdown("<div class='section-title'>🔗 Google 收录与外链</div>", unsafe_allow_html=True)
                 c_g1, c_g2, c_g3 = st.columns(3)
                 with c_g1: render_kpi("收录", f"{index_count:,.0f}")
                 with c_g2: render_kpi("外链", f"{backlink_count:,.0f}")
                 with c_g3: render_kpi("外链域名广度", f"{backlink_domain:,.0f}")
+        else:
+            st.warning("所选站点或时间段内暂无可用数据。")
+
+    st.write("---")
+
+    # ==========================================
+    # 🗄️ 第二部分：各站点原始明细数据表 (独立底层数据)
+    # ==========================================
+    st.markdown("<div class='overview-title'>🗄️ 各站点底层原始数据明细</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #64748b; margin-bottom: 20px;'>下方表格自动提取展示最近 15 天的全量底层指标，时间按从左向右（升序）排列。</div>", unsafe_allow_html=True)
+
+    # 提取最近 15 天的日期作为底部表格的默认展示范围，防止表格过长
+    recent_dates = sorted(df_all['Date'].unique())[-15:]
+    df_raw_tables = df_all[df_all['Date'].isin(recent_dates)]
+
+    for site in fixed_sites_order:
+        df_site_raw = df_raw_tables[df_raw_tables['Site'] == site]
+        if not df_site_raw.empty:
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            site_title = f"{en_to_cn.get(site, site)} (Callie {site})"
+            st.markdown(f"<div class='site-header'>🌍 {site_title}</div>", unsafe_allow_html=True)
             
-            # --- 底部扩展：全量原始数据对比表 ---
-            with st.expander(f"👁️ 查看 {site} 底层原始数据表格 (按时间升序)"):
-                df_pivot = df_target.pivot_table(
+            with st.container():
+                st.markdown("<div class='site-container'>", unsafe_allow_html=True)
+                
+                df_pivot = df_site_raw.pivot_table(
                     index='Metric', 
                     columns='Date', 
                     values='Value', 
                     aggfunc=lambda x: ' '.join(str(v) for v in x)
                 )
-                # 从左往右（时间递增排布）
+                
+                # 🔥 时间顺序修改：从左往右（升序）
                 sorted_dates = sorted(df_pivot.columns, reverse=False)
                 df_pivot = df_pivot[sorted_dates]
-                df_pivot.columns = [d.strftime('%Y-%m-%d') for d in df_pivot.columns]
+                df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns] # 底部表格用 11-01 短格式更清爽
                 
                 st.dataframe(df_pivot, use_container_width=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
 else:
     st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
