@@ -26,8 +26,11 @@ st.markdown("""
 .block-container { padding-top: 5rem !important; max-width: 96% !important; }
 
 /* 3. Vercel 风格的极简控制器 (纯净胶囊按钮) */
-div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
-div[role="radiogroup"] label {
+div[data-testid="stRadio"] div[role="radiogroup"] { 
+    gap: 12px !important; 
+    flex-wrap: wrap; 
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"] {
     background-color: #ffffff !important;
     border: 1px solid #E5E7EB !important;
     padding: 8px 24px !important;
@@ -35,33 +38,51 @@ div[role="radiogroup"] label {
     cursor: pointer !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
-div[role="radiogroup"] label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"]:hover { 
+    background-color: #F9FAFB !important; 
+    border-color: #D1D5DB !important; 
+}
 
-/* 🔥 彻底隐藏原生单选圆圈 (多重靶向狙击，绝不漏网) */
-div[role="radiogroup"] label > div:first-child,
-label[data-baseweb="radio"] > div:first-child { 
+/* 🔥🔥🔥 终极绝杀：彻底干掉任何形式的原生点选小圆圈 🔥🔥🔥 */
+div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child,
+div[data-testid="stRadio"] label[data-baseweb="radio"] > div:nth-child(1) { 
     display: none !important; 
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 } 
+/* 兜底：隐藏可能存在的 SVG 或 Input */
+div[data-testid="stRadio"] label[data-baseweb="radio"] input,
+div[data-testid="stRadio"] label[data-baseweb="radio"] svg {
+    display: none !important;
+}
 
-div[role="radiogroup"] label p, div[role="radiogroup"] label div {
+/* 文字排版居中 */
+div[data-testid="stRadio"] label[data-baseweb="radio"] p, 
+div[data-testid="stRadio"] label[data-baseweb="radio"] div {
     margin: 0 !important;
     font-weight: 600 !important;
     color: #4B5563 !important;
     font-size: 14px !important;
 }
 
-/* 🔥 选中态：替换为清爽的科技蓝 */
-div[role="radiogroup"] label[aria-checked="true"], 
-div[role="radiogroup"] label:has(input:checked) {
+/* 🔥 选中态：科技蓝背景与文字反白 */
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], 
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
     background-color: #2563EB !important;
     border-color: #2563EB !important;
     box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
 }
-div[role="radiogroup"] label[aria-checked="true"] p, 
-div[role="radiogroup"] label:has(input:checked) p,
-div[role="radiogroup"] label[aria-checked="true"] div, 
-div[role="radiogroup"] label:has(input:checked) div {
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, 
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p,
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] div, 
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) div {
     color: #ffffff !important;
 }
 
