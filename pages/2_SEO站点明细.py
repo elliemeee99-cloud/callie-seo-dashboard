@@ -150,12 +150,13 @@ def load_site_full_details():
         return None
 
 # ==========================================
-# 📊 核心计算逻辑：提取并聚合 KPI
+# 📊 核心计算逻辑：提取并聚合 KPI (🔥修复 TypeError)
 # ==========================================
 def extract_metric(df_data, metric_keywords, agg_type='sum'):
     # 模糊匹配指标名 (去除空格，转大写)
     clean_keywords = [k.replace(' ', '').upper() for k in metric_keywords]
-    mask = df_data['Metric'].str.replace(' ', '').str.upper().isin(clean_keywords)
+    # 🔥 增加 .astype(str) 强制转换为字符串，防止因纯数字或空值导致 TypeError
+    mask = df_data['Metric'].astype(str).str.replace(' ', '', regex=False).str.upper().isin(clean_keywords)
     df_sub = df_data[mask]
     
     if df_sub.empty: 
@@ -173,7 +174,6 @@ def extract_metric(df_data, metric_keywords, agg_type='sum'):
         # 针对快照数据（如收录、外链），取所选时间范围内的最新一日数据
         latest_date = df_sub['Date'].max()
         latest_val_str = df_sub[df_sub['Date'] == latest_date]['Value'].iloc[0]
-        v = str(latest_val_str).replace(r'[^\d\.-]', '')
         try: return float(re.sub(r'[^\d\.-]', '', str(latest_val_str)))
         except: return 0.0
     return 0.0
@@ -239,7 +239,7 @@ if df_all is not None and not df_all.empty:
         # 2. 流量
         seo_traffic = extract_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_target, 'sum')
         total_traffic = extract_metric(['网站总流量'], df_target, 'sum')
-        bounce_rate = extract_metric(['跳出率'], df_target, 'mean') # 跳出率求7天均值
+        bounce_rate = extract_metric(['跳出率'], df_target, 'mean') # 跳出率求均值
         
         # 3. AI
         ai_sales = extract_metric(['AI Assistant 销售额', 'AIAssistant销售额'], df_target, 'sum')
@@ -303,7 +303,7 @@ if df_all is not None and not df_all.empty:
                     values='Value', 
                     aggfunc=lambda x: ' '.join(str(v) for v in x)
                 )
-                # 🔥 时间顺序修改：从左往右（升序）
+                # 从左往右（时间递增排布）
                 sorted_dates = sorted(df_pivot.columns, reverse=False)
                 df_pivot = df_pivot[sorted_dates]
                 df_pivot.columns = [d.strftime('%Y-%m-%d') for d in df_pivot.columns]
