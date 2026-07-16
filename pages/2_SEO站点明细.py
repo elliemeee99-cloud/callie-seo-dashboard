@@ -37,8 +37,10 @@ div[role="radiogroup"] label {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 div[role="radiogroup"] label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
-div[role="radiogroup"] label div:first-child { display: none !important; } /* 彻底抹除原生单选圆圈 */
-div[role="radiogroup"] label p {
+/* 🔥 修复文字消失问题：严格限制只隐藏作为直接子元素的第一个 div (即小圆圈) */
+div[role="radiogroup"] label > div:first-child { display: none !important; } 
+
+div[role="radiogroup"] label p, div[role="radiogroup"] label div {
     margin: 0 !important;
     font-weight: 600 !important;
     color: #4B5563 !important;
@@ -52,7 +54,9 @@ div[role="radiogroup"] label:has(input:checked) {
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
 }
 div[role="radiogroup"] label[aria-checked="true"] p, 
-div[role="radiogroup"] label:has(input:checked) p {
+div[role="radiogroup"] label:has(input:checked) p,
+div[role="radiogroup"] label[aria-checked="true"] div, 
+div[role="radiogroup"] label:has(input:checked) div {
     color: #ffffff !important;
 }
 
@@ -247,10 +251,10 @@ if df_all is not None and not df_all.empty:
     
     col_c1, col_c2 = st.columns([2.5, 1])
     with col_c1:
-        st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
-        # （这里利用了上方注入的 CSS，所以普通的 st.radio 已经被完美渲染成了胶囊按钮）
-        selected_site_cn = st.session_state.get(list(st.session_state.keys())[-1], "全部站点") # 获取选择值
+        # 🔥 直接赋值，坚决不取巧报错
+        selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
     with col_c2:
+        # 🔥 直接赋值
         time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
     
     st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
