@@ -95,6 +95,20 @@ div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, d
 """, unsafe_allow_html=True)
 
 # ==========================================
+# ⚙️ 安全数值转换函数 (🔥 彻底解决 String to Float 报错)
+# ==========================================
+def safe_to_float(val):
+    try:
+        # 去除所有非数字、非小数点、非负号的字符
+        clean_str = re.sub(r'[^\d\.-]', '', str(val))
+        # 过滤掉完全为空，或者只剩小数点、负号这种无法转换的异常情况
+        if not clean_str or clean_str in ['-', '.', '-.']:
+            return 0.0
+        return float(clean_str)
+    except Exception:
+        return 0.0
+
+# ==========================================
 # ⚙️ 站点全量明细数据引擎
 # ==========================================
 @st.cache_data(ttl=3600)
@@ -166,8 +180,8 @@ def load_site_full_details():
             df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
             df = df.dropna(subset=['Date'])
             
-            # 🔥 提前清洗好数值和指标名称，方便后续极速查询
-            df['Numeric_Value'] = df['Value'].apply(lambda x: float(re.sub(r'[^\d\.-]', '', str(x))) if re.sub(r'[^\d\.-]', '', str(x)) else 0.0)
+            # 🔥 统一且安全地进行数据清洗
+            df['Numeric_Value'] = df['Value'].apply(safe_to_float)
             df['Clean_Metric'] = df['Metric'].apply(lambda x: str(x).replace(' ', '').upper())
         
         del raw_data
@@ -215,7 +229,7 @@ if df_all is not None and not df_all.empty:
     cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
     en_to_cn = {v: k for k, v in cn_to_en.items()}
 
-    # 🔥 核心防错逻辑：找出真正有数据的最后一天作为“昨日”
+    # 核心防错逻辑：找出真正有数据的最后一天作为“昨日”
     mask_valid = (df_all['Clean_Metric'].isin(['网站总流量', 'SUPERSET总销售额'])) & (df_all['Numeric_Value'] > 0)
     valid_dates = df_all[mask_valid]['Date']
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
@@ -348,7 +362,8 @@ if df_all is not None and not df_all.empty:
                 df_pivot = df_pivot[sorted_dates]
                 df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns] 
                 
-                st.dataframe(df_pivot, use_container_width=True)
+                # 🔥 修复 Streamlit 新版本废弃参数警告
+                st.dataframe(df_pivot, width='stretch')
                 st.markdown("</div>", unsafe_allow_html=True)
 
 else:
