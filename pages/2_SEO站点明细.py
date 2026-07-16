@@ -40,7 +40,7 @@ st.markdown("""
     margin-bottom: 5px;
 }
 
-/* 🔥 终极 Radio 按钮卡片化 CSS (作为兜底方案) */
+/* 🔥 终极 Radio 按钮卡片化 CSS */
 div[role="radiogroup"] {
     gap: 0.8rem !important;
     flex-wrap: wrap;
@@ -181,10 +181,16 @@ def load_site_full_details():
         return None
 
 # ==========================================
-# 📊 核心计算逻辑
+# 📊 核心计算逻辑 (🔥 修复指标别名匹配)
 # ==========================================
-def get_metric(metric_name, df_data, agg_type='sum'):
-    sub = df_data[df_data['Clean_Metric'] == metric_name.replace(' ', '').upper()]
+def get_metric(metric_names, df_data, agg_type='sum'):
+    # 支持传入列表（多个别名同时匹配），彻底解决各站点命名不一致问题
+    if isinstance(metric_names, str):
+        metric_names = [metric_names]
+    
+    clean_names = [m.replace(' ', '').upper() for m in metric_names]
+    sub = df_data[df_data['Clean_Metric'].isin(clean_names)]
+    
     if sub.empty: return 0.0
     if agg_type == 'sum': return sub['Numeric_Value'].sum()
     if agg_type == 'mean': return sub['Numeric_Value'].mean()
@@ -222,7 +228,6 @@ if df_all is not None and not df_all.empty:
         
         with col_ctrl1:
             st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>🌍 选择分析站点</div>", unsafe_allow_html=True)
-            # 智能调用最新组件，老版本自动降级并应用 CSS
             try:
                 selected_site_cn = st.pills("站点", site_options, default="全部站点", label_visibility="collapsed")
                 if not selected_site_cn: selected_site_cn = "全部站点"
@@ -262,29 +267,34 @@ if df_all is not None and not df_all.empty:
         df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
     
     # ==========================================
-    # 🏆 四大指标区块展示 (原生 Container 完美排版)
+    # 🏆 四大指标区块展示 (🔥重排版：按行切割，拒绝错位)
     # ==========================================
     if not df_target.empty:
-        ss_seo_sales = get_metric('Superset SEO销售额', df_target, 'sum')
-        ss_total_sales = get_metric('Superset 总销售额', df_target, 'sum')
+        # 1. 销售额指标
+        ss_seo_sales = get_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_target, 'sum')
+        ss_total_sales = get_metric(['Superset 总销售额', 'Superset总销售额'], df_target, 'sum')
         ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
         
-        ga4_seo_sales = get_metric('GA4 SEO销售额', df_target, 'sum')
-        ga4_total_sales = get_metric('GA4 网站总销售额', df_target, 'sum')
+        ga4_seo_sales = get_metric(['GA4 SEO销售额', 'GA4SEO销售额'], df_target, 'sum')
+        ga4_total_sales = get_metric(['GA4 网站总销售额', 'GA4网站总销售额', 'GA4总销售额'], df_target, 'sum')
         ga4_ratio = (ga4_seo_sales / ga4_total_sales * 100) if ga4_total_sales > 0 else 0.0
         
-        seo_traffic = get_metric('SEO 总流量', df_target, 'sum')
-        total_traffic = get_metric('网站总流量', df_target, 'sum')
-        bounce_rate = get_metric('跳出率', df_target, 'mean')
+        # 2. 流量指标 (新增 Blog 和 站内流量，且全面兼容“总流量”命名)
+        seo_traffic = get_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_target, 'sum')
+        seo_blog_traffic = get_metric(['SEO Blog流量', 'SEOBlog流量'], df_target, 'sum')
+        seo_onsite_traffic = get_metric(['SEO 站内流量', 'SEO站内流量'], df_target, 'sum')
+        total_traffic = get_metric(['网站总流量', '网站流量'], df_target, 'sum')
+        bounce_rate = get_metric(['跳出率'], df_target, 'mean')
         
-        ai_sales = get_metric('AI Assistant 销售额', df_target, 'sum')
-        ai_traffic = get_metric('AI Assistant 流量', df_target, 'sum')
+        # 3. AI 及外链
+        ai_sales = get_metric(['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], df_target, 'sum')
+        ai_traffic = get_metric(['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], df_target, 'sum')
         
-        index_count = get_metric('收录', df_target, 'latest')
-        backlink_count = get_metric('外链', df_target, 'latest')
-        backlink_domain = get_metric('外链域名广度', df_target, 'latest')
+        index_count = get_metric(['收录'], df_target, 'latest')
+        backlink_count = get_metric(['外链'], df_target, 'latest')
+        backlink_domain = get_metric(['外链域名广度'], df_target, 'latest')
 
-        # --- 区块 1: 销售额数据 (占满全宽的独立卡片) ---
+        # --- 第一行: 销售额数据 (占满全屏，6等分) ---
         with st.container(border=True):
             st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>💰 销售额数据</h4>", unsafe_allow_html=True)
             cols1 = st.columns(6)
@@ -295,31 +305,34 @@ if df_all is not None and not df_all.empty:
             cols1[4].metric("GA4 网站总销售额", f"${ga4_total_sales:,.2f}")
             cols1[5].metric("GA4 占比", f"{ga4_ratio:.2f}%")
         
-        # --- 区块 2、3、4: 三区并排 (每块都有独立的边框卡片) ---
-        col_flow, col_ai, col_google = st.columns([2, 1.5, 2])
-        
-        with col_flow:
-            with st.container(border=True):
-                st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🌊 流量数据</h4>", unsafe_allow_html=True)
-                rt1, rt2, rt3 = st.columns(3)
-                rt1.metric("SEO流量", f"{seo_traffic:,.0f}")
-                rt2.metric("网站总流量", f"{total_traffic:,.0f}")
-                rt3.metric("跳出率", f"{bounce_rate:.2f}%")
+        # --- 第二行: 流量数据 (占满全屏，5等分排列，绝不错位) ---
+        with st.container(border=True):
+            st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🌊 流量数据</h4>", unsafe_allow_html=True)
+            cols2 = st.columns(5)
+            cols2[0].metric("SEO流量", f"{seo_traffic:,.0f}")
+            cols2[1].metric("SEO Blog流量", f"{seo_blog_traffic:,.0f}")
+            cols2[2].metric("SEO 站内流量", f"{seo_onsite_traffic:,.0f}")
+            cols2[3].metric("网站总流量", f"{total_traffic:,.0f}")
+            cols2[4].metric("跳出率", f"{bounce_rate:.2f}%")
 
+        # --- 第三行: AI数据 与 Google外链并排 (左侧占宽比 2，右侧占 3) ---
+        col_ai, col_google = st.columns([2, 3])
+        
         with col_ai:
             with st.container(border=True):
                 st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🤖 AI Assistant</h4>", unsafe_allow_html=True)
-                ra1, ra2 = st.columns(2)
-                ra1.metric("AI销售额", f"${ai_sales:,.2f}")
-                ra2.metric("AI流量", f"{ai_traffic:,.0f}")
+                ca = st.columns(2)
+                ca[0].metric("AI销售额", f"${ai_sales:,.2f}")
+                ca[1].metric("AI流量", f"{ai_traffic:,.0f}")
 
         with col_google:
             with st.container(border=True):
                 st.markdown("<h4 style='color:#334155; margin-bottom: 20px;'>🔗 Google 收录与外链</h4>", unsafe_allow_html=True)
-                rg1, rg2, rg3 = st.columns(3)
-                rg1.metric("收录", f"{index_count:,.0f}")
-                rg2.metric("外链", f"{backlink_count:,.0f}")
-                rg3.metric("域名广度", f"{backlink_domain:,.0f}")
+                cg = st.columns(3)
+                cg[0].metric("收录", f"{index_count:,.0f}")
+                cg[1].metric("外链", f"{backlink_count:,.0f}")
+                cg[2].metric("域名广度", f"{backlink_domain:,.0f}")
+
     else:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
