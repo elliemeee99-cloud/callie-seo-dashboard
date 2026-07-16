@@ -150,20 +150,21 @@ def load_site_full_details():
         return None
 
 # ==========================================
-# 📊 核心计算逻辑：提取并聚合 KPI (🔥修复 TypeError)
+# 📊 核心计算逻辑：提取并聚合 KPI (🔥终极修复版：原生 Lambda 防护)
 # ==========================================
 def extract_metric(df_data, metric_keywords, agg_type='sum'):
     # 模糊匹配指标名 (去除空格，转大写)
     clean_keywords = [k.replace(' ', '').upper() for k in metric_keywords]
-    # 🔥 增加 .astype(str) 强制转换为字符串，防止因纯数字或空值导致 TypeError
-    mask = df_data['Metric'].astype(str).str.replace(' ', '', regex=False).str.upper().isin(clean_keywords)
+    
+    # 🔥 使用原生 apply lambda 替代 .str 引擎，100% 免疫 TypeError
+    mask = df_data['Metric'].apply(lambda x: str(x).replace(' ', '').upper()).isin(clean_keywords)
     df_sub = df_data[mask]
     
     if df_sub.empty: 
         return 0.0
         
-    # 清洗数值：去除 $, %, 逗号
-    cleaned_vals = df_sub['Value'].astype(str).str.replace(r'[^\d\.-]', '', regex=True)
+    # 🔥 清洗数值时同样使用 apply，规避潜在风险
+    cleaned_vals = df_sub['Value'].apply(lambda x: re.sub(r'[^\d\.-]', '', str(x)))
     num_vals = pd.to_numeric(cleaned_vals, errors='coerce').fillna(0.0)
     
     if agg_type == 'sum':
