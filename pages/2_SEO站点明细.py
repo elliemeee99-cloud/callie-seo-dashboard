@@ -25,64 +25,53 @@ st.markdown("""
 /* 2. 增加顶部留白，防止与顶层导航栏重叠拥挤 */
 .block-container { padding-top: 5rem !important; max-width: 96% !important; }
 
-/* 3. Vercel 风格的极简控制器 (纯净胶囊按钮) */
-div[data-testid="stRadio"] div[role="radiogroup"] { 
+/* 3. 🔥 无死角泛用版 CSS (专门针对 st.radio 的强力胶囊化降级方案) */
+div[role="radiogroup"] { 
     gap: 12px !important; 
     flex-wrap: wrap; 
 }
-div[data-testid="stRadio"] label[data-baseweb="radio"] {
+div[role="radiogroup"] > label {
     background-color: #ffffff !important;
     border: 1px solid #E5E7EB !important;
     padding: 8px 24px !important;
     border-radius: 30px !important;
     cursor: pointer !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-div[data-testid="stRadio"] label[data-baseweb="radio"]:hover { 
+div[role="radiogroup"] > label:hover { 
     background-color: #F9FAFB !important; 
     border-color: #D1D5DB !important; 
 }
 
-/* 🔥🔥🔥 终极绝杀：彻底干掉任何形式的原生点选小圆圈 🔥🔥🔥 */
-div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child,
-div[data-testid="stRadio"] label[data-baseweb="radio"] > div:nth-child(1) { 
+/* 强力隐藏单选圆点 */
+div[role="radiogroup"] > label > div:first-child { 
     display: none !important; 
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
 } 
-/* 兜底：隐藏可能存在的 SVG 或 Input */
-div[data-testid="stRadio"] label[data-baseweb="radio"] input,
-div[data-testid="stRadio"] label[data-baseweb="radio"] svg {
-    display: none !important;
-}
 
-/* 文字排版居中 */
-div[data-testid="stRadio"] label[data-baseweb="radio"] p, 
-div[data-testid="stRadio"] label[data-baseweb="radio"] div {
+/* 字体排版 */
+div[role="radiogroup"] > label p, 
+div[role="radiogroup"] > label div {
     margin: 0 !important;
     font-weight: 600 !important;
     color: #4B5563 !important;
     font-size: 14px !important;
 }
 
-/* 🔥 选中态：科技蓝背景与文字反白 */
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], 
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
+/* 选中态：科技蓝背景与文字反白 */
+div[role="radiogroup"] > label[aria-checked="true"], 
+div[role="radiogroup"] > label:has(input:checked) {
     background-color: #2563EB !important;
     border-color: #2563EB !important;
     box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
 }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, 
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p,
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] div, 
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) div {
+div[role="radiogroup"] > label[aria-checked="true"] p, 
+div[role="radiogroup"] > label:has(input:checked) p,
+div[role="radiogroup"] > label[aria-checked="true"] div, 
+div[role="radiogroup"] > label:has(input:checked) div {
     color: #ffffff !important;
 }
 
@@ -252,14 +241,25 @@ if df_all is not None and not df_all.empty:
     valid_dates = df_all[mask_valid]['Date']
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
-    # --- 高级控制器 ---
+    # --- 高级控制器 (🔥 优先使用原生 pills, CSS 兜底) ---
     site_options = ["全部站点"] + list(cn_to_en.keys())
     
     col_c1, col_c2 = st.columns([2.5, 1])
     with col_c1:
-        selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
+        try:
+            # 尝试调用最新 Streamlit 原生胶囊组件
+            selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
+            if not selected_site_cn: selected_site_cn = "全部站点"
+        except AttributeError:
+            # 环境不支持时退化为 st.radio (上方强力 CSS 会接管渲染)
+            selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
+            
     with col_c2:
-        time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
+        try:
+            time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
+            if not time_view: time_view = "昨日数据"
+        except AttributeError:
+            time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
     
     st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
 
@@ -359,7 +359,11 @@ if df_all is not None and not df_all.empty:
                 sorted_dates = sorted(df_pivot.columns, reverse=False)
                 df_pivot = df_pivot[sorted_dates]
                 df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns] 
-                st.dataframe(df_pivot, width='stretch')
+                
+                try:
+                    st.dataframe(df_pivot, use_container_width=True)
+                except Exception:
+                    st.dataframe(df_pivot)
 
 else:
     st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
