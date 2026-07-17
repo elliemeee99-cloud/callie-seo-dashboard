@@ -68,7 +68,7 @@ div[data-testid="stButton"] button:hover { border-color: #2563eb !important; col
 
 
 # ==========================================
-# ⚙️ 核心数据获取引擎 (🔥 彻底修复版：无遗漏扫描 + 绝对条件锁定)
+# ⚙️ 核心数据获取引擎 
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_and_transform_google_sheet():
@@ -185,35 +185,31 @@ def load_and_transform_google_sheet():
         except Exception as e:
             print(f"SEO月度流量目标 读取失败: {e}")
 
-        # --- 3. 读取 All (🔥 拆掉 continue，绝不漏抓站点) ---
+        # --- 3. 读取 All ---
         try:
             sheet1 = spreadsheet.worksheet("All")
             raw_data_1 = sheet1.get_all_values()
             
             dates_row = []
             current_site = None
-            captured_traffic = False # 防重复抓取锁
+            captured_traffic = False
             
             for row in raw_data_1:
                 if not row: continue
                 first_cell = str(row[0]).strip()
                 
-                # 【改动1】：捕获到时间轴后，不再使用 continue 跳出，而是继续往下判断该行是否有国家名
                 if len(row) > 1:
                     check_val = str(row[1]).strip()
-                    # 判断依据：带有 202x 年份特征的必定是时间行
                     if "202" in check_val or ("月" in check_val and "日" in check_val) or re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
                         dates_row = [str(x).strip() for x in row[1:]]
                     
-                # 识别当前国家块
                 if first_cell.startswith("Callie ") and len(first_cell) <= 15:
                     current_site = first_cell.replace("Callie ", "").strip()
                     if current_site in cn_to_en:
                         current_site = cn_to_en[current_site]
-                    captured_traffic = False # 切换新站点，重置数据锁
+                    captured_traffic = False 
                     continue
                 
-                # 【改动2】：严格绝对匹配！只抓清洗后完全等于 "SEO总流量" 或 "SEO流量" 的行
                 clean_metric_name = re.sub(r'\s+', '', first_cell).upper()
                 if current_site and clean_metric_name in ["SEO总流量", "SEO流量"] and not captured_traffic:
                     values = row[1:]
@@ -228,7 +224,6 @@ def load_and_transform_google_sheet():
                                     val = 0.0
                                 
                                 d_str = dates_row[i]
-                                # 处理中文日期的兼容转换
                                 if "月" in d_str and "日" in d_str:
                                     try:
                                         m = d_str.split('月')[0].strip()
@@ -238,11 +233,10 @@ def load_and_transform_google_sheet():
                                         pass
                                         
                                 traffic_records.append({"Date": d_str, "Site": current_site, "Value": val})
-                    captured_traffic = True # 抓到主流量指标后立刻上锁，屏蔽一切站内/Blog冗余数据
+                    captured_traffic = True 
         except Exception as e:
             print(f"All 读取失败: {e}")
                         
-        # 统一转为 DataFrame 并进行标准化清理
         df_hist = pd.DataFrame(historical_records)
         if not df_hist.empty:
             df_hist['Date'] = pd.to_datetime(df_hist['Date'], errors='coerce')
@@ -255,7 +249,6 @@ def load_and_transform_google_sheet():
             df_traffic = df_traffic.dropna(subset=['Date'])
             df_traffic['Date'] = df_traffic['Date'].dt.normalize()
             
-        # 释放原始大数组的内存
         del raw_data_1
         gc.collect()
             
@@ -315,6 +308,12 @@ if data_dict:
         current_day = latest_date.day
         time_progress_rate = (current_day / days_in_month) * 100
 
+        # 🔥 核心：计算本月剩余天数（包含真实今天）
+        days_in_current_month = calendar.monthrange(real_today.year, real_today.month)[1]
+        remaining_days = days_in_current_month - real_today.day + 1
+        if remaining_days <= 0:
+            remaining_days = 1  # 兜底避免除0报错
+
         total_sales_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
         total_sales_target = sum([target_sales_data.get(s, 0) for s in fixed_sites_order])
         s_total_rate = (total_sales_actual / total_sales_target * 100) if total_sales_target > 0 else 0
@@ -372,8 +371,17 @@ if data_dict:
                     s_target = target_sales_data.get(site, 0)
                     s_rate = (s_actual / s_target * 100) if s_target > 0 else 0
                     color = "normal" if s_rate >= time_progress_rate else "off"
-                    delta_str = f"差额 ${s_target - s_actual:,.0f}" if s_target > s_actual else "已达标"
+                    
+                    # 🔥 替换为：剩余日均算法
+                    sales_diff = s_target - s_actual
+                    if sales_diff > 0:
+                        daily_sales_needed = sales_diff / remaining_days
+                        delta_str = f"剩余日均 ${daily_sales_needed:,.0f}"
+                    else:
+                        delta_str = "已达标"
+                        
                     st.metric(label=f"{en_to_cn[site]} (🎯${s_target:,.0f})", value=f"${s_actual:,.0f}", delta=delta_str, delta_color=color)
+                    
                     bar_color = '#10b981' if s_rate >= time_progress_rate else '#f43f5e'
                     site_html = (
                         f'<div style="margin-top: 5px;">'
@@ -486,8 +494,17 @@ if data_dict:
                     t_target = target_traffic_data.get(site, 0)
                     t_rate = (t_actual / t_target * 100) if t_target > 0 else 0
                     color = "normal" if t_rate >= time_progress_rate else "off"
-                    delta_str = f"差额 {t_target - t_actual:,.0f}" if t_target > t_actual else "已达标"
+                    
+                    # 🔥 替换为：剩余日均算法
+                    traffic_diff = t_target - t_actual
+                    if traffic_diff > 0:
+                        daily_traffic_needed = traffic_diff / remaining_days
+                        delta_str = f"剩余日均 {daily_traffic_needed:,.0f}"
+                    else:
+                        delta_str = "已达标"
+                        
                     st.metric(label=f"{en_to_cn[site]} (🎯{t_target:,.0f})", value=f"{t_actual:,.0f}", delta=delta_str, delta_color=color)
+                    
                     bar_color = '#10b981' if t_rate >= time_progress_rate else '#f43f5e'
                     site_html = (
                         f'<div style="margin-top: 5px;">'
