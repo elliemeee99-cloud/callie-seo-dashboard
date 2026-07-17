@@ -113,6 +113,29 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     justify-content: center;
     font-size: 18px;
 }
+
+/* 5. 🔥 折叠面板 (Expander) 高级 SaaS 化样式 */
+[data-testid="stExpander"] {
+    border: 1px solid #EEF2F6 !important;
+    border-radius: 16px !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+    margin-bottom: 24px !important;
+    overflow: hidden;
+}
+[data-testid="stExpander"] summary {
+    padding: 20px 24px !important;
+    background-color: #ffffff !important;
+}
+[data-testid="stExpander"] summary:hover {
+    background-color: #F9FAFB !important;
+}
+[data-testid="stExpander"] summary p {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+    letter-spacing: -0.5px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -223,7 +246,6 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
-# 🔥 新增 chart_key 参数，杜绝 DuplicateElementId 报错
 def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key=""):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
@@ -309,7 +331,6 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         </div>
         ''', unsafe_allow_html=True)
         
-        # 🔥 加入唯一的 key 参数，彻底防止报错
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key=chart_key)
 
 # ==========================================
@@ -325,6 +346,12 @@ if df_all is not None and not df_all.empty:
     fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
     cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
     en_to_cn = {v: k for k, v in cn_to_en.items()}
+    
+    # 📌 精准的国旗映射字典
+    site_flags = {
+        "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", 
+        "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"
+    }
 
     mask_valid = (df_all['Clean_Metric'].isin(['网站总流量', 'SUPERSET总销售额'])) & (df_all['Numeric_Value'] > 0)
     valid_dates = df_all[mask_valid]['Date']
@@ -426,7 +453,7 @@ if df_all is not None and not df_all.empty:
 
 
     # ==========================================
-    # 🗄️ 第二部分：各站点底层细分图表与全量明细表
+    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 (支持折叠与国旗显示)
     # ==========================================
     st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
 
@@ -466,35 +493,43 @@ if df_all is not None and not df_all.empty:
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
+    # --- 开始遍历渲染分站点数据 (使用国旗和折叠面板) ---
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
-            st.markdown(f"<div style='font-weight: 800; font-size: 20px; color:#111827; margin: 40px 0 20px 0; display:flex; align-items:center; gap:8px;'><span style='font-size:24px;'>🌍</span> {en_to_cn.get(site, site)} (Callie {site})</div>", unsafe_allow_html=True)
+            
+            site_flag = site_flags.get(site, "🌍")
+            site_name_cn = en_to_cn.get(site, site)
+            expander_title = f"{site_flag} {site_name_cn} (Callie {site}) 数据中心"
+            
+            # 🔥 引入 st.expander 制作优雅的折叠面板，默认展开
+            with st.expander(expander_title, expanded=True):
+                st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
-            r1c1, r1c2 = st.columns(2)
-            with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
-            with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
+                r1c1, r1c2 = st.columns(2)
+                with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
+                with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
 
-            r2c1, r2c2 = st.columns(2)
-            with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
-            with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
+                r2c1, r2c2 = st.columns(2)
+                with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
+                with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
 
-            r3c1, r3c2 = st.columns(2)
-            with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
+                r3c1, r3c2 = st.columns(2)
+                with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
 
-            df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
-            if not df_table_site.empty:
-                st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
-                with st.container(border=True):
-                    df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
-                    sorted_dates = sorted(df_pivot.columns, reverse=False)
-                    df_pivot = df_pivot[sorted_dates]
-                    df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
-                    
-                    try:
-                        st.dataframe(df_pivot, use_container_width=True)
-                    except Exception:
-                        st.dataframe(df_pivot)
+                df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
+                if not df_table_site.empty:
+                    st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
+                    with st.container(border=True):
+                        df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
+                        sorted_dates = sorted(df_pivot.columns, reverse=False)
+                        df_pivot = df_pivot[sorted_dates]
+                        df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
+                        
+                        try:
+                            st.dataframe(df_pivot, use_container_width=True)
+                        except Exception:
+                            st.dataframe(df_pivot)
 
 else:
     st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
