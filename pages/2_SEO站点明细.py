@@ -5,6 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 import re
 import gc
+import plotly.graph_objects as go
 
 # ==========================================
 # 网页基础设置
@@ -203,7 +204,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 纯原生 HTML 卡片与折线图渲染工厂
+# 💎 纯原生 HTML 卡片与增强版图表渲染工厂
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -226,14 +227,12 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
 
-    # 提取两段时间的每日数值
     p1_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p1_dates]
     p2_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p2_dates]
 
     sum1 = sum(p1_vals)
     sum2 = sum(p2_vals)
 
-    # 智能计算同环比涨跌幅及配色
     if sum2 > 0:
         delta_pct = (sum1 - sum2) / sum2 * 100
         delta_str = f"↑ {delta_pct:.1f}%" if delta_pct >= 0 else f"↓ {abs(delta_pct):.1f}%"
@@ -247,14 +246,58 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
     val_str1 = f"{prefix}{sum1:,.2f}" if prefix == "$" else f"{sum1:,.0f}"
     val_str2 = f"{prefix}{sum2:,.2f}" if prefix == "$" else f"{sum2:,.0f}"
 
-    # 🔥 核心修改：使用原生的 p1_dates（Datetime 格式）作为索引
-    # 这样 Streamlit 底层绘图引擎会将其识别为时间轴，自动进行横向排版，不会再 90度垂直挤在一起
-    chart_df = pd.DataFrame({
-        '过去 7 天': p1_vals,
-        '之前 7 天': p2_vals
-    }, index=p1_dates)
+    # 🔥 核心升级：使用 Plotly 重构图表
+    x_labels = [d.strftime('%m-%d') for d in p1_dates] # 纯文本类型，彻底避免出现时间(12 PM)
 
-    # 渲染带有高级说明的包裹卡片
+    fig = go.Figure()
+    
+    # Google Blue (过去 7 天)
+    fig.add_trace(go.Scatter(
+        x=x_labels, y=p1_vals,
+        mode='lines+markers',
+        name='过去 7 天',
+        line=dict(color='#4285F4', width=3),
+        marker=dict(size=10, symbol='circle', color='#4285F4', line=dict(color='white', width=1.5)),
+        hovertemplate='<b>%{x}</b><br>过去 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>过去 7 天: %{y:,.0f}<extra></extra>'
+    ))
+    
+    # Google Red (之前 7 天)
+    fig.add_trace(go.Scatter(
+        x=x_labels, y=p2_vals,
+        mode='lines+markers',
+        name='之前 7 天',
+        line=dict(color='#EA4335', width=3),
+        marker=dict(size=10, symbol='circle', color='#EA4335', line=dict(color='white', width=1.5)),
+        hovertemplate='<b>%{x}</b><br>之前 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>之前 7 天: %{y:,.0f}<extra></extra>'
+    ))
+
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=10, b=0),
+        hovermode="x unified",
+        xaxis=dict(
+            type='category', # 强制分类轴，阻止补全时间
+            showgrid=False,
+            color='#6B7280'
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='#E5E7EB',
+            color='#6B7280',
+            zeroline=False
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.25,
+            xanchor="center",
+            x=0.5,
+            font=dict(color="#4B5563")
+        ),
+        height=240,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+
     with st.container(border=True):
         st.markdown(f'''
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
@@ -266,11 +309,8 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         </div>
         ''', unsafe_allow_html=True)
         
-        # 🔥 改用折线图，更利于展示趋势
-        try:
-            st.line_chart(chart_df, color=["#2563EB", "#93C5FD"], height=180)
-        except Exception:
-            st.line_chart(chart_df, height=180)
+        # 渲染无交互条的干净图表
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================
 # 📐 第一部分：全局数据仪表盘
@@ -328,7 +368,6 @@ if df_all is not None and not df_all.empty:
     # ==========================================
     if not df_target.empty:
         
-        # 1. 核心计算
         ss_seo_sales = get_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_target, 'sum')
         ss_total_sales = get_metric(['Superset 总销售额', 'Superset总销售额'], df_target, 'sum')
         ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
@@ -349,7 +388,6 @@ if df_all is not None and not df_all.empty:
         backlink_count = get_metric(['外链'], df_target, 'latest')
         backlink_domain = get_metric(['外链域名广度'], df_target, 'latest')
 
-        # [区块 1] 销售额数据 
         sales_cards = "".join([
             render_kpi_card('Superset SEO销售额', f"${ss_seo_sales:,.2f}", 'blue', highlight=True),
             render_kpi_card('Superset 总销售额', f"${ss_total_sales:,.2f}", 'blue'),
@@ -361,7 +399,6 @@ if df_all is not None and not df_all.empty:
         sales_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#EFF6FF; color:#3B82F6;">💰</div> 核心销售额追踪</div><div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">{sales_cards}</div></div>'
         st.markdown(sales_html, unsafe_allow_html=True)
 
-        # [区块 2] 流量漏斗 
         traffic_items = "".join([
             render_traffic_item('SEO 流量', f"{seo_traffic:,.0f}"),
             render_traffic_item('SEO Blog 流量', f"{seo_blog_traffic:,.0f}"),
@@ -372,7 +409,6 @@ if df_all is not None and not df_all.empty:
         traffic_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#ECFEFF; color:#06B6D4;">🌊</div> 流量漏斗健康度</div><div style="display: flex; align-items: center; margin: 20px -24px 0 -24px;">{traffic_items}</div><div style="margin-top: 32px; padding-top: 16px; border-top: 1px dashed #E5E7EB; font-size: 13px; color: #9CA3AF; display: flex; align-items: center; gap: 6px;"><span style="color: #06B6D4; font-size: 16px;">✦</span> 所有流量指标均已过滤异常抓取，建议结合跳出率动态评估渠道质量。</div></div>'
         st.markdown(traffic_html, unsafe_allow_html=True)
 
-        # [区块 3 & 4] AI 数据与 Google 外链 
         ai_cards = "".join([
             render_kpi_card('AI 销售额', f"${ai_sales:,.2f}", 'purple', highlight=True),
             render_kpi_card('AI 流量获取', f"{ai_traffic:,.0f}", 'purple')
@@ -410,7 +446,7 @@ if df_all is not None and not df_all.empty:
     s_date_ts = pd.Timestamp(s_date)
     e_date_ts = pd.Timestamp(e_date)
 
-    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期，用于绘制同环比折线图
+    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期
     p1_end = e_date_ts
     p1_start = p1_end - pd.Timedelta(days=6)
     p1_dates = pd.date_range(start=p1_start, end=p1_end).tolist()
@@ -419,28 +455,24 @@ if df_all is not None and not df_all.empty:
     p2_start = p2_end - pd.Timedelta(days=6)
     p2_dates = pd.date_range(start=p2_start, end=p2_end).tolist()
 
-    # 高亮图表说明区域
     st.markdown(f"""
     <div style='background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 32px; margin-top: 16px;'>
-        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 折线图趋势对比说明</div>
+        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 趋势对比说明</div>
         <div style='color: #2563EB; font-size: 13.5px; line-height: 1.6;'>
             趋势图动态锚定您在上方选择的结束日期（<b>{e_date_ts.strftime('%Y-%m-%d')}</b>）。<br>
-            图表中的 <b>深蓝线</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；<b>浅蓝线</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。<br>
+            图表中的 <b style="color:#4285F4;">Google 蓝线</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；<b style="color:#EA4335;">Google 红线</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。<br>
             数据表格则展示您所选完整区间的全量明细。
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 截取表格展示所需的数据区间
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
-    # --- 开始遍历渲染分站点数据 ---
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
             st.markdown(f"<div style='font-weight: 800; font-size: 20px; color:#111827; margin: 40px 0 20px 0; display:flex; align-items:center; gap:8px;'><span style='font-size:24px;'>🌍</span> {en_to_cn.get(site, site)} (Callie {site})</div>", unsafe_allow_html=True)
 
-            # --- 可视化图表区域 (2 列排版) ---
             r1c1, r1c2 = st.columns(2)
             with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$")
             with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$")
@@ -452,7 +484,6 @@ if df_all is not None and not df_all.empty:
             r3c1, r3c2 = st.columns(2)
             with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="")
 
-            # --- 原始数据表格区域 ---
             df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
             if not df_table_site.empty:
                 st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
