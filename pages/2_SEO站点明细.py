@@ -223,7 +223,8 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
-def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix=""):
+# 🔥 新增 chart_key 参数，杜绝 DuplicateElementId 报错
+def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key=""):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
 
@@ -246,8 +247,7 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
     val_str1 = f"{prefix}{sum1:,.2f}" if prefix == "$" else f"{sum1:,.0f}"
     val_str2 = f"{prefix}{sum2:,.2f}" if prefix == "$" else f"{sum2:,.0f}"
 
-    # 🔥 核心升级：使用 Plotly 重构图表
-    x_labels = [d.strftime('%m-%d') for d in p1_dates] # 纯文本类型，彻底避免出现时间(12 PM)
+    x_labels = [d.strftime('%m-%d') for d in p1_dates] 
 
     fig = go.Figure()
     
@@ -275,7 +275,7 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         margin=dict(l=0, r=0, t=10, b=0),
         hovermode="x unified",
         xaxis=dict(
-            type='category', # 强制分类轴，阻止补全时间
+            type='category', 
             showgrid=False,
             color='#6B7280'
         ),
@@ -309,8 +309,8 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         </div>
         ''', unsafe_allow_html=True)
         
-        # 渲染无交互条的干净图表
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        # 🔥 加入唯一的 key 参数，彻底防止报错
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key=chart_key)
 
 # ==========================================
 # 📐 第一部分：全局数据仪表盘
@@ -434,7 +434,6 @@ if df_all is not None and not df_all.empty:
         st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>📅 全局时间范围筛选 (控制下方所有站点数据及图表)</div>", unsafe_allow_html=True)
         bottom_date_range = st.date_input("日期筛选", value=(actual_max_date - pd.Timedelta(days=14), actual_max_date), max_value=actual_max_date, label_visibility="collapsed")
 
-    # 处理筛选时间
     if isinstance(bottom_date_range, tuple):
         if len(bottom_date_range) == 2:
             s_date, e_date = bottom_date_range
@@ -446,7 +445,6 @@ if df_all is not None and not df_all.empty:
     s_date_ts = pd.Timestamp(s_date)
     e_date_ts = pd.Timestamp(e_date)
 
-    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期
     p1_end = e_date_ts
     p1_start = p1_end - pd.Timedelta(days=6)
     p1_dates = pd.date_range(start=p1_start, end=p1_end).tolist()
@@ -474,15 +472,15 @@ if df_all is not None and not df_all.empty:
             st.markdown(f"<div style='font-weight: 800; font-size: 20px; color:#111827; margin: 40px 0 20px 0; display:flex; align-items:center; gap:8px;'><span style='font-size:24px;'>🌍</span> {en_to_cn.get(site, site)} (Callie {site})</div>", unsafe_allow_html=True)
 
             r1c1, r1c2 = st.columns(2)
-            with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$")
-            with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$")
+            with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
+            with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
 
             r2c1, r2c2 = st.columns(2)
-            with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="")
-            with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="")
+            with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
+            with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
 
             r3c1, r3c2 = st.columns(2)
-            with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="")
+            with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
 
             df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
             if not df_table_site.empty:
