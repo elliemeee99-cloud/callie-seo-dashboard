@@ -203,7 +203,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 纯原生 HTML 卡片与图表渲染工厂
+# 💎 纯原生 HTML 卡片与折线图渲染工厂
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -247,11 +247,12 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
     val_str1 = f"{prefix}{sum1:,.2f}" if prefix == "$" else f"{sum1:,.0f}"
     val_str2 = f"{prefix}{sum2:,.2f}" if prefix == "$" else f"{sum2:,.0f}"
 
-    # 组织柱状图的数据结构 (横坐标为直观的月日日期)
+    # 🔥 核心修改：使用原生的 p1_dates（Datetime 格式）作为索引
+    # 这样 Streamlit 底层绘图引擎会将其识别为时间轴，自动进行横向排版，不会再 90度垂直挤在一起
     chart_df = pd.DataFrame({
         '过去 7 天': p1_vals,
         '之前 7 天': p2_vals
-    }, index=[d.strftime('%m-%d') for d in p1_dates])
+    }, index=p1_dates)
 
     # 渲染带有高级说明的包裹卡片
     with st.container(border=True):
@@ -265,11 +266,11 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         </div>
         ''', unsafe_allow_html=True)
         
-        # 兼容最新 Streamlit 双色分组柱状图
+        # 🔥 改用折线图，更利于展示趋势
         try:
-            st.bar_chart(chart_df, color=["#2563EB", "#93C5FD"], height=180)
+            st.line_chart(chart_df, color=["#2563EB", "#93C5FD"], height=180)
         except Exception:
-            st.bar_chart(chart_df, height=180)
+            st.line_chart(chart_df, height=180)
 
 # ==========================================
 # 📐 第一部分：全局数据仪表盘
@@ -409,7 +410,7 @@ if df_all is not None and not df_all.empty:
     s_date_ts = pd.Timestamp(s_date)
     e_date_ts = pd.Timestamp(e_date)
 
-    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期，用于绘制同环比柱状图
+    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期，用于绘制同环比折线图
     p1_end = e_date_ts
     p1_start = p1_end - pd.Timedelta(days=6)
     p1_dates = pd.date_range(start=p1_start, end=p1_end).tolist()
@@ -421,10 +422,10 @@ if df_all is not None and not df_all.empty:
     # 高亮图表说明区域
     st.markdown(f"""
     <div style='background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 32px; margin-top: 16px;'>
-        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 柱状图对比说明</div>
+        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 折线图趋势对比说明</div>
         <div style='color: #2563EB; font-size: 13.5px; line-height: 1.6;'>
-            柱状图动态锚定您在上方选择的结束日期（<b>{e_date_ts.strftime('%Y-%m-%d')}</b>）。<br>
-            图表中的左侧 <b>深蓝柱</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；右侧 <b>浅蓝柱</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。
+            趋势图动态锚定您在上方选择的结束日期（<b>{e_date_ts.strftime('%Y-%m-%d')}</b>）。<br>
+            图表中的 <b>深蓝线</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；<b>浅蓝线</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。<br>
             数据表格则展示您所选完整区间的全量明细。
         </div>
     </div>
