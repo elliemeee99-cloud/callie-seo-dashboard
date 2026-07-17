@@ -203,7 +203,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 纯原生 HTML 卡片渲染工厂 
+# 💎 纯原生 HTML 卡片与图表渲染工厂
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -222,9 +222,57 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
+def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix=""):
+    clean_names = [m.replace(' ', '').upper() for m in metric_names]
+    sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
+
+    # 提取两段时间的每日数值
+    p1_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p1_dates]
+    p2_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p2_dates]
+
+    sum1 = sum(p1_vals)
+    sum2 = sum(p2_vals)
+
+    # 智能计算同环比涨跌幅及配色
+    if sum2 > 0:
+        delta_pct = (sum1 - sum2) / sum2 * 100
+        delta_str = f"↑ {delta_pct:.1f}%" if delta_pct >= 0 else f"↓ {abs(delta_pct):.1f}%"
+        delta_color = "#10B981" if delta_pct >= 0 else "#EF4444"
+        bg_color = "#F0FDF4" if delta_pct >= 0 else "#FEF2F2"
+    else:
+        delta_str = "一"
+        delta_color = "#9CA3AF"
+        bg_color = "#F3F4F6"
+
+    val_str1 = f"{prefix}{sum1:,.2f}" if prefix == "$" else f"{sum1:,.0f}"
+    val_str2 = f"{prefix}{sum2:,.2f}" if prefix == "$" else f"{sum2:,.0f}"
+
+    # 组织柱状图的数据结构 (横坐标为直观的月日日期)
+    chart_df = pd.DataFrame({
+        '过去 7 天': p1_vals,
+        '之前 7 天': p2_vals
+    }, index=[d.strftime('%m-%d') for d in p1_dates])
+
+    # 渲染带有高级说明的包裹卡片
+    with st.container(border=True):
+        st.markdown(f'''
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <div style="font-weight:700; color:#374151; font-size:15px;">{title}</div>
+            <div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div>
+        </div>
+        <div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">
+            过去 7 天: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> 之前 7 天: {val_str2}
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        # 兼容最新 Streamlit 双色分组柱状图
+        try:
+            st.bar_chart(chart_df, color=["#2563EB", "#93C5FD"], height=180)
+        except Exception:
+            st.bar_chart(chart_df, height=180)
 
 # ==========================================
-# 📐 全局交互层
+# 📐 第一部分：全局数据仪表盘
 # ==========================================
 st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
 st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
@@ -241,17 +289,15 @@ if df_all is not None and not df_all.empty:
     valid_dates = df_all[mask_valid]['Date']
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
-    # --- 高级控制器 (🔥 优先使用原生 pills, CSS 兜底) ---
+    # --- 高级控制器 ---
     site_options = ["全部站点"] + list(cn_to_en.keys())
     
     col_c1, col_c2 = st.columns([2.5, 1])
     with col_c1:
         try:
-            # 尝试调用最新 Streamlit 原生胶囊组件
             selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
             if not selected_site_cn: selected_site_cn = "全部站点"
         except AttributeError:
-            # 环境不支持时退化为 st.radio (上方强力 CSS 会接管渲染)
             selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
             
     with col_c2:
@@ -341,29 +387,84 @@ if df_all is not None and not df_all.empty:
     else:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
-    # ==========================================
-    # 🗄️ 底部区域：各站点底层全量明细表
-    # ==========================================
-    st.markdown("<div style='font-size: 20px; font-weight: 700; color: #111827; margin: 40px 0 10px 0;'>🗄️ 各站点底层原始数据明细</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color: #6B7280; margin-bottom: 24px; font-size: 14px;'>以下表格自动提取展示最近 15 天的全量底层指标，时间按升序排布以供追溯。</div>", unsafe_allow_html=True)
 
-    recent_dates = sorted(df_all['Date'].unique())[-15:]
-    df_raw_tables = df_all[df_all['Date'].isin(recent_dates)]
+    # ==========================================
+    # 🗄️ 第二部分：各站点底层细分图表与全量明细表
+    # ==========================================
+    st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
 
+    with st.container(border=True):
+        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>📅 全局时间范围筛选 (控制下方所有站点数据及图表)</div>", unsafe_allow_html=True)
+        bottom_date_range = st.date_input("日期筛选", value=(actual_max_date - pd.Timedelta(days=14), actual_max_date), max_value=actual_max_date, label_visibility="collapsed")
+
+    # 处理筛选时间
+    if isinstance(bottom_date_range, tuple):
+        if len(bottom_date_range) == 2:
+            s_date, e_date = bottom_date_range
+        else:
+            s_date = e_date = bottom_date_range[0]
+    else:
+        s_date = e_date = bottom_date_range
+
+    s_date_ts = pd.Timestamp(s_date)
+    e_date_ts = pd.Timestamp(e_date)
+
+    # 动态锚定：以所选 End Date 往前切割出两个 7 天周期，用于绘制同环比柱状图
+    p1_end = e_date_ts
+    p1_start = p1_end - pd.Timedelta(days=6)
+    p1_dates = pd.date_range(start=p1_start, end=p1_end).tolist()
+
+    p2_end = p1_start - pd.Timedelta(days=1)
+    p2_start = p2_end - pd.Timedelta(days=6)
+    p2_dates = pd.date_range(start=p2_start, end=p2_end).tolist()
+
+    # 高亮图表说明区域
+    st.markdown(f"""
+    <div style='background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 32px; margin-top: 16px;'>
+        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 柱状图对比说明</div>
+        <div style='color: #2563EB; font-size: 13.5px; line-height: 1.6;'>
+            柱状图动态锚定您在上方选择的结束日期（<b>{e_date_ts.strftime('%Y-%m-%d')}</b>）。<br>
+            图表中的左侧 <b>深蓝柱</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；右侧 <b>浅蓝柱</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。
+            数据表格则展示您所选完整区间的全量明细。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 截取表格展示所需的数据区间
+    df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
+
+    # --- 开始遍历渲染分站点数据 ---
     for site in fixed_sites_order:
-        df_site_raw = df_raw_tables[df_raw_tables['Site'] == site]
+        df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
-            st.markdown(f"<div style='font-weight: 600; font-size: 16px; color:#374151; margin-bottom: 12px;'>🌍 {en_to_cn.get(site, site)} (Callie {site})</div>", unsafe_allow_html=True)
-            with st.container(border=True):
-                df_pivot = df_site_raw.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
-                sorted_dates = sorted(df_pivot.columns, reverse=False)
-                df_pivot = df_pivot[sorted_dates]
-                df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns] 
-                
-                try:
-                    st.dataframe(df_pivot, use_container_width=True)
-                except Exception:
-                    st.dataframe(df_pivot)
+            st.markdown(f"<div style='font-weight: 800; font-size: 20px; color:#111827; margin: 40px 0 20px 0; display:flex; align-items:center; gap:8px;'><span style='font-size:24px;'>🌍</span> {en_to_cn.get(site, site)} (Callie {site})</div>", unsafe_allow_html=True)
+
+            # --- 可视化图表区域 (2 列排版) ---
+            r1c1, r1c2 = st.columns(2)
+            with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$")
+            with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$")
+
+            r2c1, r2c2 = st.columns(2)
+            with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="")
+            with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="")
+
+            r3c1, r3c2 = st.columns(2)
+            with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="")
+
+            # --- 原始数据表格区域 ---
+            df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
+            if not df_table_site.empty:
+                st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
+                    sorted_dates = sorted(df_pivot.columns, reverse=False)
+                    df_pivot = df_pivot[sorted_dates]
+                    df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
+                    
+                    try:
+                        st.dataframe(df_pivot, use_container_width=True)
+                    except Exception:
+                        st.dataframe(df_pivot)
 
 else:
     st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
