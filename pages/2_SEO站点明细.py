@@ -246,18 +246,34 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
-def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key=""):
+# 🔥 核心升级：增加 is_snapshot 参数，智能区分累加值(流量/销售额)和快照值(收录/外链)
+def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key="", is_snapshot=False):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
 
     p1_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p1_dates]
     p2_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p2_dates]
 
-    sum1 = sum(p1_vals)
-    sum2 = sum(p2_vals)
+    # 智能数据聚合逻辑
+    if is_snapshot:
+        # 如果是快照指标(如：收录)，不能把7天加起来，取该周期的最后有效非0值即可
+        def get_latest_valid(vals):
+            for v in reversed(vals):
+                if v > 0: return v
+            return 0
+        val1 = get_latest_valid(p1_vals)
+        val2 = get_latest_valid(p2_vals)
+        time_label_1 = "期末最新"
+        time_label_2 = "前期期末"
+    else:
+        # 流量、销售额正常累加
+        val1 = sum(p1_vals)
+        val2 = sum(p2_vals)
+        time_label_1 = "过去 7 天"
+        time_label_2 = "之前 7 天"
 
-    if sum2 > 0:
-        delta_pct = (sum1 - sum2) / sum2 * 100
+    if val2 > 0:
+        delta_pct = (val1 - val2) / val2 * 100
         delta_str = f"↑ {delta_pct:.1f}%" if delta_pct >= 0 else f"↓ {abs(delta_pct):.1f}%"
         delta_color = "#10B981" if delta_pct >= 0 else "#EF4444"
         bg_color = "#F0FDF4" if delta_pct >= 0 else "#FEF2F2"
@@ -266,8 +282,8 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         delta_color = "#9CA3AF"
         bg_color = "#F3F4F6"
 
-    val_str1 = f"{prefix}{sum1:,.2f}" if prefix == "$" else f"{sum1:,.0f}"
-    val_str2 = f"{prefix}{sum2:,.2f}" if prefix == "$" else f"{sum2:,.0f}"
+    val_str1 = f"{prefix}{val1:,.2f}" if prefix == "$" else f"{prefix}{val1:,.0f}"
+    val_str2 = f"{prefix}{val2:,.2f}" if prefix == "$" else f"{prefix}{val2:,.0f}"
 
     x_labels = [d.strftime('%m-%d') for d in p1_dates] 
 
@@ -327,7 +343,7 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
             <div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div>
         </div>
         <div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">
-            过去 7 天: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> 之前 7 天: {val_str2}
+            {time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}
         </div>
         ''', unsafe_allow_html=True)
         
@@ -453,7 +469,7 @@ if df_all is not None and not df_all.empty:
 
 
     # ==========================================
-    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 (支持折叠与国旗显示)
+    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 
     # ==========================================
     st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
 
@@ -493,7 +509,6 @@ if df_all is not None and not df_all.empty:
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
-    # --- 开始遍历渲染分站点数据 (使用国旗和折叠面板) ---
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
@@ -502,21 +517,30 @@ if df_all is not None and not df_all.empty:
             site_name_cn = en_to_cn.get(site, site)
             expander_title = f"{site_flag} {site_name_cn} (Callie {site}) 数据中心"
             
-            # 🔥 引入 st.expander 制作优雅的折叠面板，默认展开
             with st.expander(expander_title, expanded=True):
                 st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
+                # 第一行：销售额
                 r1c1, r1c2 = st.columns(2)
                 with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
                 with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
 
+                # 第二行：流量
                 r2c1, r2c2 = st.columns(2)
                 with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
                 with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
 
+                # 第三行：站内流量 & Google 收录 (🔥 针对收录启用快照模式)
                 r3c1, r3c2 = st.columns(2)
                 with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
+                with r3c2: render_comparison_chart(df_site_raw, ['收录'], '🔗 Google 收录规模对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_google_index", is_snapshot=True)
 
+                # 第四行：AI Assistant 模块 (🔥 新增 AI 销售额与流量对比)
+                r4c1, r4c2 = st.columns(2)
+                with r4c1: render_comparison_chart(df_site_raw, ['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], '🤖 AI Assistant 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ai_sales")
+                with r4c2: render_comparison_chart(df_site_raw, ['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], '🤖 AI Assistant 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ai_traffic")
+
+                # 底部：原始数据表
                 df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
                 if not df_table_site.empty:
                     st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
