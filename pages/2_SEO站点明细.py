@@ -92,18 +92,20 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
 [data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
 
-/* 7. 🔥 左侧悬浮电梯专属强制锁定 CSS */
-div[data-testid="column"]:has(#nav-anchor) {
+/* 7. 🔥 完美解决侧边栏悬浮断裂问题的终极 CSS */
+div[data-testid="column"] {
+    overflow: visible !important;
+}
+div[data-testid="column"]:has(.sticky-nav) {
     position: -webkit-sticky !important;
     position: sticky !important;
-    top: 6rem !important;
-    align-self: flex-start !important;
-    height: calc(100vh - 7rem) !important;
+    top: 5rem !important;
+    align-self: flex-start !important; /* 关键：打断分栏等高拉伸，保留自身高度 */
+    z-index: 999 !important;
+    height: calc(100vh - 6rem) !important; /* 高度限位，使其自身可滚动 */
     overflow-y: auto !important;
-    z-index: 1000 !important;
-    padding-right: 15px !important;
 }
-div[data-testid="column"]:has(#nav-anchor)::-webkit-scrollbar {
+div[data-testid="column"]:has(.sticky-nav)::-webkit-scrollbar {
     width: 0px;
     background: transparent;
 }
@@ -416,17 +418,17 @@ if df_all is not None and not df_all.empty:
     col_nav, col_charts = st.columns([1.5, 8.5])
 
     with col_nav:
-        # 🔥 插入唯一靶向锚点，配合顶层 :has() CSS 实现侧边栏真·悬浮
-        st.markdown("<span id='nav-anchor'></span>", unsafe_allow_html=True)
+        # 赋予悬浮靶向点
+        st.markdown("<span class='sticky-nav'></span>", unsafe_allow_html=True)
         
-        # 🔥 彻底压缩的单行 HTML，防止 Markdown 解析器干扰产生乱码
-        nav_html = "<div class='sticky-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
+        nav_html = "<div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
         for idx, site in enumerate(fixed_sites_order):
             g_color = GOOGLE_COLORS[idx % 4]
             flag = site_flags.get(site, '🌍')
             cn_name = en_to_cn.get(site, site)
+            # 全压缩单行 HTML
             nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid {g_color}; border-radius: 6px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#f8fafc';\" onmouseout=\"this.style.backgroundColor='#ffffff';\"><span style='font-size: 16px;'>{flag}</span><span style='font-size: 13px;'>{site} {cn_name}</span></a>"
-        nav_html += "</div></div>"
+        nav_html += "</div>"
         st.markdown(nav_html, unsafe_allow_html=True)
 
     with col_charts:
