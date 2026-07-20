@@ -8,7 +8,7 @@ import gc
 import plotly.graph_objects as go
 
 # ==========================================
-# 📍 全局变量与字典映射 (必须放在最前面)
+# 📍 全局变量与字典映射
 # ==========================================
 fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
 cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
@@ -34,7 +34,7 @@ st.markdown("""
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-/* 2. 增加顶部留白，防止与顶层导航栏重叠拥挤 */
+/* 2. 增加顶部留白 */
 .block-container { padding-top: 5rem !important; max-width: 96% !important; }
 
 /* 3. 🔥 强力胶囊化单选框 */
@@ -90,9 +90,9 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 [data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
-[data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; }
+[data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
 
-/* 7. 🔥 核心：左侧悬浮电梯专属强制锁定 CSS */
+/* 7. 🔥 左侧悬浮电梯专属强制锁定 CSS */
 div[data-testid="column"]:has(#nav-anchor) {
     position: -webkit-sticky !important;
     position: sticky !important;
@@ -172,6 +172,7 @@ def load_site_full_details():
                             records.append({"Site": current_site, "Metric": metric_name, "Date_str": d_str, "Value": raw_val})
                             
         df = pd.DataFrame(records)
+        
         if not df.empty:
             df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
             df = df.dropna(subset=['Date'])
@@ -195,7 +196,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 渲染工厂
+# 💎 纯原生 HTML 卡片与增强版图表渲染工厂
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -226,7 +227,8 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
             for v in reversed(vals):
                 if v > 0: return v
             return 0
-        val1, val2 = get_latest_valid(p1_vals), get_latest_valid(p2_vals)
+        val1 = get_latest_valid(p1_vals)
+        val2 = get_latest_valid(p2_vals)
         time_label_1, time_label_2 = "期末最新", "前期期末"
     else:
         val1, val2 = sum(p1_vals), sum(p2_vals)
@@ -254,7 +256,6 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         st.markdown(f'''<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;"><div style="font-weight:700; color:#374151; font-size:15px;">{title}</div><div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div></div><div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">{time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}</div>''', unsafe_allow_html=True)
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key=chart_key)
 
-
 # ==========================================
 # 📐 页面头部与同步按钮
 # ==========================================
@@ -281,6 +282,7 @@ if df_all is not None and not df_all.empty:
     # 🎛️ 顶部控制器
     # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
+    
     col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
     with col_ctrl1:
         try:
@@ -288,6 +290,7 @@ if df_all is not None and not df_all.empty:
             if not selected_site_cn: selected_site_cn = "全部站点"
         except AttributeError:
             selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
+            
     with col_ctrl2:
         try:
             time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
@@ -416,26 +419,14 @@ if df_all is not None and not df_all.empty:
         # 🔥 插入唯一靶向锚点，配合顶层 :has() CSS 实现侧边栏真·悬浮
         st.markdown("<span id='nav-anchor'></span>", unsafe_allow_html=True)
         
-        nav_html = "<div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:12px;'>"
+        # 🔥 彻底压缩的单行 HTML，防止 Markdown 解析器干扰产生乱码
+        nav_html = "<div class='sticky-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
         for idx, site in enumerate(fixed_sites_order):
             g_color = GOOGLE_COLORS[idx % 4]
             flag = site_flags.get(site, '🌍')
             cn_name = en_to_cn.get(site, site)
-            
-            nav_html += f"""
-            <a href='#jump-{site}' target='_self' 
-               style='text-decoration: none; padding: 12px 16px; background-color: #ffffff; 
-                      border: 1px solid #e2e8f0; border-left: 5px solid {g_color}; 
-                      border-radius: 8px; color: #1e293b; font-weight: 700; 
-                      display: flex; align-items: center; gap: 12px; 
-                      transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);' 
-               onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)';" 
-               onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'; this.style.transform='translateY(0)';">
-                <span style='font-size: 20px;'>{flag}</span>
-                <span style='font-size: 15px;'>{site} {cn_name}</span>
-            </a>
-            """
-        nav_html += "</div>"
+            nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid {g_color}; border-radius: 6px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#f8fafc';\" onmouseout=\"this.style.backgroundColor='#ffffff';\"><span style='font-size: 16px;'>{flag}</span><span style='font-size: 13px;'>{site} {cn_name}</span></a>"
+        nav_html += "</div></div>"
         st.markdown(nav_html, unsafe_allow_html=True)
 
     with col_charts:
