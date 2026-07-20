@@ -136,6 +136,18 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     color: #111827 !important;
     letter-spacing: -0.5px;
 }
+
+/* 6. 🔥 页面内左侧悬浮导航专用 CSS */
+.sticky-nav {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 6rem;
+    align-self: flex-start;
+    z-index: 100;
+}
+[data-testid="column"] {
+    overflow: visible !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -246,7 +258,6 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
-# 🔥 智能区分累加值(流量/销售额)和快照值(收录/外链)
 def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key="", is_snapshot=False):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
@@ -296,30 +307,19 @@ cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT"
 en_to_cn = {v: k for k, v in cn_to_en.items()}
 site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
-# ==========================================
-# 📍 侧边栏：全局浮动站点导航电梯
-# ==========================================
-with st.sidebar:
-    st.markdown("### 📍 站点快捷定位")
-    st.markdown("<div style='font-size: 13px; color: #64748b; margin-bottom: 16px;'>点击下方国家，快速滚动至「🗄️ 数据明细」中该站点的专属面板。</div>", unsafe_allow_html=True)
-    
-    nav_html = "<div style='display:flex; flex-direction:column; gap:8px; padding-bottom:20px;'>"
-    for site in fixed_sites_order:
-        nav_html += f"""
-        <a href="#jump-{site}" target="_self" style="text-decoration: none; padding: 10px 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='#2563eb'; this.style.backgroundColor='#f8fafc';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#ffffff';">
-            <span style="font-size: 18px;">{site_flags[site]}</span>
-            <span>{en_to_cn[site]}</span>
-        </a>
-        """
-    nav_html += "</div>"
-    st.markdown(nav_html, unsafe_allow_html=True)
-
 
 # ==========================================
-# 📐 页面布局与交互
+# 📐 页面布局与交互：Header 与刷新按钮
 # ==========================================
-st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
-st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
+col_header, col_refresh = st.columns([5, 1])
+with col_header:
+    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
+with col_refresh:
+    st.write("") 
+    if st.button("🔄 同步最新数据"):
+        load_site_full_details.clear()
+        st.rerun()
 
 with st.spinner("✨ 正在智能扫描最新数据..."):
     df_all = load_site_full_details()
@@ -434,7 +434,7 @@ if df_all is not None and not df_all.empty:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
     # ==========================================
-    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 (支持侧边栏联动跳转)
+    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 
     # ==========================================
     st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
 
@@ -474,55 +474,67 @@ if df_all is not None and not df_all.empty:
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
-    # --- 开始遍历渲染分站点数据 (带有锚点定位) ---
-    for site in fixed_sites_order:
-        df_site_raw = df_all[df_all['Site'] == site]
-        if not df_site_raw.empty:
-            
-            # 🔥 HTML 锚点：与侧边栏的跳转一一对应，利用相对定位修正固定导航遮挡
-            st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
-            
-            site_flag = site_flags.get(site, "🌍")
-            site_name_cn = en_to_cn.get(site, site)
-            expander_title = f"{site_flag} {site_name_cn} (Callie {site}) 数据中心"
-            
-            with st.expander(expander_title, expanded=True):
-                st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
+    # 🔥 构建页面内非对称分栏：左边是悬浮导航，右侧是国家报表列表
+    col_nav, col_charts = st.columns([1.5, 8.5])
 
-                # 行 1：销售额
-                r1c1, r1c2 = st.columns(2)
-                with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
-                with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
+    with col_nav:
+        # 使用单行紧凑模式生成 HTML 彻底防止 Markdown 乱码
+        nav_html = "<div class='sticky-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 12px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
+        for site in fixed_sites_order:
+            nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);' onmouseover=\"this.style.borderColor='#2563eb'; this.style.backgroundColor='#f8fafc';\" onmouseout=\"this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#ffffff';\"><span style='font-size: 18px;'>{site_flags.get(site, '🌍')}</span><span>{en_to_cn.get(site, site)}</span></a>"
+        nav_html += "</div></div>"
+        st.markdown(nav_html, unsafe_allow_html=True)
 
-                # 行 2：流量
-                r2c1, r2c2 = st.columns(2)
-                with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
-                with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
+    with col_charts:
+        # --- 开始遍历渲染分站点数据 (带有锚点定位) ---
+        for site in fixed_sites_order:
+            df_site_raw = df_all[df_all['Site'] == site]
+            if not df_site_raw.empty:
+                
+                # 🔥 HTML 锚点：与左侧导航栏的跳转一一对应
+                st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
+                
+                site_flag = site_flags.get(site, "🌍")
+                site_name_cn = en_to_cn.get(site, site)
+                expander_title = f"{site_flag} {site_name_cn} (Callie {site}) 数据中心"
+                
+                with st.expander(expander_title, expanded=True):
+                    st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
-                # 行 3：站内流量 & Google 收录 (🔥 针对收录启用快照模式)
-                r3c1, r3c2 = st.columns(2)
-                with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
-                with r3c2: render_comparison_chart(df_site_raw, ['收录'], '🔗 Google 收录规模对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_google_index", is_snapshot=True)
+                    # 行 1：销售额
+                    r1c1, r1c2 = st.columns(2)
+                    with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
+                    with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
 
-                # 行 4：AI Assistant 模块 (🔥 新增 AI 销售额与流量对比)
-                r4c1, r4c2 = st.columns(2)
-                with r4c1: render_comparison_chart(df_site_raw, ['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], '🤖 AI Assistant 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ai_sales")
-                with r4c2: render_comparison_chart(df_site_raw, ['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], '🤖 AI Assistant 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ai_traffic")
+                    # 行 2：流量
+                    r2c1, r2c2 = st.columns(2)
+                    with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
+                    with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
 
-                # 底部：明细数据表
-                df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
-                if not df_table_site.empty:
-                    st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
-                    with st.container(border=True):
-                        df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
-                        sorted_dates = sorted(df_pivot.columns, reverse=False)
-                        df_pivot = df_pivot[sorted_dates]
-                        df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
-                        
-                        try:
-                            st.dataframe(df_pivot, use_container_width=True)
-                        except Exception:
-                            st.dataframe(df_pivot)
+                    # 行 3：站内流量 & Google 收录 (🔥 针对收录启用快照模式)
+                    r3c1, r3c2 = st.columns(2)
+                    with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
+                    with r3c2: render_comparison_chart(df_site_raw, ['收录'], '🔗 Google 收录规模对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_google_index", is_snapshot=True)
+
+                    # 行 4：AI Assistant 模块 (🔥 新增 AI 销售额与流量对比)
+                    r4c1, r4c2 = st.columns(2)
+                    with r4c1: render_comparison_chart(df_site_raw, ['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], '🤖 AI Assistant 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ai_sales")
+                    with r4c2: render_comparison_chart(df_site_raw, ['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], '🤖 AI Assistant 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ai_traffic")
+
+                    # 底部：明细数据表
+                    df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
+                    if not df_table_site.empty:
+                        st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
+                        with st.container(border=True):
+                            df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
+                            sorted_dates = sorted(df_pivot.columns, reverse=False)
+                            df_pivot = df_pivot[sorted_dates]
+                            df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
+                            
+                            try:
+                                st.dataframe(df_pivot, use_container_width=True)
+                            except Exception:
+                                st.dataframe(df_pivot)
 
 else:
     st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
