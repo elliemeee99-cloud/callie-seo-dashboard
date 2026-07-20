@@ -15,7 +15,7 @@ cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT"
 en_to_cn = {v: k for k, v in cn_to_en.items()}
 site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
-# Google 经典四色循环 (蓝, 红, 黄, 绿)
+# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
 GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 
 # ==========================================
@@ -37,19 +37,20 @@ st.markdown("""
 /* 2. 增加顶部留白 */
 .block-container { padding-top: 5rem !important; max-width: 96% !important; }
 
-/* 3. 🔥 强力胶囊化单选框 */
+/* 3. 🔥 解除 Streamlit 滚动封印，拯救 Sticky 悬浮！ */
+div[data-testid="stVerticalBlock"] { overflow: visible !important; }
+div[data-testid="stHorizontalBlock"] { overflow: visible !important; }
+div[data-testid="column"] { overflow: visible !important; }
+div.element-container { overflow: visible !important; }
+div.stMarkdown { overflow: visible !important; }
+
+/* 4. 强力胶囊化单选框 */
 div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
 div[role="radiogroup"] > label {
-    background-color: #ffffff !important;
-    border: 1px solid #E5E7EB !important;
-    padding: 8px 24px !important;
-    border-radius: 30px !important;
-    cursor: pointer !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background-color: #ffffff !important; border: 1px solid #E5E7EB !important;
+    padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important;
+    align-items: center !important; justify-content: center !important; transition: all 0.2s !important;
 }
 div[role="radiogroup"] > label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
 div[role="radiogroup"] > label > div:first-child { display: none !important; } 
@@ -64,13 +65,13 @@ div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] 
     color: #ffffff !important;
 }
 
-/* 4. 底层原始数据表格容器化 */
+/* 5. 底层原始数据表格容器化 */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #ffffff !important; border: 1px solid #EEF2F6 !important;
     border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important;
 }
 
-/* 5. 自定义大模块 Section */
+/* 6. 自定义大模块 Section */
 .saas-section {
     background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6;
     box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px;
@@ -83,7 +84,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
 }
 
-/* 6. 折叠面板高级化 */
+/* 7. 折叠面板高级化 */
 [data-testid="stExpander"] {
     border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important;
     box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden;
@@ -92,23 +93,10 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
 [data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
 
-/* 7. 🔥 完美解决侧边栏悬浮断裂问题的终极 CSS */
-div[data-testid="column"] {
-    overflow: visible !important;
-}
-div[data-testid="column"]:has(.sticky-nav) {
-    position: -webkit-sticky !important;
-    position: sticky !important;
-    top: 5rem !important;
-    align-self: flex-start !important; /* 关键：打断分栏等高拉伸，保留自身高度 */
-    z-index: 999 !important;
-    height: calc(100vh - 6rem) !important; /* 高度限位，使其自身可滚动 */
-    overflow-y: auto !important;
-}
-div[data-testid="column"]:has(.sticky-nav)::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
-}
+/* 自定义滚动条优化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -198,7 +186,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 纯原生 HTML 卡片与增强版图表渲染工厂
+# 💎 图表渲染工厂
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -229,8 +217,7 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
             for v in reversed(vals):
                 if v > 0: return v
             return 0
-        val1 = get_latest_valid(p1_vals)
-        val2 = get_latest_valid(p2_vals)
+        val1, val2 = get_latest_valid(p1_vals), get_latest_valid(p2_vals)
         time_label_1, time_label_2 = "期末最新", "前期期末"
     else:
         val1, val2 = sum(p1_vals), sum(p2_vals)
@@ -284,7 +271,6 @@ if df_all is not None and not df_all.empty:
     # 🎛️ 顶部控制器
     # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
-    
     col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
     with col_ctrl1:
         try:
@@ -414,21 +400,18 @@ if df_all is not None and not df_all.empty:
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
-    # 🔥 构建页面内非对称分栏：左边是悬浮导航，右侧是国家报表列表
+    # 🔥 构建页面内非对称分栏
     col_nav, col_charts = st.columns([1.5, 8.5])
 
     with col_nav:
-        # 赋予悬浮靶向点
-        st.markdown("<span class='sticky-nav'></span>", unsafe_allow_html=True)
-        
-        nav_html = "<div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>📍 站点快捷定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
+        # 🔥 完美悬浮仓：纯净单行代码 + 绝对安全的 Sticky CSS 控制
+        nav_html = "<div style='position: -webkit-sticky; position: sticky; top: 6rem; z-index: 999; max-height: calc(100vh - 8rem); overflow-y: auto; padding-right: 12px; padding-bottom: 20px;'><div style='background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding: 20px; border: 1px solid #EEF2F6;'><div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 20px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:10px;'>"
         for idx, site in enumerate(fixed_sites_order):
             g_color = GOOGLE_COLORS[idx % 4]
             flag = site_flags.get(site, '🌍')
             cn_name = en_to_cn.get(site, site)
-            # 全压缩单行 HTML
-            nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 12px; background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid {g_color}; border-radius: 6px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#f8fafc';\" onmouseout=\"this.style.backgroundColor='#ffffff';\"><span style='font-size: 16px;'>{flag}</span><span style='font-size: 13px;'>{site} {cn_name}</span></a>"
-        nav_html += "</div>"
+            nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 12px 16px; background-color: #f8fafc; border-radius: 10px; border-left: 6px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 12px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateX(4px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 22px;'>{flag}</span><span style='font-size: 14px;'>{site} {cn_name}</span></a>"
+        nav_html += "</div></div></div>"
         st.markdown(nav_html, unsafe_allow_html=True)
 
     with col_charts:
@@ -437,7 +420,7 @@ if df_all is not None and not df_all.empty:
             df_site_raw = df_all[df_all['Site'] == site]
             if not df_site_raw.empty:
                 
-                # HTML 锚点：与左侧导航栏跳转一一对应
+                # HTML 锚点定位
                 st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
                 
                 site_flag = site_flags.get(site, "🌍")
