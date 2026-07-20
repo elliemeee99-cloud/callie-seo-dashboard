@@ -246,7 +246,7 @@ def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
     return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
-# 🔥 核心升级：增加 is_snapshot 参数，智能区分累加值(流量/销售额)和快照值(收录/外链)
+# 🔥 智能区分累加值(流量/销售额)和快照值(收录/外链)
 def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key="", is_snapshot=False):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
     sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
@@ -254,145 +254,105 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
     p1_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p1_dates]
     p2_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p2_dates]
 
-    # 智能数据聚合逻辑
     if is_snapshot:
-        # 如果是快照指标(如：收录)，不能把7天加起来，取该周期的最后有效非0值即可
         def get_latest_valid(vals):
             for v in reversed(vals):
                 if v > 0: return v
             return 0
         val1 = get_latest_valid(p1_vals)
         val2 = get_latest_valid(p2_vals)
-        time_label_1 = "期末最新"
-        time_label_2 = "前期期末"
+        time_label_1, time_label_2 = "期末最新", "前期期末"
     else:
-        # 流量、销售额正常累加
-        val1 = sum(p1_vals)
-        val2 = sum(p2_vals)
-        time_label_1 = "过去 7 天"
-        time_label_2 = "之前 7 天"
+        val1, val2 = sum(p1_vals), sum(p2_vals)
+        time_label_1, time_label_2 = "过去 7 天", "之前 7 天"
 
     if val2 > 0:
         delta_pct = (val1 - val2) / val2 * 100
         delta_str = f"↑ {delta_pct:.1f}%" if delta_pct >= 0 else f"↓ {abs(delta_pct):.1f}%"
-        delta_color = "#10B981" if delta_pct >= 0 else "#EF4444"
-        bg_color = "#F0FDF4" if delta_pct >= 0 else "#FEF2F2"
+        delta_color, bg_color = ("#10B981", "#F0FDF4") if delta_pct >= 0 else ("#EF4444", "#FEF2F2")
     else:
-        delta_str = "一"
-        delta_color = "#9CA3AF"
-        bg_color = "#F3F4F6"
+        delta_str, delta_color, bg_color = "一", "#9CA3AF", "#F3F4F6"
 
     val_str1 = f"{prefix}{val1:,.2f}" if prefix == "$" else f"{prefix}{val1:,.0f}"
     val_str2 = f"{prefix}{val2:,.2f}" if prefix == "$" else f"{prefix}{val2:,.0f}"
 
     x_labels = [d.strftime('%m-%d') for d in p1_dates] 
-
     fig = go.Figure()
     
-    # Google Blue (过去 7 天)
-    fig.add_trace(go.Scatter(
-        x=x_labels, y=p1_vals,
-        mode='lines+markers',
-        name='过去 7 天',
-        line=dict(color='#4285F4', width=3),
-        marker=dict(size=10, symbol='circle', color='#4285F4', line=dict(color='white', width=1.5)),
-        hovertemplate='<b>%{x}</b><br>过去 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>过去 7 天: %{y:,.0f}<extra></extra>'
-    ))
-    
-    # Google Red (之前 7 天)
-    fig.add_trace(go.Scatter(
-        x=x_labels, y=p2_vals,
-        mode='lines+markers',
-        name='之前 7 天',
-        line=dict(color='#EA4335', width=3),
-        marker=dict(size=10, symbol='circle', color='#EA4335', line=dict(color='white', width=1.5)),
-        hovertemplate='<b>%{x}</b><br>之前 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>之前 7 天: %{y:,.0f}<extra></extra>'
-    ))
+    fig.add_trace(go.Scatter(x=x_labels, y=p1_vals, mode='lines+markers', name='过去 7 天', line=dict(color='#4285F4', width=3), marker=dict(size=10, symbol='circle', color='#4285F4', line=dict(color='white', width=1.5)), hovertemplate='<b>%{x}</b><br>过去 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>过去 7 天: %{y:,.0f}<extra></extra>'))
+    fig.add_trace(go.Scatter(x=x_labels, y=p2_vals, mode='lines+markers', name='之前 7 天', line=dict(color='#EA4335', width=3), marker=dict(size=10, symbol='circle', color='#EA4335', line=dict(color='white', width=1.5)), hovertemplate='<b>%{x}</b><br>之前 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>之前 7 天: %{y:,.0f}<extra></extra>'))
 
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=10, b=0),
-        hovermode="x unified",
-        xaxis=dict(
-            type='category', 
-            showgrid=False,
-            color='#6B7280'
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='#E5E7EB',
-            color='#6B7280',
-            zeroline=False
-        ),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.25,
-            xanchor="center",
-            x=0.5,
-            font=dict(color="#4B5563")
-        ),
-        height=240,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
+    fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), hovermode="x unified", xaxis=dict(type='category', showgrid=False, color='#6B7280'), yaxis=dict(showgrid=True, gridcolor='#E5E7EB', color='#6B7280', zeroline=False), legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, font=dict(color="#4B5563")), height=240, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
     with st.container(border=True):
-        st.markdown(f'''
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-            <div style="font-weight:700; color:#374151; font-size:15px;">{title}</div>
-            <div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div>
-        </div>
-        <div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">
-            {time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}
-        </div>
-        ''', unsafe_allow_html=True)
-        
+        st.markdown(f'''<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;"><div style="font-weight:700; color:#374151; font-size:15px;">{title}</div><div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div></div><div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">{time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}</div>''', unsafe_allow_html=True)
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key=chart_key)
 
 # ==========================================
-# 📐 第一部分：全局数据仪表盘
+# 📍 全局变量映射
+# ==========================================
+fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
+cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
+en_to_cn = {v: k for k, v in cn_to_en.items()}
+site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
+
+# ==========================================
+# 📍 侧边栏：全局浮动站点导航电梯
+# ==========================================
+with st.sidebar:
+    st.markdown("### 📍 站点快捷定位")
+    st.markdown("<div style='font-size: 13px; color: #64748b; margin-bottom: 16px;'>点击下方国家，快速滚动至「🗄️ 数据明细」中该站点的专属面板。</div>", unsafe_allow_html=True)
+    
+    nav_html = "<div style='display:flex; flex-direction:column; gap:8px; padding-bottom:20px;'>"
+    for site in fixed_sites_order:
+        nav_html += f"""
+        <a href="#jump-{site}" target="_self" style="text-decoration: none; padding: 10px 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onmouseover="this.style.borderColor='#2563eb'; this.style.backgroundColor='#f8fafc';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#ffffff';">
+            <span style="font-size: 18px;">{site_flags[site]}</span>
+            <span>{en_to_cn[site]}</span>
+        </a>
+        """
+    nav_html += "</div>"
+    st.markdown(nav_html, unsafe_allow_html=True)
+
+
+# ==========================================
+# 📐 页面布局与交互
 # ==========================================
 st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
 st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
 
-with st.spinner("✨ 正在同步最新数据仓库..."):
+with st.spinner("✨ 正在智能扫描最新数据..."):
     df_all = load_site_full_details()
 
 if df_all is not None and not df_all.empty:
-    fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
-    cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
-    en_to_cn = {v: k for k, v in cn_to_en.items()}
-    
-    # 📌 精准的国旗映射字典
-    site_flags = {
-        "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", 
-        "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"
-    }
 
     mask_valid = (df_all['Clean_Metric'].isin(['网站总流量', 'SUPERSET总销售额'])) & (df_all['Numeric_Value'] > 0)
     valid_dates = df_all[mask_valid]['Date']
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
-    # --- 高级控制器 ---
+    # ==========================================
+    # 🎛️ 顶部控制器
+    # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
     
-    col_c1, col_c2 = st.columns([2.5, 1])
-    with col_c1:
+    col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
+    with col_ctrl1:
         try:
             selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
             if not selected_site_cn: selected_site_cn = "全部站点"
         except AttributeError:
             selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
             
-    with col_c2:
+    with col_ctrl2:
         try:
             time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
             if not time_view: time_view = "昨日数据"
         except AttributeError:
             time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
-    
+
     st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
 
+    # --- 数据过滤 ---
     if time_view == "昨日数据":
         target_dates = [actual_max_date]
         time_hint = actual_max_date.strftime('%Y-%m-%d')
@@ -407,23 +367,26 @@ if df_all is not None and not df_all.empty:
         df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
     
     # ==========================================
-    # 🏆 四大独立模块渲染
+    # 🏆 第一部分：四大指标区块展示
     # ==========================================
     if not df_target.empty:
-        
+        # 1. 销售额指标
         ss_seo_sales = get_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_target, 'sum')
         ss_total_sales = get_metric(['Superset 总销售额', 'Superset总销售额'], df_target, 'sum')
         ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
+        
         ga4_seo_sales = get_metric(['GA4 SEO销售额', 'GA4SEO销售额'], df_target, 'sum')
         ga4_total_sales = get_metric(['GA4 网站总销售额', 'GA4网站总销售额', 'GA4总销售额'], df_target, 'sum')
         ga4_ratio = (ga4_seo_sales / ga4_total_sales * 100) if ga4_total_sales > 0 else 0.0
         
+        # 2. 流量指标 
         seo_traffic = get_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_target, 'sum')
         seo_blog_traffic = get_metric(['SEO Blog流量', 'SEOBlog流量'], df_target, 'sum')
         seo_onsite_traffic = get_metric(['SEO 站内流量', 'SEO站内流量'], df_target, 'sum')
         total_traffic = get_metric(['网站总流量', '网站流量'], df_target, 'sum')
         bounce_rate = get_metric(['跳出率'], df_target, 'mean')
         
+        # 3. AI 及外链
         ai_sales = get_metric(['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], df_target, 'sum')
         ai_traffic = get_metric(['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], df_target, 'sum')
         
@@ -431,6 +394,7 @@ if df_all is not None and not df_all.empty:
         backlink_count = get_metric(['外链'], df_target, 'latest')
         backlink_domain = get_metric(['外链域名广度'], df_target, 'latest')
 
+        # --- 第一行: 销售额数据 ---
         sales_cards = "".join([
             render_kpi_card('Superset SEO销售额', f"${ss_seo_sales:,.2f}", 'blue', highlight=True),
             render_kpi_card('Superset 总销售额', f"${ss_total_sales:,.2f}", 'blue'),
@@ -442,6 +406,7 @@ if df_all is not None and not df_all.empty:
         sales_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#EFF6FF; color:#3B82F6;">💰</div> 核心销售额追踪</div><div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">{sales_cards}</div></div>'
         st.markdown(sales_html, unsafe_allow_html=True)
 
+        # --- 第二行: 流量数据 ---
         traffic_items = "".join([
             render_traffic_item('SEO 流量', f"{seo_traffic:,.0f}"),
             render_traffic_item('SEO Blog 流量', f"{seo_blog_traffic:,.0f}"),
@@ -452,6 +417,7 @@ if df_all is not None and not df_all.empty:
         traffic_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#ECFEFF; color:#06B6D4;">🌊</div> 流量漏斗健康度</div><div style="display: flex; align-items: center; margin: 20px -24px 0 -24px;">{traffic_items}</div><div style="margin-top: 32px; padding-top: 16px; border-top: 1px dashed #E5E7EB; font-size: 13px; color: #9CA3AF; display: flex; align-items: center; gap: 6px;"><span style="color: #06B6D4; font-size: 16px;">✦</span> 所有流量指标均已过滤异常抓取，建议结合跳出率动态评估渠道质量。</div></div>'
         st.markdown(traffic_html, unsafe_allow_html=True)
 
+        # --- 第三行: AI数据 与 Google外链并排 ---
         ai_cards = "".join([
             render_kpi_card('AI 销售额', f"${ai_sales:,.2f}", 'purple', highlight=True),
             render_kpi_card('AI 流量获取', f"{ai_traffic:,.0f}", 'purple')
@@ -467,9 +433,8 @@ if df_all is not None and not df_all.empty:
     else:
         st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
 
-
     # ==========================================
-    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 
+    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 (支持侧边栏联动跳转)
     # ==========================================
     st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
 
@@ -509,9 +474,13 @@ if df_all is not None and not df_all.empty:
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
 
+    # --- 开始遍历渲染分站点数据 (带有锚点定位) ---
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
+            
+            # 🔥 HTML 锚点：与侧边栏的跳转一一对应，利用相对定位修正固定导航遮挡
+            st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
             
             site_flag = site_flags.get(site, "🌍")
             site_name_cn = en_to_cn.get(site, site)
@@ -520,27 +489,27 @@ if df_all is not None and not df_all.empty:
             with st.expander(expander_title, expanded=True):
                 st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
-                # 第一行：销售额
+                # 行 1：销售额
                 r1c1, r1c2 = st.columns(2)
                 with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
                 with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
 
-                # 第二行：流量
+                # 行 2：流量
                 r2c1, r2c2 = st.columns(2)
                 with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
                 with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
 
-                # 第三行：站内流量 & Google 收录 (🔥 针对收录启用快照模式)
+                # 行 3：站内流量 & Google 收录 (🔥 针对收录启用快照模式)
                 r3c1, r3c2 = st.columns(2)
                 with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
                 with r3c2: render_comparison_chart(df_site_raw, ['收录'], '🔗 Google 收录规模对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_google_index", is_snapshot=True)
 
-                # 第四行：AI Assistant 模块 (🔥 新增 AI 销售额与流量对比)
+                # 行 4：AI Assistant 模块 (🔥 新增 AI 销售额与流量对比)
                 r4c1, r4c2 = st.columns(2)
                 with r4c1: render_comparison_chart(df_site_raw, ['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], '🤖 AI Assistant 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ai_sales")
                 with r4c2: render_comparison_chart(df_site_raw, ['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], '🤖 AI Assistant 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ai_traffic")
 
-                # 底部：原始数据表
+                # 底部：明细数据表
                 df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
                 if not df_table_site.empty:
                     st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
