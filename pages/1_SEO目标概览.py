@@ -14,90 +14,95 @@ import gc
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🧭 顶部横向导航栏 (🔥 完美居中、永不换行)
+# 🧭 顶部横向导航栏 (🔥 绝对居中、紧凑、SaaS 级视觉)
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏、左上角的展开箭头、以及原始的顶部白条 */
+/* 1. 彻底隐藏默认侧边栏及无用控件 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
 
-/* 2. 🔥 核心：真·全局固定悬浮 + 绝对居中 + 强制不换行 */
-div[data-testid="stHorizontalBlock"]:has([data-testid="stPageLink-NavLink"]) {
+/* 2. 🔥 顶部吸顶悬浮容器：毛玻璃背景 + 完美居中 */
+.top-nav-container {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    background-color: rgba(248, 250, 252, 0.85) !important; 
+    background-color: rgba(248, 250, 252, 0.85) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     z-index: 99999 !important;
-    padding: 16px 0 !important;
+    padding: 14px 0 !important;
     margin: 0 !important;
     display: flex !important;
-    flex-direction: row !important;
-    justify-content: center !important; /* 水平绝对居中 */
+    justify-content: center !important;
     align-items: center !important;
-    flex-wrap: nowrap !important; /* 🔥 强制在一行，死也不换行 */
-    gap: 24px !important; /* 卡片之间的间距 */
     border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
-/* 抹除 columns 原本的排版限制，让卡片自然贴合 */
-div[data-testid="stHorizontalBlock"]:has([data-testid="stPageLink-NavLink"]) > div[data-testid="column"] {
-    width: auto !important;
-    flex: none !important; /* 拒绝自动拉伸，保持内容原始大小 */
-    min-width: 0 !important; /* 🔥 移除导致换行的最小宽度限制 */
-    padding: 0 !important;
+/* 3. 紧凑的内部排布：限制最大宽度，让按钮彼此靠近并居中 */
+.top-nav-inner {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 16px !important; /* 按钮之间的紧凑间距 */
+    width: 100% !important;
+    max-width: 700px !important; /* 控制导航栏整体宽度，不致于被拉太散 */
+    padding: 0 20px !important;
 }
 
-/* 3. 导航卡片本体：放大、加粗、加悬浮光影 */
+/* 让每个 page_link 在紧凑容器中自适应大小 */
+.top-nav-inner > div {
+    flex: 1 !important;
+}
+
+/* 4. 导航卡片本体：精致、圆润、大小适中 */
 [data-testid="stPageLink-NavLink"] { 
     background-color: #ffffff !important; 
-    border: 2px solid #e2e8f0 !important; 
-    border-radius: 16px !important; 
-    padding: 12px 32px !important;  /* 加大内边距 */
+    border: 1.5px solid #e2e8f0 !important; 
+    border-radius: 12px !important; 
+    padding: 10px 18px !important;  /* 适中的内边距，保持紧凑 */
     text-align: center !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-    height: 100% !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
     text-decoration: none !important;
 }
 [data-testid="stPageLink-NavLink"]:hover {
     background-color: #ffffff !important;
     border-color: #3b82f6 !important;
-    transform: translateY(-4px) !important;
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.15) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
 }
 [data-testid="stPageLink-NavLink"] p {
-    font-weight: 800 !important;
+    font-weight: 700 !important;
     color: #1e293b !important;
-    font-size: 17px !important; 
+    font-size: 15px !important; /* 大小恰到好处的字体 */
     margin: 0 !important;
 }
 
-/* 4. 为页面主体内容留出顶部空间，防止被 Fixed 的导航栏遮挡 */
+/* 5. 为页面主体内容留出顶部空间，防止被固定的导航栏遮挡 */
 .block-container { 
-    padding-top: 7rem !important; 
+    padding-top: 6.5rem !important; 
     max-width: 98% !important; 
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 仅使用 3 个列，上面的 CSS 会接管它们把它们在一行里居中挤紧
-col_nav1, col_nav2, col_nav3 = st.columns(3)
-
-with col_nav1:
+# 🔥 用 HTML 结构和原生 st.page_link 完美融合实现紧凑居中
+st.markdown('<div class="top-nav-container"><div class="top-nav-inner">', unsafe_allow_html=True)
+nav_col1, nav_col2, nav_col3 = st.columns(3)
+with nav_col1:
     st.page_link("app.py", label="App 首页", icon="🏠")
-with col_nav2:
+with nav_col2:
     st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with col_nav3:
+with nav_col3:
     st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+st.markdown('</div></div>', unsafe_allow_html=True)
 
 
 # ==========================================
