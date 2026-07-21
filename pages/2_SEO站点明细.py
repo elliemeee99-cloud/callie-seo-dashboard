@@ -22,6 +22,7 @@ GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 # 网页基础设置
 # ==========================================
 st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide")
+
 # ==========================================
 # 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
 # ==========================================
@@ -58,12 +59,13 @@ st.markdown("""
 col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
 
 with col_nav1:
-    # ⚠️ 请确保下方第一个引号内的路径，和你 GitHub 里的实际文件名一模一样！
     st.page_link("app.py", label="App 首页", icon="🏠")
 with col_nav2:
-    st.page_link("pages/SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+    # 修复了路径：加上了 1_ 前缀
+    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
 with col_nav3:
-    st.page_link("pages/SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+    # 修复了路径：加上了 2_ 前缀
+    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
 
 st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
 
@@ -311,7 +313,6 @@ for idx, site in enumerate(fixed_sites_order):
     g_color = GOOGLE_COLORS[idx % 4]
     flag = site_flags.get(site, '🌍')
     cn_name = en_to_cn.get(site, site)
-    # 单行无换行 HTML 注入
     nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 14px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 14px;'>{site} {cn_name}</span></a>"
 nav_html += "</div></div>"
 st.markdown(nav_html, unsafe_allow_html=True)
@@ -506,7 +507,6 @@ if df_all is not None and not df_all.empty:
                 df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
                 if not df_table_site.empty:
                     st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
-                    # 🔥 彻底解决刷屏警告：优先尝试最新推荐属性 width="stretch"
                     with st.container(border=True):
                         df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
                         sorted_dates = sorted(df_pivot.columns, reverse=False)
