@@ -13,6 +13,50 @@ import gc
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="expanded")
 # ==========================================
+# 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
+# ==========================================
+st.markdown("""
+<style>
+/* 1. 彻底隐藏 Streamlit 默认的侧边栏目录 */
+[data-testid="stSidebarNav"] { display: none !important; }
+
+/* 2. 美化横向导航按钮 */
+[data-testid="stPageLink-NavLink"] { 
+    background-color: #ffffff; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    padding: 10px 16px; 
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+[data-testid="stPageLink-NavLink"]:hover {
+    background-color: #f8fafc;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+[data-testid="stPageLink-NavLink"] p {
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    font-size: 15px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 使用 columns 横向排布导航按钮 (按需分配宽度)
+col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
+
+with col_nav1:
+    # ⚠️ 请确保下方第一个引号内的路径，和你 GitHub 里的实际文件名一模一样！
+    st.page_link("app.py", label="App 首页", icon="🏠")
+with col_nav2:
+    st.page_link("pages/SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with col_nav3:
+    st.page_link("pages/SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+
+st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
+# ==========================================
 # 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
 st.markdown("""
