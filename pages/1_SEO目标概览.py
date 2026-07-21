@@ -9,19 +9,33 @@ import re
 import gc
 
 # ==========================================
-# 网页基础设置
+# 网页基础设置 (🔥 注意这里已将 sidebar 设置为初始折叠，配合 CSS 彻底抹除)
 # ==========================================
-st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
 # 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏目录 */
-[data-testid="stSidebarNav"] { display: none !important; }
+/* 1. 彻底隐藏 Streamlit 默认的侧边栏及左上角的展开箭头 */
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
 
-/* 2. 美化横向导航按钮 */
+/* 2. 🔥 核心：赋予导航栏所在的列容器【吸顶悬浮】特性 */
+div[data-testid="stHorizontalBlock"]:has([data-testid="stPageLink-NavLink"]) {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 2.875rem !important; /* 紧贴默认 Header 之下 */
+    background-color: #f8fafc !important; /* 与页面底层背景色一致，防内容穿透 */
+    z-index: 1000 !important;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+}
+
+/* 3. 美化横向导航按钮 */
 [data-testid="stPageLink-NavLink"] { 
     background-color: #ffffff; 
     border: 1px solid #e2e8f0; 
@@ -51,13 +65,9 @@ col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
 with col_nav1:
     st.page_link("app.py", label="App 首页", icon="🏠")
 with col_nav2:
-    # 修复了路径：加上了 1_ 前缀
     st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
 with col_nav3:
-    # 修复了路径：加上了 2_ 前缀
     st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-
-st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
