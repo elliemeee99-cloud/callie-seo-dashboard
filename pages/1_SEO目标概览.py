@@ -12,6 +12,7 @@ import gc
 # 网页基础设置
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="expanded")
+
 # ==========================================
 # 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
 # ==========================================
@@ -48,14 +49,16 @@ st.markdown("""
 col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
 
 with col_nav1:
-    # ⚠️ 请确保下方第一个引号内的路径，和你 GitHub 里的实际文件名一模一样！
     st.page_link("app.py", label="App 首页", icon="🏠")
 with col_nav2:
-    st.page_link("pages/SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+    # 修复了路径：加上了 1_ 前缀
+    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
 with col_nav3:
-    st.page_link("pages/SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+    # 修复了路径：加上了 2_ 前缀
+    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
 
 st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
+
 # ==========================================
 # 🎨 定制 CSS (🚀 全新胶囊导航栏 & 卡片式筛选器)
 # ==========================================
