@@ -9,61 +9,26 @@ import re
 import gc
 
 # ==========================================
-# 网页基础设置
+# 网页基础设置 (默认折叠原生的丑侧边栏)
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🧭 顶部横向导航栏 (🔥 终极防弹版：绝对悬浮 + 紧凑居中)
+# 🧭 顶部横向导航栏 (安全、居中、稳定版)
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 彻底隐藏 Streamlit 的侧边栏、折叠按钮及顶部留白 */
+/* 1. 彻底隐藏 Streamlit 默认的侧边栏、左上角的展开箭头、以及原始的顶部白条 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
 
-/* 防止 Streamlit 内部的动画变形导致 fixed 定位失效 */
-.main { transform: none !important; }
-
-/* 2. 🔥 锁定页面中的第一个 columns 容器 (即我们的导航栏) 进行视觉劫持 */
-div[data-testid="stHorizontalBlock"]:first-of-type {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 72px !important;
-    background-color: rgba(248, 250, 252, 0.95) !important; 
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    z-index: 999999 !important;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: center !important; /* 强制水平居中 */
-    align-items: center !important;
-    flex-wrap: nowrap !important; /* 强制在一行不换行 */
-    gap: 16px !important; /* 按钮之间的完美间距 */
-    margin: 0 !important;
-    padding: 0 !important;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.04) !important;
-}
-
-/* 3. 强行击碎 Streamlit 自带的拉伸列宽，让卡片自然紧凑 */
-div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"] {
-    width: auto !important;
-    flex: 0 0 auto !important; /* 拒绝被拉伸 */
-    min-width: 0 !important;
-    padding: 0 !important;
-}
-
-/* 4. 导航卡片本体：精致、紧凑、加大字号 */
-div[data-testid="stHorizontalBlock"]:first-of-type a { 
+/* 2. 导航卡片本体：精致、放大字号、SaaS 阴影 */
+[data-testid="stPageLink-NavLink"] { 
     background-color: #ffffff !important; 
-    border: 2px solid #e2e8f0 !important; 
+    border: 1px solid #cbd5e1 !important; 
     border-radius: 12px !important; 
-    padding: 10px 24px !important; 
-    text-align: center !important;
+    padding: 12px 10px !important; 
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -71,35 +36,38 @@ div[data-testid="stHorizontalBlock"]:first-of-type a {
     box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     text-decoration: none !important;
 }
-div[data-testid="stHorizontalBlock"]:first-of-type a:hover {
+[data-testid="stPageLink-NavLink"]:hover {
     background-color: #ffffff !important;
     border-color: #3b82f6 !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.12) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
 }
-div[data-testid="stHorizontalBlock"]:first-of-type a p {
+[data-testid="stPageLink-NavLink"] p {
     font-weight: 800 !important;
     color: #1e293b !important;
     font-size: 16px !important; 
     margin: 0 !important;
 }
 
-/* 5. 页面主体下移，防止被固定的导航栏盖住标题 */
+/* 3. 页面顶部留白，替代被隐藏的 Header */
 .block-container { 
-    padding-top: 6rem !important; 
+    padding-top: 2rem !important; 
     max-width: 98% !important; 
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 生成导航栏容器
-col_nav1, col_nav2, col_nav3 = st.columns(3)
-with col_nav1:
+# 🔥 利用 Streamlit 原生 columns 设置空白占位符，实现完美的安全居中
+spacer_left, nav1, nav2, nav3, spacer_right = st.columns([1, 1.2, 1.2, 1.2, 1])
+
+with nav1:
     st.page_link("app.py", label="App 首页", icon="🏠")
-with col_nav2:
+with nav2:
     st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with col_nav3:
+with nav3:
     st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+
+st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
 
 # ==========================================
