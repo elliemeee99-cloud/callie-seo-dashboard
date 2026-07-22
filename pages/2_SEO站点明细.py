@@ -15,25 +15,25 @@ cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT"
 en_to_cn = {v: k for k, v in cn_to_en.items()}
 site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
-# Google 经典四色循环 (蓝, 红, 黄, 绿)
+# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
 GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 
 # ==========================================
-# 网页基础设置 (默认折叠丑陋的原生侧边栏)
+# 网页基础设置
 # ==========================================
 st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🧭 顶部横向导航栏 (安全、居中、稳定版)
+# 🧭 顶部页面导航 & 左侧国家悬浮导航 CSS
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏、左上角箭头及顶部白条 */
+/* 1. 彻底隐藏 Streamlit 默认侧边栏及无用控件 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
 
-/* 2. 美化顶部横向导航卡片 */
+/* 2. 美化顶部横向页面导航按钮 */
 [data-testid="stPageLink-NavLink"] { 
     background-color: #ffffff !important; 
     border: 1px solid #cbd5e1 !important; 
@@ -59,88 +59,86 @@ st.markdown("""
     margin: 0 !important;
 }
 
-/* 3. 页面顶部安全留白 */
+/* 3. 🔥 左侧国家快速定位导航栏 (纯HTML独立悬浮) */
+.country-nav {
+    position: fixed;
+    top: 5.5rem;
+    left: 1.5rem;
+    width: 200px;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+    z-index: 9999;
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    border: 1px solid #EEF2F6;
+}
+.country-nav::-webkit-scrollbar { width: 0px; background: transparent; }
+
+/* 4. 页面主体排版避让：顶部留白 + 左侧为国家导航留出空间 */
 .block-container { 
     padding-top: 2rem !important; 
+    padding-left: 250px !important; /* 🔥 强制让出左侧区域给导航，防重叠 */
     max-width: 98% !important; 
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 🔥 利用 Streamlit 原生 columns 设置左右空白占位符，实现完美的安全居中
+# ------------------------------------------
+# A. 顶部页面跳转导航 (使用 Streamlit columns 居中)
+# ------------------------------------------
 spacer_left, nav1, nav2, nav3, spacer_right = st.columns([1, 1.2, 1.2, 1.2, 1])
-
-with nav1:
-    st.page_link("app.py", label="App 首页", icon="🏠")
-with nav2:
-    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav3:
-    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-
+with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
+with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
 st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
+# ------------------------------------------
+# B. 左侧国家锚点导航 (使用纯 HTML 注入)
+# ------------------------------------------
+country_nav_html = "<div class='country-nav'><div style='font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 18px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
+for idx, site in enumerate(fixed_sites_order):
+    g_color = GOOGLE_COLORS[idx % 4]
+    flag = site_flags.get(site, '🌍')
+    cn_name = en_to_cn.get(site, site)
+    country_nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 12px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 13px;'>{site} {cn_name}</span></a>"
+country_nav_html += "</div></div>"
+st.markdown(country_nav_html, unsafe_allow_html=True)
 
 # ==========================================
-# 🎨 现代 SaaS 顶级视觉重构 
+# 🎨 页面底层定制 CSS 
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 整体极简浅灰背景 */
-.stApp { 
-    background-color: #F5F7FA !important; 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-}
+.stApp { background-color: #f8fafc !important; }
+#MainMenu {visibility: hidden;}
 
-/* 2. 强力胶囊化单选框 */
+/* 强力胶囊化单选框 */
 div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
-div[role="radiogroup"] > label {
-    background-color: #ffffff !important; border: 1px solid #E5E7EB !important;
-    padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important;
-    align-items: center !important; justify-content: center !important; transition: all 0.2s !important;
-}
+div[role="radiogroup"] > label { background-color: #ffffff !important; border: 1px solid #E5E7EB !important; padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; transition: all 0.2s !important; }
 div[role="radiogroup"] > label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
 div[role="radiogroup"] > label > div:first-child { display: none !important; } 
-div[role="radiogroup"] > label p, div[role="radiogroup"] > label div {
-    margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important;
-}
-div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) {
-    background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
-}
-div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p,
-div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] > label:has(input:checked) div {
-    color: #ffffff !important;
-}
+div[role="radiogroup"] > label p, div[role="radiogroup"] > label div { margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important; }
+div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) { background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important; }
+div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p { color: #ffffff !important; }
 
-/* 3. 底层原始数据表格容器化 */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #ffffff !important; border: 1px solid #EEF2F6 !important;
-    border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important;
-}
+/* 底层原始数据表格容器化 */
+div[data-testid="stVerticalBlockBorderWrapper"] { background-color: #ffffff !important; border: 1px solid #EEF2F6 !important; border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important; }
 
-/* 4. 自定义大模块 Section */
-.saas-section {
-    background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px;
-}
-.saas-title {
-    font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px;
-    display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
-}
-.icon-box {
-    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
-}
+/* 自定义大模块 Section */
+.saas-section { background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6; box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px; }
+.saas-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+.icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 
-/* 5. 折叠面板高级化 */
-[data-testid="stExpander"] {
-    border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden;
-}
+/* 折叠面板高级化 */
+[data-testid="stExpander"] { border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden; }
 [data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
 [data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ==========================================
 # ⚙️ 底层数据与清洗逻辑 
@@ -287,6 +285,7 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         st.markdown(f'''<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;"><div style="font-weight:700; color:#374151; font-size:15px;">{title}</div><div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div></div><div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">{time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}</div>''', unsafe_allow_html=True)
         try: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, width="stretch")
         except BaseException: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, use_container_width=True)
+
 
 # ==========================================
 # 📐 页面头部与同步按钮
@@ -447,6 +446,9 @@ if df_all is not None and not df_all.empty:
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
+            
+            # 🔥 HTML 锚点：保证左侧国家导航跳转准确性，提供相对偏移避免被顶部挡住
+            st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
             
             site_flag = site_flags.get(site, "🌍")
             site_name_cn = en_to_cn.get(site, site)
