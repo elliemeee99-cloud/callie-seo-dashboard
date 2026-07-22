@@ -15,62 +15,73 @@ cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT"
 en_to_cn = {v: k for k, v in cn_to_en.items()}
 site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
-# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
+# Google 经典四色循环 (蓝, 红, 黄, 绿)
 GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 
 # ==========================================
-# 网页基础设置
+# 网页基础设置 (默认折叠丑陋的原生侧边栏)
 # ==========================================
-st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
+# 🧭 顶部横向导航栏 (安全、居中、稳定版)
 # ==========================================
 st.markdown("""
 <style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏目录 */
-[data-testid="stSidebarNav"] { display: none !important; }
+/* 1. 彻底隐藏 Streamlit 默认的侧边栏、左上角箭头及顶部白条 */
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+[data-testid="stHeader"] { display: none !important; }
 
-/* 2. 美化横向导航按钮 */
+/* 2. 美化顶部横向导航卡片 */
 [data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff; 
-    border: 1px solid #e2e8f0; 
-    border-radius: 12px; 
-    padding: 10px 16px; 
-    text-align: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    background-color: #ffffff !important; 
+    border: 1px solid #cbd5e1 !important; 
+    border-radius: 12px !important; 
+    padding: 12px 10px !important; 
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    text-decoration: none !important;
 }
 [data-testid="stPageLink-NavLink"]:hover {
-    background-color: #f8fafc;
-    border-color: #3b82f6;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    background-color: #ffffff !important;
+    border-color: #3b82f6 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
 }
 [data-testid="stPageLink-NavLink"] p {
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     color: #1e293b !important;
-    font-size: 15px !important;
+    font-size: 16px !important; 
+    margin: 0 !important;
+}
+
+/* 3. 页面顶部安全留白 */
+.block-container { 
+    padding-top: 2rem !important; 
+    max-width: 98% !important; 
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 使用 columns 横向排布导航按钮 (按需分配宽度)
-col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
+# 🔥 利用 Streamlit 原生 columns 设置左右空白占位符，实现完美的安全居中
+spacer_left, nav1, nav2, nav3, spacer_right = st.columns([1, 1.2, 1.2, 1.2, 1])
 
-with col_nav1:
+with nav1:
     st.page_link("app.py", label="App 首页", icon="🏠")
-with col_nav2:
-    # 修复了路径：加上了 1_ 前缀
+with nav2:
     st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with col_nav3:
-    # 修复了路径：加上了 2_ 前缀
+with nav3:
     st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
 
-st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
+st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
+
 
 # ==========================================
-# 🎨 现代 SaaS 顶级视觉重构 (包含左侧悬浮与避让)
+# 🎨 现代 SaaS 顶级视觉重构 
 # ==========================================
 st.markdown("""
 <style>
@@ -80,31 +91,7 @@ st.markdown("""
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-/* 2. 页面容器：增加顶部留白，并为左侧固定的导航栏留出 240px 的避让空间 */
-.block-container { 
-    padding-top: 5rem !important; 
-    padding-left: 260px !important; 
-    max-width: 98% !important; 
-}
-
-/* 3. 🔥 真正的全局吸附式左侧导航栏 */
-.floating-nav {
-    position: fixed;
-    top: 6rem;
-    left: 1.5rem;
-    width: 220px;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    z-index: 9999;
-    background: #ffffff;
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    border: 1px solid #EEF2F6;
-}
-.floating-nav::-webkit-scrollbar { width: 0px; background: transparent; }
-
-/* 4. 强力胶囊化单选框 */
+/* 2. 强力胶囊化单选框 */
 div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
 div[role="radiogroup"] > label {
     background-color: #ffffff !important; border: 1px solid #E5E7EB !important;
@@ -125,13 +112,13 @@ div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] 
     color: #ffffff !important;
 }
 
-/* 5. 底层原始数据表格容器化 */
+/* 3. 底层原始数据表格容器化 */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #ffffff !important; border: 1px solid #EEF2F6 !important;
     border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important;
 }
 
-/* 6. 自定义大模块 Section */
+/* 4. 自定义大模块 Section */
 .saas-section {
     background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6;
     box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px;
@@ -144,7 +131,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
 }
 
-/* 7. 折叠面板高级化 */
+/* 5. 折叠面板高级化 */
 [data-testid="stExpander"] {
     border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important;
     box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden;
@@ -152,10 +139,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 [data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
 [data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
-
-/* 移除导致遮挡的超出隐藏 */
-div.element-container { overflow: visible !important; }
-div.stMarkdown { overflow: visible !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -304,19 +287,6 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         st.markdown(f'''<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;"><div style="font-weight:700; color:#374151; font-size:15px;">{title}</div><div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div></div><div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">{time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}</div>''', unsafe_allow_html=True)
         try: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, width="stretch")
         except BaseException: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, use_container_width=True)
-
-# ==========================================
-# 📌 注入绝对定位的悬浮导航栏 (脱离布局)
-# ==========================================
-nav_html = "<div class='floating-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 20px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:10px;'>"
-for idx, site in enumerate(fixed_sites_order):
-    g_color = GOOGLE_COLORS[idx % 4]
-    flag = site_flags.get(site, '🌍')
-    cn_name = en_to_cn.get(site, site)
-    nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 14px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 14px;'>{site} {cn_name}</span></a>"
-nav_html += "</div></div>"
-st.markdown(nav_html, unsafe_allow_html=True)
-
 
 # ==========================================
 # 📐 页面头部与同步按钮
@@ -477,9 +447,6 @@ if df_all is not None and not df_all.empty:
     for site in fixed_sites_order:
         df_site_raw = df_all[df_all['Site'] == site]
         if not df_site_raw.empty:
-            
-            # HTML 锚点：接收左侧导航栏的靶向跳转，设置相对偏移避免被顶部挡住
-            st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
             
             site_flag = site_flags.get(site, "🌍")
             site_name_cn = en_to_cn.get(site, site)
