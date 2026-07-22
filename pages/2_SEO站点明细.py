@@ -23,39 +23,42 @@ GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 # ==========================================
 st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide", initial_sidebar_state="collapsed")
 # ==========================================
-# 🚀 悬浮挂件：一键回到顶部按钮
+# ==========================================
+# 🚀 悬浮挂件：一键回到顶部按钮 (粉色高级版)
 # ==========================================
 st.markdown("""
 <div id="top-anchor"></div>
 <style>
-/* 右下角悬浮按钮样式 */
+/* 右下角悬浮按钮样式：粉色圆形 */
 .back-to-top {
     position: fixed;
     bottom: 40px;
     right: 40px;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: #ec4899; /* 玫瑰粉背景 */
+    color: #ffffff !important; /* 纯白箭头 */
+    border: none; /* 去除原本的灰边框 */
     width: 50px;
     height: 50px;
-    border-radius: 50%;
+    border-radius: 50%; /* 绝对圆形 */
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 22px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    font-size: 24px;
+    font-weight: 800;
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); /* 粉色光晕阴影 */
     text-decoration: none !important;
     z-index: 99999; /* 保证永远在最上层 */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .back-to-top:hover {
-    background-color: #f8fafc;
-    border-color: #3b82f6;
+    background-color: #db2777; /* 悬浮时变成略深的粉色 */
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.6); /* 悬浮时光晕放大 */
+    color: #ffffff !important;
 }
 </style>
-<!-- 按钮本体：点击后通过 href 寻找顶部的 top-anchor 锚点 -->
-<a href="#top-anchor" class="back-to-top" title="回到顶部">⬆️</a>
+<!-- 按钮本体：使用了纯白色的文本箭头代替Emoji，视觉更干净 -->
+<a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
 """, unsafe_allow_html=True)
 
 # ==========================================
