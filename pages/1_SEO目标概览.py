@@ -12,6 +12,7 @@ import gc
 # 网页基础设置 (默认折叠原生的丑侧边栏)
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
+
 # ==========================================
 # 🚀 悬浮挂件：一键回到顶部按钮 (草莓牛奶多巴胺粉)
 # ==========================================
@@ -48,8 +49,9 @@ st.markdown("""
 </style>
 <a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
 """, unsafe_allow_html=True)
+
 # ==========================================
-# 🧭 顶部横向导航栏 (安全、居中、稳定版)
+# 🧭 顶部横向导航栏 (安全、居中、稳定版 - 4个按钮)
 # ==========================================
 st.markdown("""
 <style>
@@ -92,8 +94,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔥 利用 Streamlit 原生 columns 设置空白占位符，实现完美的安全居中
-spacer_left, nav1, nav2, nav3, spacer_right = st.columns([1, 1.2, 1.2, 1.2, 1])
+# 🔥 利用 Streamlit 原生 columns 设置左右空白占位符，实现完美的安全居中 (扩展为4个按钮)
+spacer_left, nav1, nav2, nav3, nav4, spacer_right = st.columns([0.5, 1.2, 1.2, 1.2, 1.2, 0.5])
 
 with nav1:
     st.page_link("app.py", label="App 首页", icon="🏠")
@@ -101,6 +103,8 @@ with nav2:
     st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
 with nav3:
     st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with nav4:
+    st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
 
 st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
