@@ -12,7 +12,42 @@ import gc
 # 网页基础设置 (默认折叠原生的丑侧边栏)
 # ==========================================
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
-
+# ==========================================
+# 🚀 悬浮挂件：一键回到顶部按钮 (草莓牛奶多巴胺粉)
+# ==========================================
+st.markdown("""
+<div id="top-anchor"></div>
+<style>
+/* 右下角悬浮按钮样式：治愈系多巴胺粉 */
+.back-to-top {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background-color: #FF8FAB; /* 🍓 柔和的草莓牛奶多巴胺粉 */
+    color: #ffffff !important; 
+    border: none; 
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: 800;
+    box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); /* 极柔和的粉色光晕 */
+    text-decoration: none !important;
+    z-index: 99999; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.back-to-top:hover {
+    background-color: #FF5D8F; /* 悬浮时变成略深的蜜桃粉，增加交互反馈 */
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); /* 光晕柔和放大 */
+    color: #ffffff !important;
+}
+</style>
+<a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
+""", unsafe_allow_html=True)
 # ==========================================
 # 🧭 顶部横向导航栏 (安全、居中、稳定版)
 # ==========================================
