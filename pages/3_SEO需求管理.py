@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import os
 
 # ==========================================
 # 网页基础设置 (默认折叠原生侧边栏)
@@ -8,75 +9,56 @@ import datetime
 st.set_page_config(page_title="SEO需求管理", page_icon="📋", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# ⚙️ 核心数据字段配置 
+# ⚙️ 核心数据字段配置与本地存储路径
 # ==========================================
-# 代码会自动将 Excel 的 Sheet 名字作为这个字段的值
 COL_CATEGORY = "需求分类"  
 COL_ONLINE_DATE = "需求上线时间"
-
+# 本地缓存文件路径（实现数据永不丢失）
+CACHE_FILE = "seo_requirements_cache.pkl"
 
 # ==========================================
-# 🧭 全局 UI 组件 (导航栏 + 多巴胺悬浮置顶)
+# 🧭 全局 UI 组件 (绝对安全的导航栏与 CSS)
 # ==========================================
 st.markdown("""
 <div id="top-anchor"></div>
 <style>
-/* 1. 隐藏 Streamlit 默认的侧边栏、左上角箭头及顶部白条 */
+/* 隐藏无用控件 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
 
-/* 2. 顶部吸顶悬浮容器：毛玻璃背景 + 完美居中 */
-.top-nav-container {
-    position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important;
-    background-color: rgba(248, 250, 252, 0.85) !important;
-    backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important;
-    z-index: 99999 !important; padding: 14px 0 !important; margin: 0 !important;
-    display: flex !important; justify-content: center !important; align-items: center !important;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-}
+/* 页面主体下移避让 */
+.block-container { padding-top: 2rem !important; max-width: 95% !important; }
+.stApp { background-color: #f8fafc !important; }
 
-/* 紧凑内部排布 */
-.top-nav-inner {
-    display: flex !important; justify-content: center !important; align-items: center !important;
-    gap: 16px !important; width: 100% !important; max-width: 800px !important; padding: 0 20px !important;
-}
-.top-nav-inner > div { flex: 1 !important; }
-
-/* 导航卡片本体 */
+/* 导航卡片本体美化 */
 [data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff !important; border: 1.5px solid #e2e8f0 !important; border-radius: 12px !important; 
-    padding: 10px 14px !important; text-align: center !important; display: flex !important;
+    background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 12px !important; 
+    padding: 12px 10px !important; text-align: center !important; display: flex !important;
     justify-content: center !important; align-items: center !important; transition: all 0.25s ease !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important; text-decoration: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; text-decoration: none !important;
 }
 [data-testid="stPageLink-NavLink"]:hover {
     background-color: #ffffff !important; border-color: #3b82f6 !important; transform: translateY(-2px) !important;
     box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
 }
-[data-testid="stPageLink-NavLink"] p { font-weight: 700 !important; color: #1e293b !important; font-size: 14.5px !important; margin: 0 !important; }
+[data-testid="stPageLink-NavLink"] p { font-weight: 800 !important; color: #1e293b !important; font-size: 16px !important; margin: 0 !important; }
 
-/* 3. 🍓 草莓牛奶多巴胺粉：回到顶部按钮 */
+/* 🍓 草莓牛奶多巴胺粉：回到顶部按钮 */
 .back-to-top {
     position: fixed; bottom: 40px; right: 40px; background-color: #FF8FAB; color: #ffffff !important; 
     border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
     font-size: 24px; font-weight: 800; box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); 
-    text-decoration: none !important; z-index: 99999; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none !important; z-index: 99999; transition: all 0.3s ease;
 }
 .back-to-top:hover {
     background-color: #FF5D8F; transform: translateY(-5px); box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); color: #ffffff !important;
 }
 
-/* 4. 页面主体下移避让 */
-.block-container { padding-top: 6.5rem !important; max-width: 95% !important; }
-.stApp { background-color: #f8fafc !important; }
-
-/* 5. 覆盖原生容器圆角与字体 */
+/* 覆盖原生容器圆角与字体 */
 [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 16px !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; }
-div[data-testid="stMetricValue"] > div { color: #0f172a !important; font-size: 28px !important; font-weight: 800 !important; }
-div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 15px !important; font-weight: 600 !important; }
 
-/* 6. Tabs 胶囊美化 */
+/* Tabs 胶囊美化 */
 div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; transition: all 0.3s ease; }
@@ -89,18 +71,50 @@ div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { c
 <a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
 """, unsafe_allow_html=True)
 
-# 🔥 注入顶部导航栏 (已扩展为 4 个模块)
-st.markdown('<div class="top-nav-container"><div class="top-nav-inner">', unsafe_allow_html=True)
-nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
-with nav_col1: st.page_link("app.py", label="App 首页", icon="🏠")
-with nav_col2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav_col3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with nav_col4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
-st.markdown('</div></div>', unsafe_allow_html=True)
-
+# 🔥 注入顶部导航栏 (安全居中排版 - 4个按钮)
+spacer_left, nav1, nav2, nav3, nav4, spacer_right = st.columns([0.5, 1.2, 1.2, 1.2, 1.2, 0.5])
+with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
+with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
 # ==========================================
-# 🎯 页面头部结构
+# 💎 看板卡片渲染函数 (支持前端拖拽)
+# ==========================================
+def render_task_cards(df_subset, status="ongoing"):
+    if df_subset.empty: return ""
+    html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px;">'
+    for _, row in df_subset.iterrows():
+        title = str(row.get('需求标题', '无标题'))
+        desc = str(row.get('需求详情描述', ''))
+        if len(desc) > 80: desc = desc[:80] + "..."
+        req_date = str(row.get('需求提出日期', ''))
+        online_date = str(row.get(COL_ONLINE_DATE, ''))
+
+        # 进行中用蓝色样式，已完成用绿色样式
+        border_color = "#3b82f6" if status == "ongoing" else "#10b981"
+        bg_color = "#eff6ff" if status == "ongoing" else "#ecfdf5"
+        status_icon = "🏃" if status == "ongoing" else "✅"
+
+        html += f"""
+        <div draggable="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 4px solid {border_color}; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: grab; transition: transform 0.2s;" ondragstart="this.style.opacity='0.5';" ondragend="this.style.opacity='1';">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="background: {bg_color}; color: {border_color}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">{status_icon} {row.get(COL_CATEGORY, '需求')}</span>
+                <span style="font-size: 12px; color: #64748b; font-weight: 500;">提出: {req_date}</span>
+            </div>
+            <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 8px; line-height: 1.4;">{title}</div>
+            <div style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 16px;">{desc}</div>
+            <div style="font-size: 12px; color: #94a3b8; text-align: right; border-top: 1px dashed #f1f5f9; padding-top: 12px;">
+                <span style="font-weight: 600; color: {'#3b82f6' if status == 'ongoing' else '#10b981'};">上线时间: {online_date if online_date else '待定'}</span>
+            </div>
+        </div>
+        """
+    html += '</div>'
+    return html
+
+# ==========================================
+# 🎯 页面头部结构与持久化引擎
 # ==========================================
 col_header, col_refresh = st.columns([5, 1])
 with col_header:
@@ -109,13 +123,12 @@ with col_header:
 with col_refresh:
     st.write("") 
     if st.button("🗑️ 清空本地缓存"):
-        if 'req_data' in st.session_state:
-            del st.session_state['req_data']
-            st.rerun()
+        if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
+        if 'req_data' in st.session_state: del st.session_state['req_data']
+        st.success("缓存已清空！")
+        st.rerun()
 
-# ==========================================
-# 📥 文件上传引擎 (支持多Sheet融合)
-# ==========================================
+# 📥 文件上传与自动解析引擎
 with st.container(border=True):
     st.markdown("<div style='font-weight: 700; color: #334155; font-size: 16px; margin-bottom: 12px;'>🔄 一键更新需求池数据</div>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("请在此拖拽或上传最新的需求台账 (支持 CSV 或 Excel xlsx 格式)", type=['csv', 'xlsx', 'xls'])
@@ -124,124 +137,106 @@ with st.container(border=True):
         try:
             if uploaded_file.name.endswith('.csv'):
                 df_raw = pd.read_csv(uploaded_file)
-                if COL_CATEGORY not in df_raw.columns:
-                    df_raw[COL_CATEGORY] = "未知分类"
+                if COL_CATEGORY not in df_raw.columns: df_raw[COL_CATEGORY] = "默认需求"
             else:
-                # 🔥 自动读取 Excel 中的所有 Sheet，并将 Sheet 名作为分类写入数据
                 xls = pd.ExcelFile(uploaded_file)
                 df_list = []
                 for sheet_name in xls.sheet_names:
                     temp_df = pd.read_excel(xls, sheet_name=sheet_name)
-                    temp_df[COL_CATEGORY] = sheet_name  # 关键：以工作表名称作为需求分类
+                    temp_df[COL_CATEGORY] = sheet_name  # 自动抓取 Sheet 名字作为分类
                     df_list.append(temp_df)
                 df_raw = pd.concat(df_list, ignore_index=True)
             
-            # 存入缓存
+            # 🔥 重点：保存到本地持久化文件
+            df_raw.to_pickle(CACHE_FILE)
             st.session_state['req_data'] = df_raw
-            st.success("✅ 需求数据解析并装载成功！请查看下方看板。")
+            st.success("✅ 需求数据解析并保存成功！刷新页面数据也不会丢失。")
         except Exception as e:
-            st.error(f"❌ 文件解析失败，请检查文件格式是否损坏。报错详情：{e}")
+            st.error(f"❌ 文件解析失败，请检查文件格式。报错详情：{e}")
 
+# 自动从本地加载历史缓存数据
+if 'req_data' not in st.session_state and os.path.exists(CACHE_FILE):
+    try:
+        st.session_state['req_data'] = pd.read_pickle(CACHE_FILE)
+    except:
+        pass
 
 # ==========================================
-# 📊 双轨需求看板渲染引擎
+# 📊 看板渲染引擎 (双向排序 + 拖拽卡片)
 # ==========================================
 if 'req_data' in st.session_state:
     df = st.session_state['req_data'].copy()
     
-    # 诊断数据表列名是否匹配
     if COL_ONLINE_DATE not in df.columns:
-        st.error(f"⚠️ 数据格式匹配失败！\n\n您上传的文件中找不到用来判断状态的 `{COL_ONLINE_DATE}` 列。\n当前文件拥有的列名为：`{list(df.columns)}`。")
+        st.error(f"⚠️ 数据格式不匹配：找不到 `{COL_ONLINE_DATE}` 列。")
     else:
-        # 🔥 日期字段的绝对清洗：格式化为 YYYY-MM-DD，并剥离所有的 NaT / NaN
+        # 日期预处理（用于排序计算）
         if '需求提出日期' in df.columns:
-            df['需求提出日期'] = pd.to_datetime(df['需求提出日期'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
-        
-        df[COL_ONLINE_DATE] = pd.to_datetime(df[COL_ONLINE_DATE], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
-        
-        # 过滤“产品需求”与“数据中心需求” (基于 Sheet Name 生成的分类)
-        df_product = df[df[COL_CATEGORY].astype(str).str.contains("产品需求", na=False, case=False)].drop(columns=[COL_CATEGORY])
-        df_data_center = df[df[COL_CATEGORY].astype(str).str.contains("数据中心需求", na=False, case=False)].drop(columns=[COL_CATEGORY])
-        
-        tab_product, tab_data = st.tabs(["📦 核心产品需求看板", "🗄️ 数据中心需求看板"])
+            df['req_date_dt'] = pd.to_datetime(df['需求提出日期'], errors='coerce')
+            df['需求提出日期'] = df['req_date_dt'].dt.strftime('%Y-%m-%d').fillna('')
+        else:
+            df['req_date_dt'] = pd.NaT
 
-        # -------------------------------------
-        # 📦 模块 1：产品需求
-        # -------------------------------------
+        df['online_date_dt'] = pd.to_datetime(df[COL_ONLINE_DATE], errors='coerce')
+        df[COL_ONLINE_DATE] = df['online_date_dt'].dt.strftime('%Y-%m-%d').fillna('')
+        
+        # 数据隔离
+        df_product = df[df[COL_CATEGORY].astype(str).str.contains("产品需求", na=False, case=False)].copy()
+        df_data_center = df[df[COL_CATEGORY].astype(str).str.contains("数据中心需求", na=False, case=False)].copy()
+        
+        tab_product, tab_data = st.tabs(["📦 核心产品需求", "🗄️ 数据中心需求"])
+
+        # ----------------------------------------------------
+        # 封装公用的上下版块渲染逻辑
+        # ----------------------------------------------------
+        def render_board(df_subset, board_type):
+            if df_subset.empty:
+                st.info(f"📂 未匹配到【{board_type}】的数据。")
+                return
+            
+            # 分割状态
+            df_progress = df_subset[df_subset[COL_ONLINE_DATE] == ""].copy()
+            df_completed = df_subset[df_subset[COL_ONLINE_DATE] != ""].copy()
+            
+            # 🔥 核心：执行时间维度动态排序
+            # 进行中：按“需求提出时间”最近到最远
+            df_progress = df_progress.sort_values(by='req_date_dt', ascending=False)
+            # 已完成：按“需求上线时间”最近到最远
+            df_completed = df_completed.sort_values(by='online_date_dt', ascending=False)
+
+            # 剔除辅助排序的日期列，避免在表格中显示
+            df_progress_disp = df_progress.drop(columns=['req_date_dt', 'online_date_dt', COL_CATEGORY], errors='ignore')
+            df_completed_disp = df_completed.drop(columns=['req_date_dt', 'online_date_dt', COL_CATEGORY], errors='ignore')
+
+            # --- 上半部分：正在进行中 ---
+            st.markdown("<h3 style='color: #0284c7; margin-top: 20px; font-weight: 800;'>🏃 正在进行中</h3>", unsafe_allow_html=True)
+            if not df_progress.empty:
+                # 渲染拖拽卡片
+                st.markdown(render_task_cards(df_progress, status="ongoing"), unsafe_allow_html=True)
+                # 渲染底层表单
+                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 进行中需求明细表 (已按提出时间排序)</div>", unsafe_allow_html=True)
+                st.dataframe(df_progress_disp.reset_index(drop=True), use_container_width=True, hide_index=True)
+            else:
+                st.success("🎉 目前没有积压的进行中需求！")
+
+            st.markdown("<hr style='border-color: #e2e8f0; margin: 40px 0;'/>", unsafe_allow_html=True)
+
+            # --- 下半部分：已完成的需求 ---
+            st.markdown("<h3 style='color: #10b981; font-weight: 800;'>✅ 已完成的需求</h3>", unsafe_allow_html=True)
+            if not df_completed.empty:
+                # 渲染拖拽卡片
+                st.markdown(render_task_cards(df_completed, status="completed"), unsafe_allow_html=True)
+                # 渲染底层表单
+                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 已完成需求明细表 (已按上线时间排序)</div>", unsafe_allow_html=True)
+                st.dataframe(df_completed_disp.reset_index(drop=True), use_container_width=True, hide_index=True)
+            else:
+                st.info("⌛ 暂无已完成落地的需求。")
+
+        # 渲染两个 Tab
         with tab_product:
-            if not df_product.empty:
-                # 状态判定：上线时间为空即为“进行中”，非空即为“已完成”
-                df_prod_completed = df_product[df_product[COL_ONLINE_DATE] != ""]
-                df_prod_progress = df_product[df_product[COL_ONLINE_DATE] == ""]
-                
-                # 渲染头部卡片
-                st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-                mc1, mc2, mc3 = st.columns(3)
-                with mc1: 
-                    with st.container(border=True): st.metric("📦 产品需求总数", f"{len(df_product)} 项")
-                with mc2: 
-                    with st.container(border=True): st.metric("🏃 正在进行中", f"{len(df_prod_progress)} 项", "加速推进中", delta_color="normal")
-                with mc3: 
-                    with st.container(border=True): st.metric("✅ 已完成落地", f"{len(df_prod_completed)} 项", "已闭环上线", delta_color="off")
-                
-                st.markdown("<hr style='border-color: #EEF2F6; margin: 24px 0;'/>", unsafe_allow_html=True)
-                
-                # 双轨列表渲染
-                col_left, col_right = st.columns(2)
-                with col_left:
-                    st.markdown("<h4 style='color: #0284c7;'>🏃 正在进行中 (Pending)</h4>", unsafe_allow_html=True)
-                    if not df_prod_progress.empty:
-                        st.dataframe(df_prod_progress.reset_index(drop=True), use_container_width=True, hide_index=True)
-                    else:
-                        st.info("💡 当前没有正在进行中的产品需求。")
-                        
-                with col_right:
-                    st.markdown("<h4 style='color: #10b981;'>✅ 已完成闭环 (Completed)</h4>", unsafe_allow_html=True)
-                    if not df_prod_completed.empty:
-                        st.dataframe(df_prod_completed.reset_index(drop=True), use_container_width=True, hide_index=True)
-                    else:
-                        st.info("💡 当前暂无已完成的产品需求。")
-            else:
-                st.info("📂 您上传的文件中没有匹配到【产品需求】数据。")
-
-        # -------------------------------------
-        # 🗄️ 模块 2：数据中心需求
-        # -------------------------------------
+            render_board(df_product, "产品需求")
         with tab_data:
-            if not df_data_center.empty:
-                # 状态判定
-                df_data_completed = df_data_center[df_data_center[COL_ONLINE_DATE] != ""]
-                df_data_progress = df_data_center[df_data_center[COL_ONLINE_DATE] == ""]
-                
-                # 渲染头部卡片
-                st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-                mc1, mc2, mc3 = st.columns(3)
-                with mc1: 
-                    with st.container(border=True): st.metric("🗄️ 数据中心需求总数", f"{len(df_data_center)} 项")
-                with mc2: 
-                    with st.container(border=True): st.metric("🏃 正在进行中", f"{len(df_data_progress)} 项", "开发抓取中", delta_color="normal")
-                with mc3: 
-                    with st.container(border=True): st.metric("✅ 已完成落地", f"{len(df_data_completed)} 项", "已稳定运行", delta_color="off")
-                
-                st.markdown("<hr style='border-color: #EEF2F6; margin: 24px 0;'/>", unsafe_allow_html=True)
-                
-                # 双轨列表渲染
-                col_left, col_right = st.columns(2)
-                with col_left:
-                    st.markdown("<h4 style='color: #0284c7;'>🏃 正在进行中 (Pending)</h4>", unsafe_allow_html=True)
-                    if not df_data_progress.empty:
-                        st.dataframe(df_data_progress.reset_index(drop=True), use_container_width=True, hide_index=True)
-                    else:
-                        st.info("💡 当前没有正在进行中的数据中心需求。")
-                        
-                with col_right:
-                    st.markdown("<h4 style='color: #10b981;'>✅ 已完成闭环 (Completed)</h4>", unsafe_allow_html=True)
-                    if not df_data_completed.empty:
-                        st.dataframe(df_data_completed.reset_index(drop=True), use_container_width=True, hide_index=True)
-                    else:
-                        st.info("💡 当前暂无已完成的数据中心需求。")
-            else:
-                st.info("📂 您上传的文件中没有匹配到【数据中心需求】数据。")
+            render_board(df_data_center, "数据中心需求")
 
 else:
-    st.info("👈 请在上方上传本地需求文件 (Excel / CSV) 以生成需求台账。")
+    st.info("👈 您的缓存池为空，请在上方上传本地需求文件 (Excel) 以激活需求工作台。此后数据将被永久保存。")
