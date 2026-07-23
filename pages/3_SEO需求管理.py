@@ -17,48 +17,22 @@ COL_ONLINE_DATE = "需求上线时间"
 CACHE_FILE = "seo_requirements_cache.pkl"
 
 # ==========================================
-# 🧭 全局 UI 组件 (绝对安全的导航栏与 CSS)
+# 🧭 全局 UI 组件 (防弹版 CSS，去除了所有空行防止乱码)
 # ==========================================
 st.markdown("""
 <div id="top-anchor"></div>
 <style>
-/* 隐藏无用控件 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
-
-/* 页面主体下移避让 */
 .block-container { padding-top: 2rem !important; max-width: 95% !important; }
 .stApp { background-color: #f8fafc !important; }
-
-/* 导航卡片本体美化 */
-[data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 12px !important; 
-    padding: 12px 10px !important; text-align: center !important; display: flex !important;
-    justify-content: center !important; align-items: center !important; transition: all 0.25s ease !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; text-decoration: none !important;
-}
-[data-testid="stPageLink-NavLink"]:hover {
-    background-color: #ffffff !important; border-color: #3b82f6 !important; transform: translateY(-2px) !important;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
-}
+[data-testid="stPageLink-NavLink"] { background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 12px !important; padding: 12px 10px !important; text-align: center !important; display: flex !important; justify-content: center !important; align-items: center !important; transition: all 0.25s ease !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; text-decoration: none !important; }
+[data-testid="stPageLink-NavLink"]:hover { background-color: #ffffff !important; border-color: #3b82f6 !important; transform: translateY(-2px) !important; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important; }
 [data-testid="stPageLink-NavLink"] p { font-weight: 800 !important; color: #1e293b !important; font-size: 16px !important; margin: 0 !important; }
-
-/* 🍓 草莓牛奶多巴胺粉：回到顶部按钮 */
-.back-to-top {
-    position: fixed; bottom: 40px; right: 40px; background-color: #FF8FAB; color: #ffffff !important; 
-    border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
-    font-size: 24px; font-weight: 800; box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); 
-    text-decoration: none !important; z-index: 99999; transition: all 0.3s ease;
-}
-.back-to-top:hover {
-    background-color: #FF5D8F; transform: translateY(-5px); box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); color: #ffffff !important;
-}
-
-/* 覆盖原生容器圆角与字体 */
+.back-to-top { position: fixed; bottom: 40px; right: 40px; background-color: #FF8FAB; color: #ffffff !important; border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: 800; box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); text-decoration: none !important; z-index: 99999; transition: all 0.3s ease; }
+.back-to-top:hover { background-color: #FF5D8F; transform: translateY(-5px); box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); color: #ffffff !important; }
 [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 16px !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; }
-
-/* Tabs 胶囊美化 */
 div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; transition: all 0.3s ease; }
@@ -66,8 +40,6 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] p { color: #64748b !importa
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] { background-color: #2563eb !important; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2) !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff !important; }
 </style>
-
-<!-- 粉色回到顶部锚点 -->
 <a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
 """, unsafe_allow_html=True)
 
@@ -80,7 +52,7 @@ with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", 
 st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
 # ==========================================
-# 💎 看板卡片渲染函数 (支持前端拖拽)
+# 💎 看板卡片渲染函数 (强制抹平换行，防乱码)
 # ==========================================
 def render_task_cards(df_subset, status="ongoing"):
     if df_subset.empty: return ""
@@ -92,12 +64,11 @@ def render_task_cards(df_subset, status="ongoing"):
         req_date = str(row.get('需求提出日期', ''))
         online_date = str(row.get(COL_ONLINE_DATE, ''))
 
-        # 进行中用蓝色样式，已完成用绿色样式
         border_color = "#3b82f6" if status == "ongoing" else "#10b981"
         bg_color = "#eff6ff" if status == "ongoing" else "#ecfdf5"
         status_icon = "🏃" if status == "ongoing" else "✅"
 
-        html += f"""
+        card_html = f"""
         <div draggable="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: 4px solid {border_color}; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: grab; transition: transform 0.2s;" ondragstart="this.style.opacity='0.5';" ondragend="this.style.opacity='1';">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span style="background: {bg_color}; color: {border_color}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">{status_icon} {row.get(COL_CATEGORY, '需求')}</span>
@@ -110,8 +81,11 @@ def render_task_cards(df_subset, status="ongoing"):
             </div>
         </div>
         """
+        html += card_html
     html += '</div>'
-    return html
+    
+    # 🔥 核心防御：剔除所有的换行符，防止 Streamlit 解析为 Markdown
+    return html.replace('\n', '').replace('\r', '')
 
 # ==========================================
 # 🎯 页面头部结构与持久化引擎
@@ -162,7 +136,7 @@ if 'req_data' not in st.session_state and os.path.exists(CACHE_FILE):
         pass
 
 # ==========================================
-# 📊 看板渲染引擎 (双向排序 + 拖拽卡片)
+# 📊 看板渲染引擎 (双向排序 + 拖拽卡片 + 表单)
 # ==========================================
 if 'req_data' in st.session_state:
     df = st.session_state['req_data'].copy()
@@ -209,12 +183,12 @@ if 'req_data' in st.session_state:
             df_completed_disp = df_completed.drop(columns=['req_date_dt', 'online_date_dt', COL_CATEGORY], errors='ignore')
 
             # --- 上半部分：正在进行中 ---
-            st.markdown("<h3 style='color: #0284c7; margin-top: 20px; font-weight: 800;'>🏃 正在进行中</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color: #0284c7; margin-top: 10px; font-weight: 800;'>🏃 正在进行中</h3>", unsafe_allow_html=True)
             if not df_progress.empty:
                 # 渲染拖拽卡片
                 st.markdown(render_task_cards(df_progress, status="ongoing"), unsafe_allow_html=True)
                 # 渲染底层表单
-                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 进行中需求明细表 (已按提出时间排序)</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 进行中需求明细表 (已按提出时间降序排列)</div>", unsafe_allow_html=True)
                 st.dataframe(df_progress_disp.reset_index(drop=True), use_container_width=True, hide_index=True)
             else:
                 st.success("🎉 目前没有积压的进行中需求！")
@@ -227,7 +201,7 @@ if 'req_data' in st.session_state:
                 # 渲染拖拽卡片
                 st.markdown(render_task_cards(df_completed, status="completed"), unsafe_allow_html=True)
                 # 渲染底层表单
-                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 已完成需求明细表 (已按上线时间排序)</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 13px; color:#64748b; margin-bottom: 8px;'>👇 已完成需求明细表 (已按上线时间降序排列)</div>", unsafe_allow_html=True)
                 st.dataframe(df_completed_disp.reset_index(drop=True), use_container_width=True, hide_index=True)
             else:
                 st.info("⌛ 暂无已完成落地的需求。")
