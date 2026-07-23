@@ -17,7 +17,6 @@ CACHE_FILE = "seo_events_cache.pkl"
 # ==========================================
 def get_tag_style(tag_name):
     tag_name = str(tag_name).strip()
-    # 预设 7 种高颜值 SaaS 多巴胺色板
     palettes = [
         {"bg": "#fce7f3", "text": "#db2777"}, # 草莓粉
         {"bg": "#e0e7ff", "text": "#4f46e5"}, # 靛青蓝
@@ -27,7 +26,6 @@ def get_tag_style(tag_name):
         {"bg": "#ffedd5", "text": "#ea580c"}, # 活力橙
         {"bg": "#ccfbf1", "text": "#0d9488"}, # 薄荷青
     ]
-    # 利用字符的 Unicode 编码求和取模，保证同一个标签永远是同一个颜色
     idx = sum(ord(c) for c in tag_name) % len(palettes)
     return palettes[idx]
 
@@ -48,20 +46,17 @@ def get_link_info(url):
         with urllib.request.urlopen(req, timeout=3) as response:
             html = response.read().decode('utf-8', errors='ignore')
             
-            # 抓取图片 (og:image)
             img_match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
             if not img_match: img_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
             if img_match: info["img"] = img_match.group(1)
             
-            # 抓取描述 (og:description 或 description)
             desc_match = re.search(r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
             if not desc_match: desc_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:description["\']', html, re.IGNORECASE)
             if not desc_match: desc_match = re.search(r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
             if desc_match: 
                 desc_text = desc_match.group(1).replace('\n', '').replace('\r', '')
-                if len(desc_text) > 130: desc_text = desc_text[:127] + "..."
+                if len(desc_text) > 100: desc_text = desc_text[:97] + "..."
                 info["desc"] = desc_text
-                
     except Exception:
         pass
     return info
@@ -76,7 +71,6 @@ compressed_css = """
 """
 st.markdown(compressed_css, unsafe_allow_html=True)
 
-# 顶部导航栏 (5 栏等比居中)
 spacer_left, nav1, nav2, nav3, nav4, nav5, spacer_right = st.columns([0.1, 1.2, 1.2, 1.2, 1.2, 1.2, 0.1])
 with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
 with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
@@ -122,7 +116,7 @@ if 'event_data' not in st.session_state and os.path.exists(CACHE_FILE):
     except: pass
 
 # ==========================================
-# 📊 双轨看板渲染引擎 (CSS Grid 网格布局：1行2个)
+# 📊 双轨看板渲染引擎 (CSS Grid 网格布局)
 # ==========================================
 if 'event_data' in st.session_state:
     data = st.session_state['event_data']
@@ -152,7 +146,6 @@ if 'event_data' in st.session_state:
                 tag = str(row.get('标签', '')).strip()
                 if tag == 'nan' or not tag: tag = str(row.get('内容类型', '事件'))
                 
-                # 获取色彩引擎生成的专属多巴胺颜色
                 tag_colors = get_tag_style(tag)
                 
                 card_html = f"""
@@ -173,14 +166,15 @@ if 'event_data' in st.session_state:
             st.info("📂 当前台账中缺乏规范的【重点事件记录】数据。")
 
     # ----------------------------------------------------
-    # 🤖 模块 2：Google算法更新 (1行2个，上图下文自适应，增加文章概览)
+    # 🤖 模块 2：Google算法更新 (🔥 改为 1 行 4 个)
     # ----------------------------------------------------
     with tab_algo:
         if not df_algo.empty and '开始时间' in df_algo.columns:
             df_algo['开始_dt'] = pd.to_datetime(df_algo['开始时间'], errors='coerce')
             df_algo = df_algo.sort_values(by='开始_dt', ascending=False)
             
-            html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 20px;'>"
+            # 🔥 启动 CSS Grid 网格，改为 repeat(4, 1fr)，一行放四个，并缩小间距
+            html = "<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;'>"
             for _, row in df_algo.iterrows():
                 name = str(row.get('名称', '未命名更新')).strip()
                 if name == 'nan': name = '未知算法更新'
@@ -198,26 +192,26 @@ if 'event_data' in st.session_state:
                 
                 target_url = read_url if read_url.startswith('http') else doc_url
                 
-                # 调用智能抓取引擎获取图片与描述
                 link_info = get_link_info(target_url)
                 img_url = link_info['img']
                 article_desc = link_info['desc']
                 
+                # 🔥 自适应 4 列排版的超精致卡片 (缩减了图片高度和内边距)
                 card_html = f"""
-                <div style="display: flex; flex-direction: column; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); height: 100%;">
-                    <div style="height: 180px; width: 100%; background-image: url('{img_url}'); background-size: cover; background-position: center; border-bottom: 1px solid #e2e8f0;"></div>
-                    <div style="padding: 24px; display: flex; flex-direction: column; flex-grow: 1;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                            <span style="font-size: 12px; font-weight: 700; color: #d97706; background: #fef3c7; padding: 4px 10px; border-radius: 6px;">🤖 算法波动</span>
-                            <span style="font-size: 12px; color: #64748b; font-weight: 600;">{start_str} ~ {end_str}</span>
+                <div style="display: flex; flex-direction: column; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); height: 100%;">
+                    <div style="height: 140px; width: 100%; background-image: url('{img_url}'); background-size: cover; background-position: center; border-bottom: 1px solid #e2e8f0;"></div>
+                    <div style="padding: 16px; display: flex; flex-direction: column; flex-grow: 1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #d97706; background: #fef3c7; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">🤖 算法波动</span>
+                            <span style="font-size: 11px; color: #64748b; font-weight: 600;">{start_str}<br>~ {end_str}</span>
                         </div>
-                        <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.4;">{name}</div>
-                        <div style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 24px; flex-grow: 1;">
+                        <div style="font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 10px; line-height: 1.4;">{name}</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 20px; flex-grow: 1;">
                             {article_desc}
                         </div>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: auto;">
-                            <a href="{doc_url}" target="_blank" style="text-decoration: none; font-size: 13px; font-weight: 600; color: #0284c7; background: #e0f2fe; padding: 8px 16px; border-radius: 8px; transition: 0.2s;">📄 官方文档</a>
-                            <a href="{read_url}" target="_blank" style="text-decoration: none; font-size: 13px; font-weight: 600; color: #7c3aed; background: #ede9fe; padding: 8px 16px; border-radius: 8px; transition: 0.2s;">🔗 行业阅读</a>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto;">
+                            <a href="{doc_url}" target="_blank" style="text-decoration: none; font-size: 12px; font-weight: 600; color: #0284c7; background: #e0f2fe; padding: 6px 12px; border-radius: 6px; transition: 0.2s;">📄 官方文档</a>
+                            <a href="{read_url}" target="_blank" style="text-decoration: none; font-size: 12px; font-weight: 600; color: #7c3aed; background: #ede9fe; padding: 6px 12px; border-radius: 6px; transition: 0.2s;">🔗 行业阅读</a>
                         </div>
                     </div>
                 </div>
