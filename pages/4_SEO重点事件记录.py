@@ -116,7 +116,7 @@ if 'event_data' not in st.session_state and os.path.exists(CACHE_FILE):
     except: pass
 
 # ==========================================
-# 📊 双轨看板渲染引擎 (CSS Grid 网格布局)
+# 📊 双轨看板渲染引擎
 # ==========================================
 if 'event_data' in st.session_state:
     data = st.session_state['event_data']
@@ -126,54 +126,80 @@ if 'event_data' in st.session_state:
     tab_events, tab_algo = st.tabs(["🚩 重点事件记录库", "🤖 核心算法波动"])
 
     # ----------------------------------------------------
-    # 🚩 模块 1：重点事件记录 (1行2个，多彩标签)
+    # 🚩 模块 1：重点事件记录 (带动态标签筛选)
     # ----------------------------------------------------
     with tab_events:
         if not df_events.empty and '日期' in df_events.columns:
+            # 数据清洗与标签合并
             df_events['日期_dt'] = pd.to_datetime(df_events['日期'], errors='coerce')
             df_events = df_events.sort_values(by='日期_dt', ascending=False)
             
-            html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;'>"
-            for _, row in df_events.iterrows():
-                date_str = row['日期_dt'].strftime('%Y-%m-%d') if pd.notna(row['日期_dt']) else "未知时间"
-                overview = str(row.get('内容概览', '暂无概览')).strip()
-                if overview == 'nan': overview = "记录详情"
-                
-                details = str(row.get('内容详情', '')).strip()
-                if details == 'nan': details = "无详细描述"
-                details_html = details.replace('\n', '<br>')
-                
-                tag = str(row.get('标签', '')).strip()
-                if tag == 'nan' or not tag: tag = str(row.get('内容类型', '事件'))
-                
-                tag_colors = get_tag_style(tag)
-                
-                card_html = f"""
-                <div style="background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid #0ea5e9; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; height: 100%;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                        <span style="font-size: 13px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">📅 {date_str}</span>
-                        <span style="font-size: 12px; font-weight: 700; color: {tag_colors['text']}; background: {tag_colors['bg']}; padding: 4px 10px; border-radius: 12px;">{tag}</span>
-                    </div>
-                    <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.4;">{overview}</div>
-                    <div style="font-size: 14px; color: #475569; line-height: 1.6; background-color: #f8fafc; padding: 14px; border-radius: 8px; flex-grow: 1; border: 1px dashed #cbd5e1;">{details_html}</div>
-                </div>
-                """
-                html += card_html
-            html += "</div>"
+            def process_tag(r):
+                t = str(r.get('标签', '')).strip()
+                if t == 'nan' or not t: 
+                    t = str(r.get('内容类型', '事件')).strip()
+                    if t == 'nan' or not t: t = '事件'
+                return t
             
-            st.markdown(html.replace('\n', ''), unsafe_allow_html=True)
+            df_events['最终标签'] = df_events.apply(process_tag, axis=1)
+            
+            # 🔥 注入动态胶囊筛选器
+            unique_tags = ["全部"] + sorted(df_events['最终标签'].unique().tolist())
+            st.markdown("<div style='font-size: 14px; font-weight: 700; color: #64748b; margin-top: 10px; margin-bottom: 8px;'>🎯 按标签快速筛选事件：</div>", unsafe_allow_html=True)
+            
+            try:
+                selected_tag = st.pills("筛选器", unique_tags, default="全部", label_visibility="collapsed")
+                if not selected_tag: selected_tag = "全部"
+            except AttributeError:
+                selected_tag = st.radio("筛选器", unique_tags, horizontal=True, label_visibility="collapsed")
+                
+            # 执行过滤
+            if selected_tag != "全部":
+                df_events_display = df_events[df_events['最终标签'] == selected_tag]
+            else:
+                df_events_display = df_events
+
+            if df_events_display.empty:
+                st.info(f"📂 未找到带有【{selected_tag}】标签的历史事件记录。")
+            else:
+                html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 16px;'>"
+                for _, row in df_events_display.iterrows():
+                    date_str = row['日期_dt'].strftime('%Y-%m-%d') if pd.notna(row['日期_dt']) else "未知时间"
+                    overview = str(row.get('内容概览', '暂无概览')).strip()
+                    if overview == 'nan': overview = "记录详情"
+                    
+                    details = str(row.get('内容详情', '')).strip()
+                    if details == 'nan': details = "无详细描述"
+                    details_html = details.replace('\n', '<br>')
+                    
+                    tag = row['最终标签']
+                    tag_colors = get_tag_style(tag)
+                    
+                    card_html = f"""
+                    <div style="background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid #0ea5e9; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; height: 100%;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <span style="font-size: 13px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">📅 {date_str}</span>
+                            <span style="font-size: 12px; font-weight: 700; color: {tag_colors['text']}; background: {tag_colors['bg']}; padding: 4px 10px; border-radius: 12px;">{tag}</span>
+                        </div>
+                        <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.4;">{overview}</div>
+                        <div style="font-size: 14px; color: #475569; line-height: 1.6; background-color: #f8fafc; padding: 14px; border-radius: 8px; flex-grow: 1; border: 1px dashed #cbd5e1;">{details_html}</div>
+                    </div>
+                    """
+                    html += card_html
+                html += "</div>"
+                
+                st.markdown(html.replace('\n', ''), unsafe_allow_html=True)
         else:
             st.info("📂 当前台账中缺乏规范的【重点事件记录】数据。")
 
     # ----------------------------------------------------
-    # 🤖 模块 2：Google算法更新 (🔥 改为 1 行 4 个)
+    # 🤖 模块 2：Google算法更新 (1 行 4 个)
     # ----------------------------------------------------
     with tab_algo:
         if not df_algo.empty and '开始时间' in df_algo.columns:
             df_algo['开始_dt'] = pd.to_datetime(df_algo['开始时间'], errors='coerce')
             df_algo = df_algo.sort_values(by='开始_dt', ascending=False)
             
-            # 🔥 启动 CSS Grid 网格，改为 repeat(4, 1fr)，一行放四个，并缩小间距
             html = "<div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;'>"
             for _, row in df_algo.iterrows():
                 name = str(row.get('名称', '未命名更新')).strip()
@@ -196,7 +222,6 @@ if 'event_data' in st.session_state:
                 img_url = link_info['img']
                 article_desc = link_info['desc']
                 
-                # 🔥 自适应 4 列排版的超精致卡片 (缩减了图片高度和内边距)
                 card_html = f"""
                 <div style="display: flex; flex-direction: column; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); height: 100%;">
                     <div style="height: 140px; width: 100%; background-image: url('{img_url}'); background-size: cover; background-position: center; border-bottom: 1px solid #e2e8f0;"></div>
