@@ -13,28 +13,62 @@ st.set_page_config(page_title="SEO重点事件记录", page_icon="📅", layout=
 CACHE_FILE = "seo_events_cache.pkl"
 
 # ==========================================
-# 🕷️ 智能文章缩略图抓取引擎 (带本地缓存)
+# 🎨 标签色彩自动分配引擎 (多巴胺色系)
+# ==========================================
+def get_tag_style(tag_name):
+    tag_name = str(tag_name).strip()
+    # 预设 7 种高颜值 SaaS 多巴胺色板
+    palettes = [
+        {"bg": "#fce7f3", "text": "#db2777"}, # 草莓粉
+        {"bg": "#e0e7ff", "text": "#4f46e5"}, # 靛青蓝
+        {"bg": "#dcfce7", "text": "#059669"}, # 翡翠绿
+        {"bg": "#fef3c7", "text": "#d97706"}, # 琥珀黄
+        {"bg": "#f3e8ff", "text": "#7c3aed"}, # 薰衣草紫
+        {"bg": "#ffedd5", "text": "#ea580c"}, # 活力橙
+        {"bg": "#ccfbf1", "text": "#0d9488"}, # 薄荷青
+    ]
+    # 利用字符的 Unicode 编码求和取模，保证同一个标签永远是同一个颜色
+    idx = sum(ord(c) for c in tag_name) % len(palettes)
+    return palettes[idx]
+
+# ==========================================
+# 🕷️ 智能文章信息抓取引擎 (缩略图 + 摘要描述)
 # ==========================================
 @st.cache_data(ttl=86400*7, show_spinner=False)
-def get_link_preview(url):
-    default_img = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80"
+def get_link_info(url):
+    info = {
+        "img": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80", 
+        "desc": "暂未抓取到详细的文章概览，请点击下方“行业阅读”按钮直接前往原文查看详情与分析。"
+    }
     if not isinstance(url, str) or not url.startswith('http'):
-        return default_img
+        return info
+    
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         with urllib.request.urlopen(req, timeout=3) as response:
             html = response.read().decode('utf-8', errors='ignore')
-            match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
-            if not match: match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
-            if match: return match.group(1)
+            
+            # 抓取图片 (og:image)
+            img_match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if not img_match: img_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
+            if img_match: info["img"] = img_match.group(1)
+            
+            # 抓取描述 (og:description 或 description)
+            desc_match = re.search(r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if not desc_match: desc_match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:description["\']', html, re.IGNORECASE)
+            if not desc_match: desc_match = re.search(r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if desc_match: 
+                desc_text = desc_match.group(1).replace('\n', '').replace('\r', '')
+                if len(desc_text) > 130: desc_text = desc_text[:127] + "..."
+                info["desc"] = desc_text
+                
     except Exception:
         pass
-    return default_img
+    return info
 
 # ==========================================
 # 🧭 极限压缩防乱码 CSS + 导航栏
 # ==========================================
-# 🔥 将所有 CSS 压缩为无换行的单行字符串，彻底封杀 Streamlit 乱码 Bug
 compressed_css = """
 <div id="top-anchor"></div>
 <style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 10px !important;text-align:center !important;display:flex !important;justify-content:center !important;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:15.5px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}div[data-testid="stTabs"] div[data-baseweb="tab-list"]{gap:12px !important;border-bottom:none !important;}div[data-testid="stTabs"] div[data-baseweb="tab-highlight"]{display:none !important;}div[data-testid="stTabs"] button[data-baseweb="tab"]{background-color:#f1f5f9 !important;border-radius:8px !important;padding:12px 28px !important;border:none !important;transition:all 0.3s ease;}div[data-testid="stTabs"] button[data-baseweb="tab"] p{color:#64748b !important;font-weight:700 !important;font-size:16px !important;}div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"]{background-color:#2563eb !important;box-shadow:0 4px 6px rgba(37,99,235,0.2) !important;}div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p{color:#ffffff !important;}</style>
@@ -98,14 +132,13 @@ if 'event_data' in st.session_state:
     tab_events, tab_algo = st.tabs(["🚩 重点事件记录库", "🤖 核心算法波动"])
 
     # ----------------------------------------------------
-    # 🚩 模块 1：重点事件记录 (1行2个)
+    # 🚩 模块 1：重点事件记录 (1行2个，多彩标签)
     # ----------------------------------------------------
     with tab_events:
         if not df_events.empty and '日期' in df_events.columns:
             df_events['日期_dt'] = pd.to_datetime(df_events['日期'], errors='coerce')
             df_events = df_events.sort_values(by='日期_dt', ascending=False)
             
-            # 🔥 启动 CSS Grid 网格，严格保证1行放2个卡片
             html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;'>"
             for _, row in df_events.iterrows():
                 date_str = row['日期_dt'].strftime('%Y-%m-%d') if pd.notna(row['日期_dt']) else "未知时间"
@@ -119,12 +152,14 @@ if 'event_data' in st.session_state:
                 tag = str(row.get('标签', '')).strip()
                 if tag == 'nan' or not tag: tag = str(row.get('内容类型', '事件'))
                 
-                # 增加 flex: column 确保卡片高度一致，且内部排版合理
+                # 获取色彩引擎生成的专属多巴胺颜色
+                tag_colors = get_tag_style(tag)
+                
                 card_html = f"""
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid #0ea5e9; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; height: 100%;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                         <span style="font-size: 13px; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">📅 {date_str}</span>
-                        <span style="font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 4px 10px; border-radius: 12px;">{tag}</span>
+                        <span style="font-size: 12px; font-weight: 700; color: {tag_colors['text']}; background: {tag_colors['bg']}; padding: 4px 10px; border-radius: 12px;">{tag}</span>
                     </div>
                     <div style="font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.4;">{overview}</div>
                     <div style="font-size: 14px; color: #475569; line-height: 1.6; background-color: #f8fafc; padding: 14px; border-radius: 8px; flex-grow: 1; border: 1px dashed #cbd5e1;">{details_html}</div>
@@ -138,14 +173,13 @@ if 'event_data' in st.session_state:
             st.info("📂 当前台账中缺乏规范的【重点事件记录】数据。")
 
     # ----------------------------------------------------
-    # 🤖 模块 2：Google算法更新 (1行2个，上图下文自适应)
+    # 🤖 模块 2：Google算法更新 (1行2个，上图下文自适应，增加文章概览)
     # ----------------------------------------------------
     with tab_algo:
         if not df_algo.empty and '开始时间' in df_algo.columns:
             df_algo['开始_dt'] = pd.to_datetime(df_algo['开始时间'], errors='coerce')
             df_algo = df_algo.sort_values(by='开始_dt', ascending=False)
             
-            # 🔥 启动 CSS Grid 网格，严格保证1行放2个卡片
             html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 20px;'>"
             for _, row in df_algo.iterrows():
                 name = str(row.get('名称', '未命名更新')).strip()
@@ -163,9 +197,12 @@ if 'event_data' in st.session_state:
                 if read_url == 'nan' or not read_url: read_url = '#'
                 
                 target_url = read_url if read_url.startswith('http') else doc_url
-                img_url = get_link_preview(target_url)
                 
-                # 改为上图下文布局，完美适配 1行2列
+                # 调用智能抓取引擎获取图片与描述
+                link_info = get_link_info(target_url)
+                img_url = link_info['img']
+                article_desc = link_info['desc']
+                
                 card_html = f"""
                 <div style="display: flex; flex-direction: column; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); height: 100%;">
                     <div style="height: 180px; width: 100%; background-image: url('{img_url}'); background-size: cover; background-position: center; border-bottom: 1px solid #e2e8f0;"></div>
@@ -174,7 +211,10 @@ if 'event_data' in st.session_state:
                             <span style="font-size: 12px; font-weight: 700; color: #d97706; background: #fef3c7; padding: 4px 10px; border-radius: 6px;">🤖 算法波动</span>
                             <span style="font-size: 12px; color: #64748b; font-weight: 600;">{start_str} ~ {end_str}</span>
                         </div>
-                        <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px; line-height: 1.4; flex-grow: 1;">{name}</div>
+                        <div style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.4;">{name}</div>
+                        <div style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 24px; flex-grow: 1;">
+                            {article_desc}
+                        </div>
                         <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: auto;">
                             <a href="{doc_url}" target="_blank" style="text-decoration: none; font-size: 13px; font-weight: 600; color: #0284c7; background: #e0f2fe; padding: 8px 16px; border-radius: 8px; transition: 0.2s;">📄 官方文档</a>
                             <a href="{read_url}" target="_blank" style="text-decoration: none; font-size: 13px; font-weight: 600; color: #7c3aed; background: #ede9fe; padding: 8px 16px; border-radius: 8px; transition: 0.2s;">🔗 行业阅读</a>
