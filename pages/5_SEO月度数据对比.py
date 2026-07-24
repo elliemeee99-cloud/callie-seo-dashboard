@@ -298,321 +298,359 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         
 
         st.markdown("#### \U0001f3ea \u5404\u7ad9\u70b9\u8be6\u7ec6\u6570\u636e")
-        st.markdown('<style>.site-sticky-nav{position:sticky;top:80px}.site-nav-link{display:block;padding:7px 0;margin-bottom:6px;border-radius:20px;border:2px solid;text-align:center;font-weight:700;font-size:12px;text-decoration:none;background:white;transition:all .2s}.site-anchor{scroll-margin-top:90px}</style>', unsafe_allow_html=True)
-        
+        st.markdown('<style>.site-nav-link{display:block;padding:7px 0;margin-bottom:6px;border-radius:20px;border:2px solid;text-align:center;font-weight:700;font-size:12px;text-decoration:none;background:white;transition:all .2s}.site-nav-link:hover{background:#f8f9fa;transform:translateX(2px)}.site-anchor{scroll-margin-top:90px}.site-sticky-nav{position:sticky;top:80px}</style>', unsafe_allow_html=True)
+
         all_sites = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
-        site_bg = {'DE': '#f0f7ff', 'FR': '#fef0f0', 'ES': '#fefce8', 'IT': '#f0fdf4', 'NL': '#f5f3ff', 'NO': '#fff7ed', 'SE': '#fdf2f8', 'FI': '#e0f2fe', 'PL': '#faf5ff'}
-        
+        google_colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
+
         s_left, s_right = st.columns([0.65, 5])
         with s_left:
             st.markdown('<div class="site-sticky-nav">', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-DE" class="site-nav-link" style="border-color:#4285F4;color:#4285F4;">🇩🇪&nbsp;DE</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-FR" class="site-nav-link" style="border-color:#EA4335;color:#EA4335;">🇫🇷&nbsp;FR</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-ES" class="site-nav-link" style="border-color:#FBBC05;color:#FBBC05;">🇪🇸&nbsp;ES</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-IT" class="site-nav-link" style="border-color:#34A853;color:#34A853;">🇮🇹&nbsp;IT</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-NL" class="site-nav-link" style="border-color:#4285F4;color:#4285F4;">🇳🇱&nbsp;NL</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-NO" class="site-nav-link" style="border-color:#EA4335;color:#EA4335;">🇳🇴&nbsp;NO</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-SE" class="site-nav-link" style="border-color:#FBBC05;color:#FBBC05;">🇸🇪&nbsp;SE</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-FI" class="site-nav-link" style="border-color:#34A853;color:#34A853;">🇫🇮&nbsp;FI</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="#site-PL" class="site-nav-link" style="border-color:#4285F4;color:#4285F4;">🇵🇱&nbsp;PL</a>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
         with s_right:
-
             st.markdown(f'<div id="site-DE" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#f0f7ff;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc DE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 DE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'DE NB',nb_detail['DE'],'#f43f5e'),(f'DE ALL',all_detail['DE'],'#10b981'),(f'DE Total',site_detail['DE'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 DE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','DE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['DE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 DE \u975e\u54c1\u724c\u8bcd\u4e0eDE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['DE'],mode='lines+markers',name=f'DE NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['DE'],mode='lines+markers',name=f'DE ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 DE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['DE'],mode='lines+markers',name=f'DE Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 DE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'DE NB',nb_detail['DE'],'#f43f5e'),(f'DE ALL',all_detail['DE'],'#10b981'),(f'DE Total',site_detail['DE'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 DE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','DE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['DE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 DE \u975e\u54c1\u724c\u8bcd\u4e0eDE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['DE'],mode='lines+markers',name=f'DE NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['DE'],mode='lines+markers',name=f'DE ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 DE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['DE'],mode='lines+markers',name=f'DE Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-FR" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#fef0f0;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc FR \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 FR \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'FR NB',nb_detail['FR'],'#f43f5e'),(f'FR ALL',all_detail['FR'],'#10b981'),(f'FR Total',site_detail['FR'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 FR \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','FR']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FR'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 FR \u975e\u54c1\u724c\u8bcd\u4e0eFR ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FR'],mode='lines+markers',name=f'FR NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FR'],mode='lines+markers',name=f'FR ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 FR \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FR'],mode='lines+markers',name=f'FR Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 FR \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'FR NB',nb_detail['FR'],'#f43f5e'),(f'FR ALL',all_detail['FR'],'#10b981'),(f'FR Total',site_detail['FR'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 FR \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','FR']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FR'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 FR \u975e\u54c1\u724c\u8bcd\u4e0eFR ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FR'],mode='lines+markers',name=f'FR NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FR'],mode='lines+markers',name=f'FR ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 FR \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FR'],mode='lines+markers',name=f'FR Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-ES" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#fefce8;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc ES \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 ES \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'ES NB',nb_detail['ES'],'#f43f5e'),(f'ES ALL',all_detail['ES'],'#10b981'),(f'ES Total',site_detail['ES'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 ES \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','ES']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['ES'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 ES \u975e\u54c1\u724c\u8bcd\u4e0eES ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['ES'],mode='lines+markers',name=f'ES NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['ES'],mode='lines+markers',name=f'ES ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 ES \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['ES'],mode='lines+markers',name=f'ES Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 ES \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'ES NB',nb_detail['ES'],'#f43f5e'),(f'ES ALL',all_detail['ES'],'#10b981'),(f'ES Total',site_detail['ES'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 ES \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','ES']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['ES'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 ES \u975e\u54c1\u724c\u8bcd\u4e0eES ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['ES'],mode='lines+markers',name=f'ES NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['ES'],mode='lines+markers',name=f'ES ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 ES \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['ES'],mode='lines+markers',name=f'ES Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-IT" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#f0fdf4;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc IT \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 IT \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'IT NB',nb_detail['IT'],'#f43f5e'),(f'IT ALL',all_detail['IT'],'#10b981'),(f'IT Total',site_detail['IT'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 IT \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','IT']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['IT'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 IT \u975e\u54c1\u724c\u8bcd\u4e0eIT ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['IT'],mode='lines+markers',name=f'IT NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['IT'],mode='lines+markers',name=f'IT ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 IT \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['IT'],mode='lines+markers',name=f'IT Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 IT \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'IT NB',nb_detail['IT'],'#f43f5e'),(f'IT ALL',all_detail['IT'],'#10b981'),(f'IT Total',site_detail['IT'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 IT \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','IT']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['IT'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 IT \u975e\u54c1\u724c\u8bcd\u4e0eIT ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['IT'],mode='lines+markers',name=f'IT NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['IT'],mode='lines+markers',name=f'IT ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 IT \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['IT'],mode='lines+markers',name=f'IT Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-NL" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#f5f3ff;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc NL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 NL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'NL NB',nb_detail['NL'],'#f43f5e'),(f'NL ALL',all_detail['NL'],'#10b981'),(f'NL Total',site_detail['NL'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 NL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','NL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 NL \u975e\u54c1\u724c\u8bcd\u4e0eNL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NL'],mode='lines+markers',name=f'NL NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NL'],mode='lines+markers',name=f'NL ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 NL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NL'],mode='lines+markers',name=f'NL Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 NL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'NL NB',nb_detail['NL'],'#f43f5e'),(f'NL ALL',all_detail['NL'],'#10b981'),(f'NL Total',site_detail['NL'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 NL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','NL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 NL \u975e\u54c1\u724c\u8bcd\u4e0eNL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NL'],mode='lines+markers',name=f'NL NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NL'],mode='lines+markers',name=f'NL ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 NL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NL'],mode='lines+markers',name=f'NL Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-NO" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#fff7ed;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc NO \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 NO \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'NO NB',nb_detail['NO'],'#f43f5e'),(f'NO ALL',all_detail['NO'],'#10b981'),(f'NO Total',site_detail['NO'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 NO \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','NO']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NO'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 NO \u975e\u54c1\u724c\u8bcd\u4e0eNO ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NO'],mode='lines+markers',name=f'NO NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NO'],mode='lines+markers',name=f'NO ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 NO \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NO'],mode='lines+markers',name=f'NO Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 NO \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'NO NB',nb_detail['NO'],'#f43f5e'),(f'NO ALL',all_detail['NO'],'#10b981'),(f'NO Total',site_detail['NO'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 NO \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','NO']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NO'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 NO \u975e\u54c1\u724c\u8bcd\u4e0eNO ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NO'],mode='lines+markers',name=f'NO NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NO'],mode='lines+markers',name=f'NO ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 NO \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NO'],mode='lines+markers',name=f'NO Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-SE" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#fdf2f8;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc SE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 SE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'SE NB',nb_detail['SE'],'#f43f5e'),(f'SE ALL',all_detail['SE'],'#10b981'),(f'SE Total',site_detail['SE'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 SE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','SE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['SE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 SE \u975e\u54c1\u724c\u8bcd\u4e0eSE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['SE'],mode='lines+markers',name=f'SE NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['SE'],mode='lines+markers',name=f'SE ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 SE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['SE'],mode='lines+markers',name=f'SE Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 SE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'SE NB',nb_detail['SE'],'#f43f5e'),(f'SE ALL',all_detail['SE'],'#10b981'),(f'SE Total',site_detail['SE'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 SE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','SE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['SE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 SE \u975e\u54c1\u724c\u8bcd\u4e0eSE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['SE'],mode='lines+markers',name=f'SE NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['SE'],mode='lines+markers',name=f'SE ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 SE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['SE'],mode='lines+markers',name=f'SE Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-FI" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#e0f2fe;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc FI \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 FI \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'FI NB',nb_detail['FI'],'#f43f5e'),(f'FI ALL',all_detail['FI'],'#10b981'),(f'FI Total',site_detail['FI'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 FI \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','FI']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FI'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 FI \u975e\u54c1\u724c\u8bcd\u4e0eFI ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FI'],mode='lines+markers',name=f'FI NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FI'],mode='lines+markers',name=f'FI ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 FI \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FI'],mode='lines+markers',name=f'FI Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 FI \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'FI NB',nb_detail['FI'],'#f43f5e'),(f'FI ALL',all_detail['FI'],'#10b981'),(f'FI Total',site_detail['FI'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 FI \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','FI']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FI'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 FI \u975e\u54c1\u724c\u8bcd\u4e0eFI ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FI'],mode='lines+markers',name=f'FI NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FI'],mode='lines+markers',name=f'FI ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 FI \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FI'],mode='lines+markers',name=f'FI Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(f'<div id="site-PL" class="site-anchor"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#faf5ff;border-radius:16px;padding:8px 8px 0 8px;margin-bottom:12px">', unsafe_allow_html=True)
             with st.expander(f"\U0001f4cc PL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                st.markdown(f"**\u2460 PL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                f=go.Figure()
-                for lb,src,cl in [(f'PL NB',nb_detail['PL'],'#f43f5e'),(f'PL ALL',all_detail['PL'],'#10b981'),(f'PL Total',site_detail['PL'],'#6366f1')]:
-                    g=src.pct_change()*100
-                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
-                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2461 PL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                ds=nb_detail[['Month','PL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                for i,y in enumerate(sorted(ds['Year'].unique())):
-                    dy=ds[ds['Year']==y].sort_values('Mnum')
-                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['PL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2462 PL \u975e\u54c1\u724c\u8bcd\u4e0ePL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['PL'],mode='lines+markers',name=f'PL NB'))
-                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['PL'],mode='lines+markers',name=f'PL ALL'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
-                
-                st.markdown(f"**\u2463 PL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                f=go.Figure()
-                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['PL'],mode='lines+markers',name=f'PL Total'))
-                f.update_layout(height=300)
-                st.plotly_chart(f,use_container_width=True)
+                x1,x2=st.columns(2)
+                with x1:
+                    st.markdown(f"**\u2460 PL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'PL NB',nb_detail['PL'],'#f43f5e'),(f'PL ALL',all_detail['PL'],'#10b981'),(f'PL Total',site_detail['PL'],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x2:
+                    st.markdown(f"**\u2461 PL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month','PL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['PL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                x3,x4=st.columns(2)
+                with x3:
+                    st.markdown(f"**\u2462 PL \u975e\u54c1\u724c\u8bcd\u4e0ePL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['PL'],mode='lines+markers',name=f'PL NB'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['PL'],mode='lines+markers',name=f'PL ALL'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+                with x4:
+                    st.markdown(f"**\u2463 PL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['PL'],mode='lines+markers',name=f'PL Total'))
+                    f.update_layout(height=300)
+                    st.plotly_chart(f,use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 else:
