@@ -156,7 +156,7 @@ if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
 # 📈 深度对比图表渲染
 # ==========================================
 # 严格检验缓存数据是否合法，避免旧缓存造成 KeyError
-if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_data'], dict) and 'nonbrand' in st.session_state['monthly_data']:
+if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_data'], dict) and 'nonbrand' in st.session_state['monthly_data'] and 'nb_detail' in st.session_state['monthly_data']:
     df_nb = st.session_state['monthly_data']['nonbrand']
     df_all = st.session_state['monthly_data']['allseo']
     df_site = st.session_state['monthly_data']['site']
@@ -321,7 +321,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
         with s_right:
             st.markdown(f'<div id="site-DE" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc DE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc DE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 DE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -356,7 +356,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-FR" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc FR \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc FR \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 FR \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -391,7 +391,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-ES" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc ES \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc ES \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 ES \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -426,7 +426,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-IT" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc IT \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc IT \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 IT \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -461,7 +461,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-NL" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc NL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc NL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 NL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -496,7 +496,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-NO" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc NO \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc NO \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 NO \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -531,7 +531,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-SE" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc SE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc SE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 SE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -566,7 +566,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-FI" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc FI \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc FI \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 FI \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
@@ -601,7 +601,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
             st.markdown(f'<div id="site-PL" class="site-anchor"></div>', unsafe_allow_html=True)
-            with st.expander(f"\U0001f4cc PL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            with st.expander(f"\U0001f4cc PL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
                 z1,z2=st.columns(2)
                 with z1:
                     st.markdown(f"**\u2460 PL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
