@@ -1,531 +1,634 @@
 import streamlit as st
 import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-import re
-import gc
+import os
 import plotly.graph_objects as go
-
-# ==========================================
-# 📍 全局变量与字典映射
-# ==========================================
-fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
-cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
-en_to_cn = {v: k for k, v in cn_to_en.items()}
-site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
-
-# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
-GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 
 # ==========================================
 # 网页基础设置
 # ==========================================
-st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide", initial_sidebar_state="collapsed")
-# ==========================================
-# ==========================================
-# 🚀 悬浮挂件：一键回到顶部按钮 (草莓牛奶多巴胺粉)
-# ==========================================
-st.markdown("""
-<div id="top-anchor"></div>
-<style>
-/* 右下角悬浮按钮样式：治愈系多巴胺粉 */
-.back-to-top {
-    position: fixed;
-    bottom: 40px;
-    right: 40px;
-    background-color: #FF8FAB; /* 🍓 柔和的草莓牛奶多巴胺粉 */
-    color: #ffffff !important; 
-    border: none; 
-    width: 50px;
-    height: 50px;
-    border-radius: 50%; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    font-weight: 800;
-    box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); /* 极柔和的粉色光晕 */
-    text-decoration: none !important;
-    z-index: 99999; 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.back-to-top:hover {
-    background-color: #FF5D8F; /* 悬浮时变成略深的蜜桃粉，增加交互反馈 */
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); /* 光晕柔和放大 */
-    color: #ffffff !important;
-}
-</style>
-<a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
+
+# 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
+CACHE_FILE = "seo_monthly_sales_v8.pkl"
 
 # ==========================================
-# 🧭 顶部页面导航 & 左侧国家悬浮导航 CSS
+# 🧭 极限防乱码单行 CSS + 6栏导航
 # ==========================================
-st.markdown("""
-<style>
-/* 1. 彻底隐藏 Streamlit 默认侧边栏及无用控件 */
-[data-testid="stSidebar"] { display: none !important; }
-[data-testid="collapsedControl"] { display: none !important; }
-[data-testid="stHeader"] { display: none !important; }
+compressed_css = """<div id="top-anchor"></div><style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 6px !important;text-align:center !important;display:flex !important;justify-content:center !important;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;white-space:nowrap;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:14px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}</style><a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>"""
+st.markdown(compressed_css, unsafe_allow_html=True)
 
-/* 2. 美化顶部横向页面导航按钮 */
-[data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff !important; 
-    border: 1px solid #cbd5e1 !important; 
-    border-radius: 12px !important; 
-    padding: 12px 10px !important; 
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    transition: all 0.25s ease !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
-    text-decoration: none !important;
-}
-[data-testid="stPageLink-NavLink"]:hover {
-    background-color: #ffffff !important;
-    border-color: #3b82f6 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
-}
-[data-testid="stPageLink-NavLink"] p {
-    font-weight: 800 !important;
-    color: #1e293b !important;
-    font-size: 16px !important; 
-    margin: 0 !important;
-}
-
-/* 3. 🔥 左侧国家快速定位导航栏 (纯HTML独立悬浮) */
-.country-nav {
-    position: fixed;
-    top: 5.5rem;
-    left: 1.5rem;
-    width: 200px;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    z-index: 9999;
-    background: #ffffff;
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-    border: 1px solid #EEF2F6;
-}
-.country-nav::-webkit-scrollbar { width: 0px; background: transparent; }
-
-/* 4. 页面主体排版避让：顶部留白 + 左侧为国家导航留出空间 */
-.block-container { 
-    padding-top: 2rem !important; 
-    padding-left: 250px !important; /* 🔥 强制让出左侧区域给导航，防重叠 */
-    max-width: 98% !important; 
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------
-# A. 顶部页面跳转导航 (使用 Streamlit columns 居中)
-# ------------------------------------------
-spacer_left, nav1, nav2, nav3, spacer_right = st.columns([1, 1.2, 1.2, 1.2, 1])
+spacer_left, nav1, nav2, nav3, nav4, nav5, nav6, spacer_right = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
 with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
 with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
 with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with nav5: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
+with nav6: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
 st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
-# ------------------------------------------
-# B. 左侧国家锚点导航 (使用纯 HTML 注入)
-# ------------------------------------------
-country_nav_html = "<div class='country-nav'><div style='font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 18px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:8px;'>"
-for idx, site in enumerate(fixed_sites_order):
-    g_color = GOOGLE_COLORS[idx % 4]
-    flag = site_flags.get(site, '🌍')
-    cn_name = en_to_cn.get(site, site)
-    country_nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 12px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 13px;'>{site} {cn_name}</span></a>"
-country_nav_html += "</div></div>"
-st.markdown(country_nav_html, unsafe_allow_html=True)
-
 # ==========================================
-# 🎨 页面底层定制 CSS 
+# ⚙️ 核心解析引擎 (彻底修复错位Bug)
 # ==========================================
-st.markdown("""
-<style>
-.stApp { background-color: #f8fafc !important; }
-#MainMenu {visibility: hidden;}
+def parse_excel_dates(date_list):
+    parsed_dates = []
+    for val in date_list:
+        if pd.isna(val) or str(val).strip() == '':
+            parsed_dates.append(pd.NaT)
+            continue
+        if isinstance(val, datetime.datetime):
+            parsed_dates.append(val)
+            continue
+        try:
+            if isinstance(val, (int, float)):
+                parsed_dates.append(pd.to_datetime(val, origin='1899-12-30', unit='D'))
+            else:
+                v_str = str(val).strip().replace('年', '-').replace('月', '-').replace('日', '')
+                if v_str.endswith('-'): v_str = v_str[:-1]
+                parsed_dates.append(pd.to_datetime(v_str))
+        except:
+            parsed_dates.append(pd.NaT)
+    return pd.Series(parsed_dates)
 
-/* 强力胶囊化单选框 */
-div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
-div[role="radiogroup"] > label { background-color: #ffffff !important; border: 1px solid #E5E7EB !important; padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; transition: all 0.2s !important; }
-div[role="radiogroup"] > label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
-div[role="radiogroup"] > label > div:first-child { display: none !important; } 
-div[role="radiogroup"] > label p, div[role="radiogroup"] > label div { margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important; }
-div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) { background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important; }
-div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p { color: #ffffff !important; }
-
-/* 底层原始数据表格容器化 */
-div[data-testid="stVerticalBlockBorderWrapper"] { background-color: #ffffff !important; border: 1px solid #EEF2F6 !important; border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important; }
-
-/* 自定义大模块 Section */
-.saas-section { background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6; box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px; }
-.saas-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
-.icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-
-/* 折叠面板高级化 */
-[data-testid="stExpander"] { border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden; }
-[data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
-[data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
-[data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
-</style>
-""", unsafe_allow_html=True)
-
-
-# ==========================================
-# ⚙️ 底层数据与清洗逻辑 
-# ==========================================
-def safe_to_float(val):
-    try:
-        clean_str = re.sub(r'[^\d\.-]', '', str(val))
-        if not clean_str or clean_str in ['-', '.', '-.']: return 0.0
-        return float(clean_str)
-    except: return 0.0
-
-@st.cache_data(ttl=3600)
-def load_site_full_details():
-    try:
-        creds_dict = st.secrets["gcp_service_account"]
-        scopes = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
-        client = gspread.authorize(creds)
-        spreadsheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1GLAGMkVx5DMXylG0bbdvkzuqTd8IVfDANhcRrAX6LFU/edit")
-        
-        default_year = str(datetime.datetime.now().year)
-        ws_all = spreadsheet.worksheet("All")
-        raw_data = ws_all.get_all_values()
-        
-        records = []
-        dates_row = []
-        current_site = None
-        
-        for row in raw_data:
-            if not row: continue
-            first_cell = str(row[0]).strip()
-            
-            if len(row) > 1:
-                check_val = str(row[1]).strip()
-                if not check_val and len(row) > 2: check_val = str(row[2]).strip()
-                if "202" in check_val or ("月" in check_val and "日" in check_val) or re.match(r'^\d{1,2}[-/]\d{1,2}$', check_val):
-                    dates_row = [str(x).strip() for x in row[1:]]
-                
-            if first_cell.startswith("Callie ") and len(first_cell) <= 15:
-                current_site = first_cell.replace("Callie ", "").strip()
-                if current_site in cn_to_en:
-                    current_site = cn_to_en[current_site]
-                continue
-            
-            if current_site and first_cell and first_cell not in ["", "总计"]:
-                metric_name = first_cell
-                if metric_name in ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]: continue
-                    
-                values = row[1:]
-                for i in range(len(values)):
-                    if i < len(dates_row) and dates_row[i] != "":
-                        raw_val = str(values[i]).strip()
-                        if raw_val:
-                            d_str = dates_row[i]
-                            if "月" in d_str and "日" in d_str:
-                                try:
-                                    m = d_str.split('月')[0].strip()
-                                    d = d_str.split('月')[1].replace('日', '').strip()
-                                    d_str = f"{default_year}-{m}-{d}"
-                                except: pass
-                            records.append({"Site": current_site, "Metric": metric_name, "Date_str": d_str, "Value": raw_val})
-                            
-        df = pd.DataFrame(records)
-        
-        if not df.empty:
-            df['Date'] = pd.to_datetime(df['Date_str'], errors='coerce')
-            df = df.dropna(subset=['Date'])
-            df['Numeric_Value'] = df['Value'].apply(safe_to_float)
-            df['Clean_Metric'] = df['Metric'].apply(lambda x: str(x).replace(' ', '').upper())
-        
-        del raw_data; gc.collect()
-        return df
-    except Exception as e:
-        st.error(f"🔌 数据连接失败: {e}")
-        return None
-
-def get_metric(metric_names, df_data, agg_type='sum'):
-    if isinstance(metric_names, str): metric_names = [metric_names]
-    clean_names = [m.replace(' ', '').upper() for m in metric_names]
-    sub = df_data[df_data['Clean_Metric'].isin(clean_names)]
-    if sub.empty: return 0.0
-    if agg_type == 'sum': return sub['Numeric_Value'].sum()
-    if agg_type == 'mean': return sub['Numeric_Value'].mean()
-    if agg_type == 'latest': return sub.sort_values('Date')['Numeric_Value'].iloc[-1]
-    return 0.0
-
-# ==========================================
-# 💎 图表渲染工厂
-# ==========================================
-def render_kpi_card(label, value, theme, highlight=False):
-    themes = {
-        "blue": {"dot": "#3B82F6", "bg": "#EFF6FF", "border": "#BFDBFE"},
-        "cyan": {"dot": "#06B6D4", "bg": "#ECFEFF", "border": "#A5F3FC"},
-        "purple": {"dot": "#8B5CF6", "bg": "#F5F3FF", "border": "#DDD6FE"},
-        "green": {"dot": "#10B981", "bg": "#F0FDF4", "border": "#BBF7D0"},
-        "default": {"bg": "#FAFBFC", "border": "transparent"}
-    }
-    bg = themes[theme]["bg"] if highlight else themes["default"]["bg"]
-    border = themes[theme]["border"] if highlight else themes["default"]["border"]
-    dot = themes[theme]["dot"]
-    return f'<div style="background: {bg}; border: 1px solid {border}; border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: {dot}; font-size: 12px;">●</span> {label}</div><div style="font-size: 40px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
-
-def render_traffic_item(label, value, is_last=False):
-    br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
-    return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
-
-def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key="", is_snapshot=False):
-    clean_names = [m.replace(' ', '').upper() for m in metric_names]
-    sub = df_site[df_site['Clean_Metric'].isin(clean_names)]
-
-    p1_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p1_dates]
-    p2_vals = [sub[sub['Date'].dt.date == d.date()]['Numeric_Value'].sum() for d in p2_dates]
-
-    if is_snapshot:
-        def get_latest_valid(vals):
-            for v in reversed(vals):
-                if v > 0: return v
-            return 0
-        val1, val2 = get_latest_valid(p1_vals), get_latest_valid(p2_vals)
-        time_label_1, time_label_2 = "期末最新", "前期期末"
-    else:
-        val1, val2 = sum(p1_vals), sum(p2_vals)
-        time_label_1, time_label_2 = "过去 7 天", "之前 7 天"
-
-    if val2 > 0:
-        delta_pct = (val1 - val2) / val2 * 100
-        delta_str = f"↑ {delta_pct:.1f}%" if delta_pct >= 0 else f"↓ {abs(delta_pct):.1f}%"
-        delta_color, bg_color = ("#10B981", "#F0FDF4") if delta_pct >= 0 else ("#EF4444", "#FEF2F2")
-    else:
-        delta_str, delta_color, bg_color = "一", "#9CA3AF", "#F3F4F6"
-
-    val_str1 = f"{prefix}{val1:,.2f}" if prefix == "$" else f"{prefix}{val1:,.0f}"
-    val_str2 = f"{prefix}{val2:,.2f}" if prefix == "$" else f"{prefix}{val2:,.0f}"
-
-    x_labels = [d.strftime('%m-%d') for d in p1_dates] 
-    fig = go.Figure()
+def extract_table(df_raw, start_idx, end_idx):
+    df = df_raw.iloc[start_idx:end_idx].copy().reset_index(drop=True)
+    if df.empty: return pd.DataFrame(), pd.DataFrame()
     
-    fig.add_trace(go.Scatter(x=x_labels, y=p1_vals, mode='lines+markers', name='过去 7 天', line=dict(color='#4285F4', width=3), marker=dict(size=10, symbol='circle', color='#4285F4', line=dict(color='white', width=1.5)), hovertemplate='<b>%{x}</b><br>过去 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>过去 7 天: %{y:,.0f}<extra></extra>'))
-    fig.add_trace(go.Scatter(x=x_labels, y=p2_vals, mode='lines+markers', name='之前 7 天', line=dict(color='#EA4335', width=3), marker=dict(size=10, symbol='circle', color='#EA4335', line=dict(color='white', width=1.5)), hovertemplate='<b>%{x}</b><br>之前 7 天: ' + prefix + '%{y:,.2f}<extra></extra>' if prefix else '<b>%{x}</b><br>之前 7 天: %{y:,.0f}<extra></extra>'))
-
-    fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), hovermode="x unified", xaxis=dict(type='category', showgrid=False, color='#6B7280'), yaxis=dict(showgrid=True, gridcolor='#E5E7EB', color='#6B7280', zeroline=False), legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, font=dict(color="#4B5563")), height=240, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-
-    with st.container(border=True):
-        st.markdown(f'''<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;"><div style="font-weight:700; color:#374151; font-size:15px;">{title}</div><div style="font-size:13px; color:{delta_color}; font-weight:700; background:{bg_color}; padding:4px 10px; border-radius:12px;">{delta_str}</div></div><div style="font-size:13px; color:#6B7280; margin-bottom: 16px;">{time_label_1}: <b style="color:#111827;">{val_str1}</b> <span style="margin:0 6px;">|</span> {time_label_2}: {val_str2}</div>''', unsafe_allow_html=True)
-        try: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, width="stretch")
-        except BaseException: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, use_container_width=True)
-
+    # 强制将第一行设为列名
+    df.columns = [str(c).replace('\n', '').strip() for c in df.iloc[0]]
+    df = df.iloc[1:].dropna(how='all')
+    if len(df) == 0: return pd.DataFrame(), pd.DataFrame()
+    
+    cols = list(df.columns)
+    cols[0] = 'RawDate'
+    df.columns = cols
+    
+    # 剔除底部的多余汇总行
+    df = df[~df['RawDate'].astype(str).str.contains('总计|合计', na=False, case=False)]
+    
+    # 🔥 核心修复：使用 .tolist().values，强制按行位置直接赋权，彻底消灭索引错位！
+    df['Date'] = parse_excel_dates(df['RawDate'].tolist()).values
+    df = df.dropna(subset=['Date'])
+    
+    total_col = next((c for c in df.columns if '总计' in str(c) or '合计' in str(c)), None)
+    if total_col:
+        s = df[total_col].copy()
+        if isinstance(s, pd.DataFrame): s = s.iloc[:, 0]
+        # 剥离金额符号
+        s = s.astype(str).str.replace(r'[$,\s]', '', regex=True)
+        df['Total'] = pd.to_numeric(s, errors='coerce').fillna(0)
+    else:
+        df['Total'] = 0.0
+    
+    # 解析各站点列（DE/FR/ES/IT/NL/NO/SE/FI/PL）
+    country_keywords = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+    country_cols = [c for c in df.columns if c in country_keywords]
+    for col in country_cols:
+        s = df[col].copy()
+        if isinstance(s, pd.DataFrame): s = s.iloc[:, 0]
+        s = s.astype(str).str.replace(r'[$,\s]', '', regex=True)
+        df[col] = pd.to_numeric(s, errors='coerce').fillna(0)
+        
+    df['Month'] = df['Date'].dt.strftime('%Y-%m')
+    
+    monthly_total = df.groupby('Month')['Total'].sum().reset_index()
+    monthly_detail = df.groupby('Month')[country_cols].sum().reset_index() if country_cols else pd.DataFrame()
+    return monthly_total, monthly_detail
 
 # ==========================================
-# 📐 页面头部与同步按钮
+# 🎯 页面头部与数据持久化上传
 # ==========================================
 col_header, col_refresh = st.columns([5, 1])
 with col_header:
-    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>📊 SEO 核心指标深度对比</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #6B7280; margin-bottom: 24px; font-size: 15px;'>取消繁琐确认，AI 自动提取非品牌词与整体销售额的同环比走势。</div>", unsafe_allow_html=True)
 with col_refresh:
     st.write("") 
-    if st.button("🔄 同步最新数据"):
-        load_site_full_details.clear()
+    if st.button("🗑️ 清空本地缓存"):
+        if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
+        if 'monthly_data' in st.session_state: del st.session_state['monthly_data']
+        st.success("缓存已清空！")
         st.rerun()
 
-with st.spinner("✨ 正在智能扫描最新数据..."):
-    df_all = load_site_full_details()
-
-if df_all is not None and not df_all.empty:
-
-    mask_valid = (df_all['Clean_Metric'].isin(['网站总流量', 'SUPERSET总销售额'])) & (df_all['Numeric_Value'] > 0)
-    valid_dates = df_all[mask_valid]['Date']
-    actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
-
-    # ==========================================
-    # 🎛️ 顶部控制器
-    # ==========================================
-    site_options = ["全部站点"] + list(cn_to_en.keys())
-    col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
-    with col_ctrl1:
-        try:
-            selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
-            if not selected_site_cn: selected_site_cn = "全部站点"
-        except AttributeError:
-            selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
-            
-    with col_ctrl2:
-        try:
-            time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
-            if not time_view: time_view = "昨日数据"
-        except AttributeError:
-            time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
-
-    st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
-
-    if time_view == "昨日数据":
-        target_dates = [actual_max_date]
-        time_hint = actual_max_date.strftime('%Y-%m-%d')
-    else:
-        target_dates = pd.date_range(end=actual_max_date, periods=7).tolist()
-        time_hint = f"{target_dates[0].strftime('%Y-%m-%d')} 至 {actual_max_date.strftime('%Y-%m-%d')}"
-        
-    if selected_site_cn == "全部站点":
-        df_target = df_all[df_all['Date'].isin(target_dates)]
-    else:
-        site_code = cn_to_en.get(selected_site_cn, "DE")
-        df_target = df_all[(df_all['Site'] == site_code) & (df_all['Date'].isin(target_dates))]
+with st.container(border=True):
+    st.markdown("<div style='font-weight: 700; color: #334155; font-size: 16px; margin-bottom: 12px;'>📥 上传数据报表</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("请上传最新版的《SEO 整体数据情况》台账 (支持 Excel xlsx 格式)", type=['xlsx', 'xls'])
     
-    # ==========================================
-    # 🏆 第一部分：四大指标区块展示
-    # ==========================================
-    if not df_target.empty:
-        ss_seo_sales = get_metric(['Superset SEO销售额', 'SupersetSEO销售额'], df_target, 'sum')
-        ss_total_sales = get_metric(['Superset 总销售额', 'Superset总销售额'], df_target, 'sum')
-        ss_ratio = (ss_seo_sales / ss_total_sales * 100) if ss_total_sales > 0 else 0.0
-        
-        ga4_seo_sales = get_metric(['GA4 SEO销售额', 'GA4SEO销售额'], df_target, 'sum')
-        ga4_total_sales = get_metric(['GA4 网站总销售额', 'GA4网站总销售额', 'GA4总销售额'], df_target, 'sum')
-        ga4_ratio = (ga4_seo_sales / ga4_total_sales * 100) if ga4_total_sales > 0 else 0.0
-        
-        seo_traffic = get_metric(['SEO 总流量', 'SEO流量', 'SEO总流量'], df_target, 'sum')
-        seo_blog_traffic = get_metric(['SEO Blog流量', 'SEOBlog流量'], df_target, 'sum')
-        seo_onsite_traffic = get_metric(['SEO 站内流量', 'SEO站内流量'], df_target, 'sum')
-        total_traffic = get_metric(['网站总流量', '网站流量'], df_target, 'sum')
-        bounce_rate = get_metric(['跳出率'], df_target, 'mean')
-        
-        ai_sales = get_metric(['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], df_target, 'sum')
-        ai_traffic = get_metric(['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], df_target, 'sum')
-        
-        index_count = get_metric(['收录'], df_target, 'latest')
-        backlink_count = get_metric(['外链'], df_target, 'latest')
-        backlink_domain = get_metric(['外链域名广度'], df_target, 'latest')
+    if uploaded_file is not None:
+        try:
+            xls = pd.ExcelFile(uploaded_file)
+            target_sheet = 'SEO销售额汇总' if 'SEO销售额汇总' in xls.sheet_names else xls.sheet_names[0]
+            df_raw = pd.read_excel(xls, sheet_name=target_sheet, header=None)
+            
+            # 智能切割上下表
+            nb_idx = -1
+            all_idx = -1
+            site_idx = -1
+            for i, row in df_raw.iterrows():
+                row_strs = [str(x).replace('\n', '').strip().upper() for x in row if pd.notna(x)]
+                row_joined = "".join(row_strs)
+                if '总计' in row_joined or '合计' in row_joined:
+                    if '非品牌' in row_joined: nb_idx = i
+                    elif 'ALL' in row_joined: all_idx = i
+                    elif '网站总销售额' in row_joined: site_idx = i
+            
+            if nb_idx != -1 and all_idx != -1 and site_idx != -1:
+                df_nb, nb_detail = extract_table(df_raw, nb_idx, all_idx if all_idx > nb_idx else len(df_raw))
+                df_all, all_detail = extract_table(df_raw, all_idx, site_idx if site_idx > all_idx else len(df_raw))
+                df_site, site_detail = extract_table(df_raw, site_idx, len(df_raw))
+                
+                data_dict = {'nonbrand': df_nb, 'allseo': df_all, 'site': df_site,
+                             'nb_detail': nb_detail, 'all_detail': all_detail, 'site_detail': site_detail}
+                pd.to_pickle(data_dict, CACHE_FILE)
+                st.session_state['monthly_data'] = data_dict
+                st.success("✅ 数据报表完美解析！已识别三张子表，含9站点逐月明细。")
+            else:
+                st.error("❌ 表格结构未能精准匹配！请确保三张表头分别带有'非品牌'、'ALL'与'网站总销售额'字样，并且包含'总计'列。")
+                
+        except Exception as e:
+            st.error(f"❌ 解析失败，请检查文件格式。报错详情: {e}")
 
-        sales_cards = "".join([
-            render_kpi_card('Superset SEO销售额', f"${ss_seo_sales:,.2f}", 'blue', highlight=True),
-            render_kpi_card('Superset 总销售额', f"${ss_total_sales:,.2f}", 'blue'),
-            render_kpi_card('Superset 占比情况', f"{ss_ratio:.2f}%", 'blue'),
-            render_kpi_card('GA4 SEO销售额', f"${ga4_seo_sales:,.2f}", 'blue'),
-            render_kpi_card('GA4 网站总销售额', f"${ga4_total_sales:,.2f}", 'blue'),
-            render_kpi_card('GA4 占比情况', f"{ga4_ratio:.2f}%", 'blue')
-        ])
-        sales_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#EFF6FF; color:#3B82F6;">💰</div> 核心销售额追踪</div><div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px;">{sales_cards}</div></div>'
-        st.markdown(sales_html, unsafe_allow_html=True)
+if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
+    try: st.session_state['monthly_data'] = pd.read_pickle(CACHE_FILE)
+    except: pass
 
-        traffic_items = "".join([
-            render_traffic_item('SEO 流量', f"{seo_traffic:,.0f}"),
-            render_traffic_item('SEO Blog 流量', f"{seo_blog_traffic:,.0f}"),
-            render_traffic_item('SEO 站内流量', f"{seo_onsite_traffic:,.0f}"),
-            render_traffic_item('网站总流量', f"{total_traffic:,.0f}"),
-            render_traffic_item('跳出率', f"{bounce_rate:.2f}%", is_last=True)
-        ])
-        traffic_html = f'<div class="saas-section"><div class="saas-title"><div class="icon-box" style="background:#ECFEFF; color:#06B6D4;">🌊</div> 流量漏斗健康度</div><div style="display: flex; align-items: center; margin: 20px -24px 0 -24px;">{traffic_items}</div><div style="margin-top: 32px; padding-top: 16px; border-top: 1px dashed #E5E7EB; font-size: 13px; color: #9CA3AF; display: flex; align-items: center; gap: 6px;"><span style="color: #06B6D4; font-size: 16px;">✦</span> 所有流量指标均已过滤异常抓取，建议结合跳出率动态评估渠道质量。</div></div>'
-        st.markdown(traffic_html, unsafe_allow_html=True)
-
-        ai_cards = "".join([
-            render_kpi_card('AI 销售额', f"${ai_sales:,.2f}", 'purple', highlight=True),
-            render_kpi_card('AI 流量获取', f"{ai_traffic:,.0f}", 'purple')
-        ])
-        google_cards = "".join([
-            render_kpi_card('收录规模', f"{index_count:,.0f}", 'green', highlight=True),
-            render_kpi_card('外链总数', f"{backlink_count:,.0f}", 'green'),
-            render_kpi_card('域名广度', f"{backlink_domain:,.0f}", 'green')
-        ])
-        bottom_html = f'<div style="display: flex; gap: 32px; margin-bottom: 32px;"><div class="saas-section" style="flex: 1; margin-bottom: 0;"><div class="saas-title"><div class="icon-box" style="background:#F5F3FF; color:#8B5CF6;">🤖</div> AI Assistant 转化</div><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">{ai_cards}</div><div style="margin-top: 24px; font-size: 13px; color: #9CA3AF;">监控大模型及助手带来的直接商业价值。</div></div><div class="saas-section" style="flex: 1; margin-bottom: 0;"><div class="saas-title"><div class="icon-box" style="background:#F0FDF4; color:#10B981;">🔗</div> Google 资产护城河</div><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">{google_cards}</div><div style="margin-top: 24px; font-size: 13px; color: #9CA3AF;">反映网站在搜索引擎中的长期信誉积累。</div></div></div>'
-        st.markdown(bottom_html, unsafe_allow_html=True)
-
+# ==========================================
+# 📈 深度对比图表渲染
+# ==========================================
+# 严格检验缓存数据是否合法，避免旧缓存造成 KeyError
+if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_data'], dict) and 'nonbrand' in st.session_state['monthly_data'] and 'nb_detail' in st.session_state['monthly_data']:
+    df_nb = st.session_state['monthly_data']['nonbrand']
+    df_all = st.session_state['monthly_data']['allseo']
+    df_site = st.session_state['monthly_data']['site']
+    nb_detail = st.session_state['monthly_data']['nb_detail']
+    all_detail = st.session_state['monthly_data']['all_detail']
+    site_detail = st.session_state['monthly_data']['site_detail']
+    
+    if df_nb.empty or df_all.empty or df_site.empty:
+        st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
     else:
-        st.warning(f"⚠️ 在所选时间（{time_hint}）内暂无可用数据。")
+        # 数据融合，计算涨降幅
+        df_site_renamed = df_site.rename(columns={'Total': 'Total_Site'})
+        df_merge = pd.merge(df_nb, df_all, on='Month', how='outer', suffixes=('_NB', '_All')).fillna(0)
+        df_merge = pd.merge(df_merge, df_site_renamed, on='Month', how='left').fillna(0)
+        df_merge = df_merge.sort_values('Month').reset_index(drop=True)
+        df_merge['NB_Growth'] = df_merge['Total_NB'].pct_change() * 100
+        df_merge['All_Growth'] = df_merge['Total_All'].pct_change() * 100
+        df_merge['Site_Growth'] = df_merge['Total_Site'].pct_change() * 100
 
-    # ==========================================
-    # 🗄️ 第二部分：各站点底层细分图表与全量明细表 
-    # ==========================================
-    st.markdown("<div style='font-size: 26px; font-weight: 800; color: #111827; margin: 64px 0 20px 0;'>🗄️ 各站点底层明细与趋势对比</div>", unsafe_allow_html=True)
-
-    with st.container(border=True):
-        st.markdown("<div style='font-weight:700; color:#334155; margin-bottom:8px;'>📅 全局时间范围筛选 (控制下方所有站点数据及图表)</div>", unsafe_allow_html=True)
-        bottom_date_range = st.date_input("日期筛选", value=(actual_max_date - pd.Timedelta(days=14), actual_max_date), max_value=actual_max_date, label_visibility="collapsed")
-
-    if isinstance(bottom_date_range, tuple):
-        if len(bottom_date_range) == 2: s_date, e_date = bottom_date_range
-        else: s_date = e_date = bottom_date_range[0]
-    else: s_date = e_date = bottom_date_range
-
-    s_date_ts = pd.Timestamp(s_date)
-    e_date_ts = pd.Timestamp(e_date)
-
-    p1_end = e_date_ts
-    p1_start = p1_end - pd.Timedelta(days=6)
-    p1_dates = pd.date_range(start=p1_start, end=p1_end).tolist()
-
-    p2_end = p1_start - pd.Timedelta(days=1)
-    p2_start = p2_end - pd.Timedelta(days=6)
-    p2_dates = pd.date_range(start=p2_start, end=p2_end).tolist()
-
-    st.markdown(f"""
-    <div style='background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 32px; margin-top: 16px;'>
-        <div style='color: #1E3A8A; font-weight: 700; font-size: 15px; margin-bottom: 6px;'>📊 趋势对比说明</div>
-        <div style='color: #2563EB; font-size: 13.5px; line-height: 1.6;'>
-            趋势图动态锚定您在上方选择的结束日期（<b>{e_date_ts.strftime('%Y-%m-%d')}</b>）。<br>
-            图表中的 <b style="color:#4285F4;">Google 蓝线</b> 代表 <b>过去 7 天（{p1_start.strftime('%m-%d')} 至 {p1_end.strftime('%m-%d')}）</b>；<b style="color:#EA4335;">Google 红线</b> 代表 <b>之前 7 天（{p2_start.strftime('%m-%d')} 至 {p2_end.strftime('%m-%d')}）</b>。<br>
-            数据表格则展示您所选完整区间的全量明细。
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
-
-    # --- 开始遍历渲染分站点数据 ---
-    for site in fixed_sites_order:
-        df_site_raw = df_all[df_all['Site'] == site]
-        if not df_site_raw.empty:
+        # ------------------------------------------
+        
+# ⚡ 1. 销售额月度涨降幅对比
+        # ------------------------------------------
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### ⚡ 1. 销售额月度涨降幅 (Growth Rate) 对比")
+        with st.container(border=True):
+            fig3 = go.Figure()
+            fig3.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['NB_Growth'],
+                mode='lines+markers', name='非品牌词涨跌幅(%)',
+                line=dict(width=3, color='#f43f5e'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>非品牌词涨跌: %{y:+.2f}%<extra></extra>'
+            ))
+            fig3.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['All_Growth'],
+                mode='lines+markers', name='ALL SEO涨跌幅(%)',
+                line=dict(width=3, color='#10b981'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>ALL SEO涨跌: %{y:+.2f}%<extra></extra>'
+            ))
+            fig3.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Site_Growth'],
+                mode='lines+markers', name='网站总销售额涨跌幅(%)',
+                line=dict(width=3, color='#6366f1'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>网站总销售额涨跌: %{y:+.2f}%<extra></extra>'
+            ))
             
-            # 🔥 HTML 锚点：保证左侧国家导航跳转准确性，提供相对偏移避免被顶部挡住
-            st.markdown(f"<div id='jump-{site}' style='position: relative; top: -100px;'></div>", unsafe_allow_html=True)
+            fig3.add_hline(y=0, line_dash="dash", line_color="#94a3b8", annotation_text="0% 基准线")
+            fig3.update_layout(
+                height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%", tickformat='.2f')
+            )
+            st.plotly_chart(fig3, use_container_width=True)
+        # ==========================================
+        
+# 📉 2. 历年【非品牌词销售额】同比走势
+        # ------------------------------------------
+        st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### 📉 2. 历年【非品牌词销售额总计】年度同环比走势")
+        with st.container(border=True):
+            df_yoy = df_nb.copy()
+            df_yoy['Date'] = pd.to_datetime(df_yoy['Month'] + '-01')
+            df_yoy['Year'] = df_yoy['Date'].dt.year.astype(str)
+            df_yoy['Month_Num'] = df_yoy['Date'].dt.month
             
-            site_flag = site_flags.get(site, "🌍")
-            site_name_cn = en_to_cn.get(site, site)
-            expander_title = f"{site_flag} {site_name_cn} (Callie {site}) 数据中心"
-            
-            with st.expander(expander_title, expanded=True):
-                st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
+            fig1 = go.Figure()
+            colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6']
+            for i, year in enumerate(sorted(df_yoy['Year'].unique())):
+                df_year = df_yoy[df_yoy['Year'] == year].sort_values('Month_Num')
+                fig1.add_trace(go.Scatter(
+                    x=df_year['Month_Num'], y=df_year['Total'],
+                    mode='lines+markers', name=f'{year}年',
+                    line=dict(width=3, color=colors[i % len(colors)]),
+                    marker=dict(size=8, color='#ffffff', line=dict(color=colors[i % len(colors)], width=2)),
+                    # 🔥 修复完毕：干净的文字，纯正的美元符，绝无额外的百分号或“月”字
+                    hovertemplate='<b>%{data.name} %{x}</b><br>非品牌词总计: $%{y:,.2f}<extra></extra>'
+                ))
+                
+            fig1.update_layout(
+                height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1, 13)), ticktext=[f"{i}月" for i in range(1, 13)]),
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
+            )
+            st.plotly_chart(fig1, use_container_width=True)
 
-                r1c1, r1c2 = st.columns(2)
-                with r1c1: render_comparison_chart(df_site_raw, ['Superset SEO销售额', 'SupersetSEO销售额'], '💰 Superset SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ss_seo_sales")
-                with r1c2: render_comparison_chart(df_site_raw, ['GA4 SEO销售额', 'GA4SEO销售额'], '💰 GA4 SEO 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ga4_seo_sales")
+        # ------------------------------------------
+        
+# 📊 3. 非品牌词 vs ALL SEO 绝对值走势
+        # ------------------------------------------
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### 📊 3. 【非品牌词】与【ALL SEO】销售额总计综合对比")
+        with st.container(border=True):
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Total_NB'],
+                mode='lines+markers', name='非品牌词销售额总计',
+                line=dict(width=3, color='#0ea5e9'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>非品牌词: $%{y:,.2f}<extra></extra>'
+            ))
+            fig2.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Total_All'],
+                mode='lines+markers', name='ALL SEO销售额总计',
+                line=dict(width=3, color='#8b5cf6'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>ALL SEO: $%{y:,.2f}<extra></extra>'
+            ))
+            fig2.update_layout(
+                height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
+            )
+            st.plotly_chart(fig2, use_container_width=True)
 
-                r2c1, r2c2 = st.columns(2)
-                with r2c1: render_comparison_chart(df_site_raw, ['SEO 总流量', 'SEO流量', 'SEO总流量'], '🌊 GA4 SEO 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_seo_traffic")
-                with r2c2: render_comparison_chart(df_site_raw, ['SEO Blog流量', 'SEOBlog流量'], '🌊 GA4 SEO Blog 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_blog_traffic")
+        # ------------------------------------------
+        
+# 🏪 4. 网站总销售额月度趋势
+        # ------------------------------------------
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### 🏪 4. 网站总销售额月度趋势")
+        with st.container(border=True):
+            fig_site = go.Figure()
+            fig_site.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Total_Site'],
+                mode='lines+markers', name='网站总销售额',
+                line=dict(width=3, color='#f59e0b'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>网站总销售额: $%{y:,.2f}<extra></extra>'
+            ))
+            fig_site.update_layout(
+                height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
+            )
+            st.plotly_chart(fig_site, use_container_width=True)
+        
+        # ------------------------------------------
+        
 
-                r3c1, r3c2 = st.columns(2)
-                with r3c1: render_comparison_chart(df_site_raw, ['SEO 站内流量', 'SEO站内流量'], '🌊 GA4 SEO 站内流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ga4_onsite_traffic")
-                with r3c2: render_comparison_chart(df_site_raw, ['收录'], '🔗 Google 收录规模对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_google_index", is_snapshot=True)
 
-                r4c1, r4c2 = st.columns(2)
-                with r4c1: render_comparison_chart(df_site_raw, ['AI Assistant 销售额', 'AIAssistant销售额', 'AI销售额'], '🤖 AI Assistant 销售额对比', p1_dates, p2_dates, prefix="$", chart_key=f"{site}_ai_sales")
-                with r4c2: render_comparison_chart(df_site_raw, ['AI Assistant 流量', 'AIAssistant流量', 'AI流量'], '🤖 AI Assistant 流量对比', p1_dates, p2_dates, prefix="", chart_key=f"{site}_ai_traffic")
+        st.markdown("### \U0001f3ea 各站点详细数据")
+        st.markdown('<style>.country-nav{position:fixed;top:5.5rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
 
-                df_table_site = df_raw_tables[df_raw_tables['Site'] == site]
-                if not df_table_site.empty:
-                    st.markdown("<div style='font-weight: 600; font-size: 14px; color:#6B7280; margin: 16px 0 8px 0;'>👉 原始指标明细表 (受全局时间范围约束)</div>", unsafe_allow_html=True)
-                    with st.container(border=True):
-                        df_pivot = df_table_site.pivot_table(index='Metric', columns='Date', values='Value', aggfunc=lambda x: ' '.join(str(v) for v in x))
-                        sorted_dates = sorted(df_pivot.columns, reverse=False)
-                        df_pivot = df_pivot[sorted_dates]
-                        df_pivot.columns = [d.strftime('%m-%d') for d in df_pivot.columns]
-                        
-                        try:
-                            st.dataframe(df_pivot, width="stretch")
-                        except BaseException:
-                            try:
-                                st.dataframe(df_pivot, use_container_width=True)
-                            except BaseException:
-                                st.dataframe(df_pivot)
+        _nav_html = """<div class="country-nav"><div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">\U0001f4cd</span> 快速定位</div><div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="#jump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE 德国</a>
+        <a href="#jump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR 法国</a>
+        <a href="#jump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES 西班牙</a>
+        <a href="#jump-IT" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT 意大利</a>
+        <a href="#jump-NL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL 荷兰</a>
+        <a href="#jump-NO" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO 挪威</a>
+        <a href="#jump-SE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE 瑞典</a>
+        <a href="#jump-FI" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI 芬兰</a>
+        <a href="#jump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL 波兰</a>
+        </div></div>"""
+        st.markdown(_nav_html, unsafe_allow_html=True)
 
-else:
-    st.info("尚未扫描到有效的站点数据，请检查网络连接或表单格式。")
+        st.markdown(f'<div id="jump-DE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc DE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 DE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'DE NB',nb_detail['DE'],'#f43f5e'),(f'DE ALL',all_detail['DE'],'#10b981'),(f'DE Total',site_detail['DE'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 DE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','DE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['DE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 DE \u975e\u54c1\u724c\u8bcd\u4e0eDE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['DE'],mode='lines+markers',name=f'DE NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['DE'],mode='lines+markers',name=f'DE ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 DE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['DE'],mode='lines+markers',name=f'DE Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-FR" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc FR \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 FR \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'FR NB',nb_detail['FR'],'#f43f5e'),(f'FR ALL',all_detail['FR'],'#10b981'),(f'FR Total',site_detail['FR'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 FR \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','FR']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FR'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 FR \u975e\u54c1\u724c\u8bcd\u4e0eFR ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FR'],mode='lines+markers',name=f'FR NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FR'],mode='lines+markers',name=f'FR ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 FR \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FR'],mode='lines+markers',name=f'FR Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-ES" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc ES \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 ES \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'ES NB',nb_detail['ES'],'#f43f5e'),(f'ES ALL',all_detail['ES'],'#10b981'),(f'ES Total',site_detail['ES'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 ES \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','ES']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['ES'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 ES \u975e\u54c1\u724c\u8bcd\u4e0eES ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['ES'],mode='lines+markers',name=f'ES NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['ES'],mode='lines+markers',name=f'ES ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 ES \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['ES'],mode='lines+markers',name=f'ES Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-IT" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc IT \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 IT \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'IT NB',nb_detail['IT'],'#f43f5e'),(f'IT ALL',all_detail['IT'],'#10b981'),(f'IT Total',site_detail['IT'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 IT \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','IT']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['IT'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 IT \u975e\u54c1\u724c\u8bcd\u4e0eIT ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['IT'],mode='lines+markers',name=f'IT NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['IT'],mode='lines+markers',name=f'IT ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 IT \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['IT'],mode='lines+markers',name=f'IT Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-NL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc NL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 NL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'NL NB',nb_detail['NL'],'#f43f5e'),(f'NL ALL',all_detail['NL'],'#10b981'),(f'NL Total',site_detail['NL'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 NL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','NL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 NL \u975e\u54c1\u724c\u8bcd\u4e0eNL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NL'],mode='lines+markers',name=f'NL NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NL'],mode='lines+markers',name=f'NL ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 NL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NL'],mode='lines+markers',name=f'NL Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-NO" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc NO \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 NO \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'NO NB',nb_detail['NO'],'#f43f5e'),(f'NO ALL',all_detail['NO'],'#10b981'),(f'NO Total',site_detail['NO'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 NO \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','NO']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['NO'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 NO \u975e\u54c1\u724c\u8bcd\u4e0eNO ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['NO'],mode='lines+markers',name=f'NO NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['NO'],mode='lines+markers',name=f'NO ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 NO \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['NO'],mode='lines+markers',name=f'NO Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-SE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc SE \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 SE \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'SE NB',nb_detail['SE'],'#f43f5e'),(f'SE ALL',all_detail['SE'],'#10b981'),(f'SE Total',site_detail['SE'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 SE \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','SE']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['SE'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 SE \u975e\u54c1\u724c\u8bcd\u4e0eSE ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['SE'],mode='lines+markers',name=f'SE NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['SE'],mode='lines+markers',name=f'SE ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 SE \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['SE'],mode='lines+markers',name=f'SE Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-FI" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc FI \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 FI \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'FI NB',nb_detail['FI'],'#f43f5e'),(f'FI ALL',all_detail['FI'],'#10b981'),(f'FI Total',site_detail['FI'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 FI \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','FI']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['FI'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 FI \u975e\u54c1\u724c\u8bcd\u4e0eFI ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['FI'],mode='lines+markers',name=f'FI NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['FI'],mode='lines+markers',name=f'FI ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 FI \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['FI'],mode='lines+markers',name=f'FI Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+        st.markdown(f'<div id="jump-PL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+        with st.expander(f"\U0001f4cc PL \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+            x1,x2=st.columns(2)
+            with x1:
+                st.markdown(f"**\u2460 PL \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                f=go.Figure()
+                for lb,src,cl in [(f'PL NB',nb_detail['PL'],'#f43f5e'),(f'PL ALL',all_detail['PL'],'#10b981'),(f'PL Total',site_detail['PL'],'#6366f1')]:
+                    g=src.pct_change()*100
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5)))
+                f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x2:
+                st.markdown(f"**\u2461 PL \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                ds=nb_detail[['Month','PL']].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01'); ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                for i,y in enumerate(sorted(ds['Year'].unique())):
+                    dy=ds[ds['Year']==y].sort_values('Mnum')
+                    f.add_trace(go.Scatter(x=dy['Mnum'],y=dy['PL'],mode='lines+markers',name=f'{y}\u5e74',line=dict(width=3,color=cs[i])))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            x3,x4=st.columns(2)
+            with x3:
+                st.markdown(f"**\u2462 PL \u975e\u54c1\u724c\u8bcd\u4e0ePL ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail['PL'],mode='lines+markers',name=f'PL NB'))
+                f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail['PL'],mode='lines+markers',name=f'PL ALL'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+            with x4:
+                st.markdown(f"**\u2463 PL \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                f=go.Figure()
+                f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['PL'],mode='lines+markers',name=f'PL Total'))
+                f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                st.plotly_chart(f,use_container_width=True)
+
+    st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
+        
