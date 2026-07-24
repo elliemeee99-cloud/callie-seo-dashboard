@@ -196,7 +196,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         # 📊 2. 非品牌词 vs ALL SEO 绝对值走势
         # ------------------------------------------
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-        st.markdown("#### 📊 2. 【非品牌词】、【ALL SEO】与【网站总销售额】综合对比")
+        st.markdown("#### 📊 2. 【非品牌词】与【ALL SEO】销售额总计综合对比")
         with st.container(border=True):
             fig2 = go.Figure()
             fig2.add_trace(go.Scatter(
@@ -211,12 +211,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 line=dict(width=3, color='#8b5cf6'), marker=dict(size=8),
                 hovertemplate='<b>%{x}</b><br>ALL SEO: $%{y:,.2f}<extra></extra>'
             ))
-            fig2.add_trace(go.Scatter(
-                x=df_merge['Month'], y=df_merge['Total_Site'],
-                mode='lines+markers', name='网站总销售额',
-                line=dict(width=3, color='#f59e0b'), marker=dict(size=8),
-                hovertemplate='<b>%{x}</b><br>网站总销售额: $%{y:,.2f}<extra></extra>'
-            ))
             fig2.update_layout(
                 height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
@@ -226,10 +220,31 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             st.plotly_chart(fig2, use_container_width=True)
 
         # ------------------------------------------
-        # ⚡ 3. 销售额月度涨降幅对比
+        # 🏪 3. 网站总销售额月度趋势
         # ------------------------------------------
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-        st.markdown("#### ⚡ 3. 销售额月度涨降幅 (Growth Rate) 对比")
+        st.markdown("#### 🏪 3. 网站总销售额月度趋势")
+        with st.container(border=True):
+            fig_site = go.Figure()
+            fig_site.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Total_Site'],
+                mode='lines+markers', name='网站总销售额',
+                line=dict(width=3, color='#f59e0b'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>网站总销售额: $%{y:,.2f}<extra></extra>'
+            ))
+            fig_site.update_layout(
+                height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$")
+            )
+            st.plotly_chart(fig_site, use_container_width=True)
+        
+        # ------------------------------------------
+        # ⚡ 4. 销售额月度涨降幅对比
+        # ------------------------------------------
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### ⚡ 4. 销售额月度涨降幅 (Growth Rate) 对比")
         with st.container(border=True):
             fig3 = go.Figure()
             fig3.add_trace(go.Scatter(
