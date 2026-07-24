@@ -329,7 +329,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     st.plotly_chart(f,use_container_width=True)
                     tb=ds.pivot_table(index='Year',columns='Mnum',values=sel,aggfunc='sum').round(2)
                     tb.columns=[f'{i}\u6708' for i in range(1,13)]
-                    st.dataframe(tb,use_container_width=True)
                 with z2:
                     st.markdown(f"**\u2461 {sel} \u975e\u54c1\u724c\u8bcd\u4e0e{sel} ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
                     f=go.Figure()
@@ -342,7 +341,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
                     tb2 = pd.DataFrame({'Month':nb_detail['Month'],f'{sel} \u975e\u54c1\u724c($)':nb_detail[sel].round(2),f'{sel} ALL SEO($)':all_detail[sel].round(2)})
-                    st.dataframe(tb2,use_container_width=True,hide_index=True)
                 # ── 第2行 ──
                 z3, z4 = st.columns(2)
                 with z3:
@@ -354,7 +352,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
                         xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
                     st.plotly_chart(f,use_container_width=True)
-                    st.dataframe(site_detail[['Month',sel]].round(2).rename(columns={sel:f'{sel} \u7f51\u7ad9\u603b\u9500\u552e\u989d($)'}),use_container_width=True,hide_index=True)
                 with z4:
                     st.markdown(f"**\u2463 {sel} \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
                     f=go.Figure()
@@ -370,7 +367,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         f'{sel} \u975e\u54c1\u8bcd\u6da8\u8dcc%':nb_detail[sel].pct_change().mul(100).round(2),
                         f'{sel} ALL\u6da8\u8dcc%':all_detail[sel].pct_change().mul(100).round(2),
                         f'{sel} \u7f51\u7ad9\u603b\u6da8\u8dcc%':site_detail[sel].pct_change().mul(100).round(2)})
-                    st.dataframe(gdf,use_container_width=True,hide_index=True)
 else:
     st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
         
