@@ -293,72 +293,72 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         st.markdown("#### 🏪 各站点详细数据")
         
         # CSS: sticky导航 + Google色系胶囊 + 锚点滚动
-        st.markdown('<style>.site-nav-sticky{position:sticky;top:20px;z-index:100}.site-nav-link{display:block;padding:8px 0;margin-bottom:6px;border-radius:20px;border:2px solid;text-align:center;font-weight:700;font-size:13px;text-decoration:none;background:white;transition:all .2s}.site-nav-link:hover{background:#f8f9fa;transform:translateX(2px)}.site-anchor{scroll-margin-top:90px}</style>', unsafe_allow_html=True)
+        st.markdown('<style>.site-nav-fixed{position:fixed;top:80px;z-index:999}.site-nav-link{display:block;padding:8px 0;margin-bottom:6px;border-radius:20px;border:2px solid;text-align:center;font-weight:700;font-size:13px;text-decoration:none;background:white;transition:all .2s}.site-nav-link:hover{background:#f8f9fa;transform:translateX(2px)}.site-anchor{scroll-margin-top:90px}.site-content-push{margin-left:78px}</style>', unsafe_allow_html=True)
         
         all_sites = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
         google_colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
         
-        s_left, s_right = st.columns([0.65, 5])
-        with s_left:
-            st.markdown('<div class="site-nav-sticky">', unsafe_allow_html=True)
-            for ix, site in enumerate(all_sites):
-                c = google_colors[ix % 4]
-                st.markdown(f'<a href="#site-{site}" class="site-nav-link" style="border-color:{c};color:{c};">{site}</a>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        flag_emoji = {'DE':'\U0001f1e9\U0001f1ea','FR':'\U0001f1eb\U0001f1f7','ES':'\U0001f1ea\U0001f1f8','IT':'\U0001f1ee\U0001f1f9','NL':'\U0001f1f3\U0001f1f1','NO':'\U0001f1f3\U0001f1f4','SE':'\U0001f1f8\U0001f1ea','FI':'\U0001f1eb\U0001f1ee','PL':'\U0001f1f5\U0001f1f1'}
         
-        with s_right:
-            for ix, site in enumerate(all_sites):
-                st.markdown(f'<div id="site-{site}" class="site-anchor"></div>', unsafe_allow_html=True)
-                with st.expander(f"\U0001f4cc {site} \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=False):
-                    z1, z2 = st.columns(2)
-                    with z1:
-                        st.markdown(f"**\u2460 {site} \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
-                        ds=nb_detail[['Month',site]].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
-                        ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
-                        f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-                        for i,y in enumerate(sorted(ds['Year'].unique())):
-                            dy=ds[ds['Year']==y].sort_values('Mnum')
-                            f.add_trace(go.Scatter(x=dy['Mnum'],y=dy[site],mode='lines+markers',name=f'{y}\u5e74',
-                                line=dict(width=3,color=cs[i]),marker=dict(size=8,color='#fff',line=dict(color=cs[i],width=2)),
-                                hovertemplate=f'<b>%{{data.name}} %{{x}}</b><br>{site}: $%{{y:,.2f}}<extra></extra>'))
-                        f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
-                            legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
-                            xaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickmode='array',tickvals=list(range(1,13)),ticktext=[f'{i}\u6708' for i in range(1,13)]),
-                            yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
-                        st.plotly_chart(f,use_container_width=True)
-                    with z2:
-                        st.markdown(f"**\u2461 {site} \u975e\u54c1\u724c\u8bcd\u4e0e{site} ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
-                        f=go.Figure()
-                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail[site],mode='lines+markers',name=f'{site} NB',
-                            line=dict(width=3,color='#0ea5e9'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site} NB: $%{{y:,.2f}}<extra></extra>'))
-                        f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail[site],mode='lines+markers',name=f'{site} ALL',
-                            line=dict(width=3,color='#8b5cf6'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site} ALL: $%{{y:,.2f}}<extra></extra>'))
-                        f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
-                            legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
-                            xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
-                        st.plotly_chart(f,use_container_width=True)
-                    z3, z4 = st.columns(2)
-                    with z3:
-                        st.markdown(f"**\u2462 {site} \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
-                        f=go.Figure()
-                        f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail[site],mode='lines+markers',name=f'{site} Total',
-                            line=dict(width=3,color='#f59e0b'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site}: $%{{y:,.2f}}<extra></extra>'))
-                        f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
-                            legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
-                            xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
-                        st.plotly_chart(f,use_container_width=True)
-                    with z4:
-                        st.markdown(f"**\u2463 {site} \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
-                        f=go.Figure()
-                        for lb,src,cl in [(f'{site} NB',nb_detail[site],'#f43f5e'),(f'{site} ALL',all_detail[site],'#10b981'),(f'{site} Total',site_detail[site],'#6366f1')]:
-                            g=src.pct_change()*100
-                            f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5),hovertemplate=f'<b>%{{x}}</b><br>{lb}: %{{y:+.2f}}%<extra></extra>'))
-                        f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
-                        f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
-                            legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
-                            xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',ticksuffix="%",tickformat='.2f'))
-                        st.plotly_chart(f,use_container_width=True)
+        st.markdown('<div class="site-nav-fixed">', unsafe_allow_html=True)
+        for ix, site in enumerate(all_sites):
+            c = google_colors[ix % 4]
+            st.markdown(f'<a href="#site-{site}" class="site-nav-link" style="border-color:{c};color:{c};">{flag_emoji[site]}&nbsp;{site}</a>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="site-content-push">', unsafe_allow_html=True)
+        for ix, site in enumerate(all_sites):
+            st.markdown(f'<div id="site-{site}" class="site-anchor"></div>', unsafe_allow_html=True)
+            with st.expander(f"\U0001f4cc {site} \u7ad9\u70b9 \u2014 4\u7ef4\u5ea6\u8be6\u60c5", expanded=True):
+                z1, z2 = st.columns(2)
+                with z1:
+                    st.markdown(f"**\u2460 {site} \u5386\u5e74\u975e\u54c1\u724c\u8bcd\u9500\u552e\u989d\u5e74\u5ea6\u540c\u6bd4\u8d70\u52bf**")
+                    ds=nb_detail[['Month',site]].copy(); ds['Date']=pd.to_datetime(ds['Month']+'-01')
+                    ds['Year']=ds['Date'].dt.year.astype(str); ds['Mnum']=ds['Date'].dt.month
+                    f=go.Figure(); cs=['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+                    for i,y in enumerate(sorted(ds['Year'].unique())):
+                        dy=ds[ds['Year']==y].sort_values('Mnum')
+                        f.add_trace(go.Scatter(x=dy['Mnum'],y=dy[site],mode='lines+markers',name=f'{y}\u5e74',
+                            line=dict(width=3,color=cs[i]),marker=dict(size=8,color='#fff',line=dict(color=cs[i],width=2)),
+                            hovertemplate=f'<b>%{{data.name}} %{{x}}</b><br>{site}: $%{{y:,.2f}}<extra></extra>'))
+                    f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
+                        legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
+                        xaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickmode='array',tickvals=list(range(1,13)),ticktext=[f'{i}\u6708' for i in range(1,13)]),
+                        yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
+                    st.plotly_chart(f,use_container_width=True)
+                with z2:
+                    st.markdown(f"**\u2461 {site} \u975e\u54c1\u724c\u8bcd\u4e0e{site} ALL SEO\u9500\u552e\u989d\u7efc\u5408\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=nb_detail['Month'],y=nb_detail[site],mode='lines+markers',name=f'{site} NB',
+                        line=dict(width=3,color='#0ea5e9'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site} NB: $%{{y:,.2f}}<extra></extra>'))
+                    f.add_trace(go.Scatter(x=all_detail['Month'],y=all_detail[site],mode='lines+markers',name=f'{site} ALL',
+                        line=dict(width=3,color='#8b5cf6'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site} ALL: $%{{y:,.2f}}<extra></extra>'))
+                    f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
+                        legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
+                        xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
+                    st.plotly_chart(f,use_container_width=True)
+                z3, z4 = st.columns(2)
+                with z3:
+                    st.markdown(f"**\u2462 {site} \u7f51\u7ad9\u603b\u9500\u552e\u989d\u6708\u5ea6\u8d8b\u52bf**")
+                    f=go.Figure()
+                    f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail[site],mode='lines+markers',name=f'{site} Total',
+                        line=dict(width=3,color='#f59e0b'),marker=dict(size=7),hovertemplate=f'<b>%{{x}}</b><br>{site}: $%{{y:,.2f}}<extra></extra>'))
+                    f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
+                        legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
+                        xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
+                    st.plotly_chart(f,use_container_width=True)
+                with z4:
+                    st.markdown(f"**\u2463 {site} \u9500\u552e\u989d\u6708\u5ea6\u6da8\u964d\u5e45\u5bf9\u6bd4**")
+                    f=go.Figure()
+                    for lb,src,cl in [(f'{site} NB',nb_detail[site],'#f43f5e'),(f'{site} ALL',all_detail[site],'#10b981'),(f'{site} Total',site_detail[site],'#6366f1')]:
+                        g=src.pct_change()*100
+                        f.add_trace(go.Scatter(x=nb_detail['Month'],y=g,mode='lines+markers',name=lb,line=dict(width=2,color=cl),marker=dict(size=5),hovertemplate=f'<b>%{{x}}</b><br>{lb}: %{{y:+.2f}}%<extra></extra>'))
+                    f.add_hline(y=0,line_dash="dash",line_color="#94a3b8")
+                    f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),
+                        legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),
+                        xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',ticksuffix="%",tickformat='.2f'))
+                    st.plotly_chart(f,use_container_width=True)
 
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
-        
