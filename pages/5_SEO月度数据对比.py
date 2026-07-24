@@ -52,12 +52,12 @@ def parse_excel_dates(date_list):
 
 def extract_table(df_raw, start_idx, end_idx):
     df = df_raw.iloc[start_idx:end_idx].copy().reset_index(drop=True)
-    if df.empty: return pd.DataFrame()
+    if df.empty: return pd.DataFrame(), pd.DataFrame()
     
     # 强制将第一行设为列名
     df.columns = [str(c).replace('\n', '').strip() for c in df.iloc[0]]
     df = df.iloc[1:].dropna(how='all')
-    if len(df) == 0: return pd.DataFrame()
+    if len(df) == 0: return pd.DataFrame(), pd.DataFrame()
     
     cols = list(df.columns)
     cols[0] = 'RawDate'
@@ -79,9 +79,21 @@ def extract_table(df_raw, start_idx, end_idx):
         df['Total'] = pd.to_numeric(s, errors='coerce').fillna(0)
     else:
         df['Total'] = 0.0
+    
+    # 解析各站点列（DE/FR/ES/IT/NL/NO/SE/FI/PL）
+    country_keywords = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+    country_cols = [c for c in df.columns if c in country_keywords]
+    for col in country_cols:
+        s = df[col].copy()
+        if isinstance(s, pd.DataFrame): s = s.iloc[:, 0]
+        s = s.astype(str).str.replace(r'[$,\s]', '', regex=True)
+        df[col] = pd.to_numeric(s, errors='coerce').fillna(0)
         
     df['Month'] = df['Date'].dt.strftime('%Y-%m')
-    return df.groupby('Month')['Total'].sum().reset_index()
+    
+    monthly_total = df.groupby('Month')['Total'].sum().reset_index()
+    monthly_detail = df.groupby('Month')[country_cols].sum().reset_index() if country_cols else pd.DataFrame()
+    return monthly_total, monthly_detail
 
 # ==========================================
 # 🎯 页面头部与数据持久化上传
@@ -121,14 +133,15 @@ with st.container(border=True):
                     elif '网站总销售额' in row_joined: site_idx = i
             
             if nb_idx != -1 and all_idx != -1 and site_idx != -1:
-                df_nb = extract_table(df_raw, nb_idx, all_idx if all_idx > nb_idx else len(df_raw))
-                df_all = extract_table(df_raw, all_idx, site_idx if site_idx > all_idx else len(df_raw))
-                df_site = extract_table(df_raw, site_idx, len(df_raw))
+                df_nb, nb_detail = extract_table(df_raw, nb_idx, all_idx if all_idx > nb_idx else len(df_raw))
+                df_all, all_detail = extract_table(df_raw, all_idx, site_idx if site_idx > all_idx else len(df_raw))
+                df_site, site_detail = extract_table(df_raw, site_idx, len(df_raw))
                 
-                data_dict = {'nonbrand': df_nb, 'allseo': df_all, 'site': df_site}
+                data_dict = {'nonbrand': df_nb, 'allseo': df_all, 'site': df_site,
+                             'nb_detail': nb_detail, 'all_detail': all_detail, 'site_detail': site_detail}
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
-                st.success("✅ 数据报表完美解析！已识别非品牌词、ALL SEO 与网站总销售额三张子表。")
+                st.success("✅ 数据报表完美解析！已识别三张子表，含9站点逐月明细。")
             else:
                 st.error("❌ 表格结构未能精准匹配！请确保三张表头分别带有'非品牌'、'ALL'与'网站总销售额'字样，并且包含'总计'列。")
                 
@@ -274,5 +287,76 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%", tickformat='.2f')
             )
             st.plotly_chart(fig3, use_container_width=True)
+        # ==========================================
+        # 🏪 5. 各站点详细数据（可折叠）
+        # ==========================================
+        st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
+        with st.expander("🏪 各站点详细数据（含9站点逐月明细）", expanded=False):
+            all_sites = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+            selected_sites = st.multiselect("选择要查看的站点", options=all_sites, default=['DE', 'FR', 'ES', 'IT', 'NL'])
+            
+            if not selected_sites:
+                st.info("👆 请至少选择一个站点")
+            else:
+                colors_site = ['#0ea5e9', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#6366f1', '#ec4899', '#14b8a6', '#f97316']
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown("**非品牌词销售额 - 各站点**")
+                    fig_nb_site = go.Figure()
+                    for i, s in enumerate(selected_sites):
+                        fig_nb_site.add_trace(go.Scatter(x=nb_detail['Month'], y=nb_detail[s],
+                            mode='lines+markers', name=s, line=dict(width=2, color=colors_site[i]), marker=dict(size=5),
+                            hovertemplate=f'<b>%{{x}}</b><br>{s}: $%{{y:,.2f}}<extra></extra>'))
+                    fig_nb_site.update_layout(height=300, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=10,r=10,t=5,b=10), legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                    st.plotly_chart(fig_nb_site, use_container_width=True)
+                    st.dataframe(nb_detail[['Month'] + selected_sites].round(2), use_container_width=True, hide_index=True)
+                
+                with c2:
+                    st.markdown("**ALL SEO销售额 - 各站点**")
+                    fig_all_site = go.Figure()
+                    for i, s in enumerate(selected_sites):
+                        fig_all_site.add_trace(go.Scatter(x=all_detail['Month'], y=all_detail[s],
+                            mode='lines+markers', name=s, line=dict(width=2, color=colors_site[i]), marker=dict(size=5),
+                            hovertemplate=f'<b>%{{x}}</b><br>{s}: $%{{y:,.2f}}<extra></extra>'))
+                    fig_all_site.update_layout(height=300, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=10,r=10,t=5,b=10), legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                    st.plotly_chart(fig_all_site, use_container_width=True)
+                    st.dataframe(all_detail[['Month'] + selected_sites].round(2), use_container_width=True, hide_index=True)
+                
+                c3, c4 = st.columns(2)
+                with c3:
+                    st.markdown("**网站总销售额 - 各站点**")
+                    fig_site_d = go.Figure()
+                    for i, s in enumerate(selected_sites):
+                        fig_site_d.add_trace(go.Scatter(x=site_detail['Month'], y=site_detail[s],
+                            mode='lines+markers', name=s, line=dict(width=2, color=colors_site[i]), marker=dict(size=5),
+                            hovertemplate=f'<b>%{{x}}</b><br>{s}: $%{{y:,.2f}}<extra></extra>'))
+                    fig_site_d.update_layout(height=300, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=10,r=10,t=5,b=10), legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                    st.plotly_chart(fig_site_d, use_container_width=True)
+                    st.dataframe(site_detail[['Month'] + selected_sites].round(2), use_container_width=True, hide_index=True)
+                
+                with c4:
+                    st.markdown("**月度涨跌幅 - 各站点 (%)**")
+                    fig_growth_site = go.Figure()
+                    for i, s in enumerate(selected_sites):
+                        growth = nb_detail[s].pct_change() * 100
+                        fig_growth_site.add_trace(go.Scatter(x=nb_detail['Month'], y=growth,
+                            mode='lines+markers', name=s, line=dict(width=2, color=colors_site[i]), marker=dict(size=5),
+                            hovertemplate=f'<b>%{{x}}</b><br>{s}: %{{y:+.2f}}%<extra></extra>'))
+                    fig_growth_site.add_hline(y=0, line_dash="dash", line_color="#94a3b8")
+                    fig_growth_site.update_layout(height=300, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=10,r=10,t=5,b=10), legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
+                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
+                        yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%", tickformat='.2f'))
+                    st.plotly_chart(fig_growth_site, use_container_width=True)
+                    growth_tb = nb_detail[['Month'] + selected_sites].pct_change().mul(100).round(2)
+                    st.dataframe(growth_tb, use_container_width=True, hide_index=True)
 else:
     st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
+        
