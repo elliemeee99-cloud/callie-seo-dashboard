@@ -163,6 +163,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
     nb_detail = st.session_state['monthly_data']['nb_detail']
     all_detail = st.session_state['monthly_data']['all_detail']
     site_detail = st.session_state['monthly_data']['site_detail']
+    site_detail = st.session_state['monthly_data']['site_detail']
     
     if df_nb.empty or df_all.empty or df_site.empty:
         st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
@@ -652,4 +653,3 @@ with s_right:
         f.update_layout(height=330,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5),xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category'),yaxis=dict(showgrid=True,gridcolor='#f1f5f9',tickprefix="$"))
         st.plotly_chart(f,use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
