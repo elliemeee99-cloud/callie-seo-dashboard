@@ -10,12 +10,12 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 
 # 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
-CACHE_FILE = "seo_monthly_sales_v7.pkl"
+CACHE_FILE = "seo_monthly_sales_v8.pkl"
 
 # ==========================================
 # 🧭 极限防乱码单行 CSS + 6栏导航
 # ==========================================
-compressed_css = """<div id="top-anchor"></div><style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 6px !important;text-align:center !important;display:flex !important;justify-content:center !important;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;white-space:nowrap;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:14px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}</style><a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>"""
+compressed_css = """<div id="top-anchor"></div><style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 6px !important;text-align:center !important;display:flex !important;justify-content:center !;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;white-space:nowrap;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:14px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}</style><a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>"""
 st.markdown(compressed_css, unsafe_allow_html=True)
 
 spacer_left, nav1, nav2, nav3, nav4, nav5, nav6, spacer_right = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
@@ -108,26 +108,29 @@ with st.container(border=True):
             target_sheet = 'SEO销售额汇总' if 'SEO销售额汇总' in xls.sheet_names else xls.sheet_names[0]
             df_raw = pd.read_excel(xls, sheet_name=target_sheet, header=None)
             
-            # 智能切割上下表
+            # 智能切割三张子表
             nb_idx = -1
             all_idx = -1
+            site_idx = -1
             for i, row in df_raw.iterrows():
                 row_strs = [str(x).replace('\n', '').strip().upper() for x in row if pd.notna(x)]
                 row_joined = "".join(row_strs)
                 if '总计' in row_joined or '合计' in row_joined:
                     if '非品牌' in row_joined: nb_idx = i
                     elif 'ALL' in row_joined: all_idx = i
+                    elif '网站总销售额' in row_joined: site_idx = i
             
-            if nb_idx != -1 and all_idx != -1:
+            if nb_idx != -1 and all_idx != -1 and site_idx != -1:
                 df_nb = extract_table(df_raw, nb_idx, all_idx if all_idx > nb_idx else len(df_raw))
-                df_all = extract_table(df_raw, all_idx, len(df_raw))
+                df_all = extract_table(df_raw, all_idx, site_idx if site_idx > all_idx else len(df_raw))
+                df_site = extract_table(df_raw, site_idx, len(df_raw))
                 
-                data_dict = {'nonbrand': df_nb, 'allseo': df_all}
+                data_dict = {'nonbrand': df_nb, 'allseo': df_all, 'site': df_site}
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
-                st.success("✅ 数据报表完美解析！首月数据丢失与数值错位问题已彻底修复！")
+                st.success("✅ 数据报表完美解析！已识别非品牌词、ALL SEO 与网站总销售额三张子表。")
             else:
-                st.error("❌ 表格结构未能精准匹配！请确保上下两张表头分别带有'非品牌'与'ALL'字样，并且包含'总计'列。")
+                st.error("❌ 表格结构未能精准匹配！请确保三张表头分别带有'非品牌'、'ALL'与'网站总销售额'字样，并且包含'总计'列。")
                 
         except Exception as e:
             st.error(f"❌ 解析失败，请检查文件格式。报错详情: {e}")
@@ -143,15 +146,19 @@ if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
 if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_data'], dict) and 'nonbrand' in st.session_state['monthly_data']:
     df_nb = st.session_state['monthly_data']['nonbrand']
     df_all = st.session_state['monthly_data']['allseo']
+    df_site = st.session_state['monthly_data']['site']
     
-    if df_nb.empty or df_all.empty:
-        st.warning("⚠️ 提取到的核心数据为空，请检查报表内数据格式是否正确。")
+    if df_nb.empty or df_all.empty or df_site.empty:
+        st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
     else:
         # 数据融合，计算涨降幅
+        df_site_renamed = df_site.rename(columns={'Total': 'Total_Site'})
         df_merge = pd.merge(df_nb, df_all, on='Month', how='outer', suffixes=('_NB', '_All')).fillna(0)
+        df_merge = pd.merge(df_merge, df_site_renamed, on='Month', how='left').fillna(0)
         df_merge = df_merge.sort_values('Month').reset_index(drop=True)
         df_merge['NB_Growth'] = df_merge['Total_NB'].pct_change() * 100
         df_merge['All_Growth'] = df_merge['Total_All'].pct_change() * 100
+        df_merge['Site_Growth'] = df_merge['Total_Site'].pct_change() * 100
 
         # ------------------------------------------
         # 📉 1. 历年【非品牌词销售额】同比走势
@@ -173,7 +180,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     mode='lines+markers', name=f'{year}年',
                     line=dict(width=3, color=colors[i % len(colors)]),
                     marker=dict(size=8, color='#ffffff', line=dict(color=colors[i % len(colors)], width=2)),
-                    # 🔥 修复完毕：干净的文字，纯正的美元符，绝无额外的百分号或“月”字
                     hovertemplate='<b>%{data.name} %{x}</b><br>非品牌词总计: $%{y:,.2f}<extra></extra>'
                 ))
                 
@@ -189,7 +195,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         # 📊 2. 非品牌词 vs ALL SEO 绝对值走势
         # ------------------------------------------
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-        st.markdown("#### 📊 2. 【非品牌词】与【ALL SEO】销售额总计综合对比")
+        st.markdown("#### 📊 2. 【非品牌词】、【ALL SEO】与【网站总销售额】综合对比")
         with st.container(border=True):
             fig2 = go.Figure()
             fig2.add_trace(go.Scatter(
@@ -203,6 +209,12 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 mode='lines+markers', name='ALL SEO销售额总计',
                 line=dict(width=3, color='#8b5cf6'), marker=dict(size=8),
                 hovertemplate='<b>%{x}</b><br>ALL SEO: $%{y:,.2f}<extra></extra>'
+            ))
+            fig2.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Total_Site'],
+                mode='lines+markers', name='网站总销售额',
+                line=dict(width=3, color='#f59e0b'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>网站总销售额: $%{y:,.2f}<extra></extra>'
             ))
             fig2.update_layout(
                 height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
@@ -231,32 +243,21 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 line=dict(width=3, color='#10b981'), marker=dict(size=8),
                 hovertemplate='<b>%{x}</b><br>ALL SEO涨跌: %{y:+.2f}%<extra></extra>'
             ))
+            fig3.add_trace(go.Scatter(
+                x=df_merge['Month'], y=df_merge['Site_Growth'],
+                mode='lines+markers', name='网站总销售额涨跌幅(%)',
+                line=dict(width=3, color='#6366f1'), marker=dict(size=8),
+                hovertemplate='<b>%{x}</b><br>网站总销售额涨跌: %{y:+.2f}%<extra></extra>'
+            ))
             
             fig3.add_hline(y=0, line_dash="dash", line_color="#94a3b8", annotation_text="0% 基准线")
             fig3.update_layout(
                 height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                 xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'),
-                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%")
+                yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%", tickformat='.2f')
             )
             st.plotly_chart(fig3, use_container_width=True)
-
-        # ------------------------------------------
-        # 💡 4. 智能数据分析与总结
-        # ------------------------------------------
-        st.markdown("### 💡 自动数据洞察报告")
-        st.info("""
-        **📌 基于以上三大核心图表的业务洞察分析：**
-        
-        1. **年度同环比成长性（参考图 1）**：
-           通过折线纵向对比，可直观判定业务在今年的**增长动能**。若今年折线（如 2026 年）整体浮于去年上方，且波峰未滞后，说明我们的非品牌词 SEO 获取了真实的同比增量突破，未受到行业大盘淡季的过度影响。
-           
-        2. **非品牌词与整体大盘粘性（参考图 2）**：
-           非品牌词的曲线在 ALL SEO 下方的占比反映了我们**长尾词矩阵**的健康度。当两条曲线起伏贴合极其紧密时，意味着我们的长尾排名极其稳固，甚至已经成为拉动全盘 SEO 的决定性力量。
-           
-        3. **策略波动敏感度分析（参考图 3）**：
-           在涨降幅比值中，若【非品牌词（红线）】的涨幅**明显超越**【ALL SEO（绿线）】，标志着我们在小语种特定类目上的优化取得了独立于大盘的超额红利；反之，若跌幅大于均值，则需重点排查近期核心算法是否对长尾泛词页面造成了冲击。
-        """)
 
 else:
     st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
