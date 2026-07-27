@@ -141,21 +141,6 @@ with st.container(border=True):
                              'nb_detail': nb_detail, 'all_detail': all_detail, 'site_detail': site_detail}
                 # 解析流量数据表单 (SEO月度流量数据汇总)
                 # 灵活匹配表单名（支持全称、简称、带空格等多种写法）
-                _traffic_sheet_name = None
-                for _sn in xls.sheet_names:
-                    _sn_clean = _sn.strip().replace(' ', '').replace('　', '')
-                    if 'SEO月度流量数据汇总' == _sn_clean or '流量' in _sn_clean or '流量数据' in _sn_clean:
-                        _traffic_sheet_name = _sn
-                        break
-                if _traffic_sheet_name:
-                    try:
-                        df_traffic_raw = pd.read_excel(xls, sheet_name=_traffic_sheet_name, header=None)
-                        _parse_traffic_sheet(df_traffic_raw, data_dict)
-                        st.info(f"✅ 已识别流量表单: [{_traffic_sheet_name}]，解析 {len(data_dict.get('traffic_months',[]))} 个月度数据")
-                    except Exception as te:
-                        st.warning(f"⚠️ 流量数据表解析异常（不影响销售额看板）: {te}")
-                else:
-                    st.warning(f"⚠️ 未找到流量数据表单（当前表单: {xls.sheet_names}），流量看板不可用。")
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
                 st.success("✅ 数据报表完美解析！已识别销售额(3子表)与流量汇总表，含9站点逐月明细。")
@@ -168,73 +153,6 @@ with st.container(border=True):
 if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
     try: st.session_state['monthly_data'] = pd.read_pickle(CACHE_FILE)
     except: pass
-
-# ==========================================
-# 📂 本地文件自动加载（GitHub同步的Excel）
-# ==========================================
-st.markdown("<hr style='margin-top:8px;margin-bottom:12px;border-color:#e2e8f0;'/>", unsafe_allow_html=True)
-col_path, col_load = st.columns([4, 1])
-with col_path:
-    local_path = st.text_input(
-        "📁 本地Excel路径（GitHub同步文件，填写后自动加载）",
-        value=st.session_state.get('local_excel_path', ''),
-        placeholder="例如: /Users/elliekim/Documents/Codex/data/seo_data.xlsx",
-        key='local_path_input'
-    )
-with col_load:
-    st.write("")
-    st.write("")
-    if st.button("从路径加载", use_container_width=True):
-        if local_path and os.path.exists(local_path):
-            try:
-                with open(local_path, 'rb') as f:
-                    loaded = pd.ExcelFile(f)
-                    target_sheet = 'SEO销售额汇总' if 'SEO销售额汇总' in loaded.sheet_names else loaded.sheet_names[0]
-                    df_raw2 = pd.read_excel(loaded, sheet_name=target_sheet, header=None)
-                    
-                    nb_idx2=-1; all_idx2=-1; site_idx2=-1
-                    for i2, row2 in df_raw2.iterrows():
-                        rs2 = [str(x).replace(chr(10),'').strip().upper() for x in row2 if pd.notna(x)]
-                        rj2 = "".join(rs2)
-                        if '总计' in rj2 or '合计' in rj2:
-                            if '非品牌' in rj2: nb_idx2 = i2
-                            elif 'ALL' in rj2: all_idx2 = i2
-                            elif '网站总销售额' in rj2: site_idx2 = i2
-                    
-                    if nb_idx2 != -1 and all_idx2 != -1 and site_idx2 != -1:
-                        df_nb2, nb_d2 = extract_table(df_raw2, nb_idx2, all_idx2 if all_idx2 > nb_idx2 else len(df_raw2))
-                        df_all2, all_d2 = extract_table(df_raw2, all_idx2, site_idx2 if site_idx2 > all_idx2 else len(df_raw2))
-                        df_site2, site_d2 = extract_table(df_raw2, site_idx2, len(df_raw2))
-                        
-                        dd2 = {'nonbrand':df_nb2,'allseo':df_all2,'site':df_site2,
-                               'nb_detail':nb_d2,'all_detail':all_d2,'site_detail':site_d2}
-                        
-                        _traffic_sn2 = None
-                        for _sn2 in loaded.sheet_names:
-                            _sn2c = _sn2.strip().replace(' ', '').replace('\u3000', '')
-                            if 'SEO月度流量数据汇总' == _sn2c or '流量' in _sn2c or '流量数据' in _sn2c:
-                                _traffic_sn2 = _sn2
-                                break
-                        if _traffic_sn2:
-                            try:
-                                tf2 = pd.read_excel(loaded, sheet_name=_traffic_sn2, header=None)
-                                _parse_traffic_sheet(tf2, dd2)
-                            except Exception as te2:
-                                st.warning(f"流量表解析异常: {te2}")
-                        
-                        st.session_state['monthly_data'] = dd2
-                        pd.to_pickle(dd2, CACHE_FILE)
-                        st.session_state['local_excel_path'] = local_path
-                        st.success(f"✅ 已从本地文件加载数据: {os.path.basename(local_path)}")
-                        st.rerun()
-                    else:
-                        st.error("表格结构不匹配，请检查文件。")
-            except Exception as le:
-                st.error(f"加载失败: {le}")
-        else:
-            st.error("文件路径不存在，请检查。")
-
-# ==========================================
 # 📈 深度对比图表渲染
 # ==========================================
 # 严格检验缓存数据是否合法，避免旧缓存造成 KeyError
@@ -741,14 +659,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
             if not traffic_months:
                 st.warning("⚠️ 流量数据未找到。请检查Excel是否包含「SEO月度流量数据汇总」表单，或点击「清空本地缓存」后重新上传。")
-                # 显示诊断信息
-                if st.checkbox("🔍 显示诊断信息", key="traffic_debug"):
-                    st.markdown("**当前 session_state 中的键:**")
-                    st.write(list(st.session_state.get('monthly_data', {}).keys()))
-                    st.markdown("**traffic_months 内容:**")
-                    st.write(traffic_months)
-                    st.markdown("**traffic_total 中的站点:**")
-                    st.write(list(traffic_total.keys()))
             else:
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### 1. 各站点月度总流量趋势 (2025.01 ~ 至今)")
