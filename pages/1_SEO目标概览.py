@@ -51,7 +51,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🧭 顶部横向导航栏 (安全、居中、稳定版 - 4个按钮)
+# 🧭 顶部横向导航栏 (安全、居中、稳定版 - 6个按钮)
 # ==========================================
 st.markdown("""
 <style>
@@ -65,13 +65,14 @@ st.markdown("""
     background-color: #ffffff !important; 
     border: 1px solid #cbd5e1 !important; 
     border-radius: 12px !important; 
-    padding: 12px 10px !important; 
+    padding: 12px 6px !important; 
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     transition: all 0.25s ease !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     text-decoration: none !important;
+    white-space: nowrap;
 }
 [data-testid="stPageLink-NavLink"]:hover {
     background-color: #ffffff !important;
@@ -82,7 +83,7 @@ st.markdown("""
 [data-testid="stPageLink-NavLink"] p {
     font-weight: 800 !important;
     color: #1e293b !important;
-    font-size: 16px !important; 
+    font-size: 14px !important; 
     margin: 0 !important;
 }
 
@@ -94,17 +95,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔥 利用 Streamlit 原生 columns 设置左右空白占位符，实现完美的安全居中 (扩展为4个按钮)
-spacer_left, nav1, nav2, nav3, nav4, spacer_right = st.columns([0.5, 1.2, 1.2, 1.2, 1.2, 0.5])
+spacer_left, nav1, nav2, nav3, nav4, nav5, nav6, spacer_right = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
 
-with nav1:
-    st.page_link("app.py", label="App 首页", icon="🏠")
-with nav2:
-    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav3:
-    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with nav4:
-    st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
+with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with nav5: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
+with nav6: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
 
 st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
 
@@ -428,7 +426,9 @@ if data_dict:
         t_total_rate = (total_traffic_actual / total_traffic_target * 100) if total_traffic_target > 0 else 0
         capped_t_rate = min(t_total_rate, 100)
 
-        # 销售额目标进度
+        # ------------------
+        # 1. 销售额目标进度
+        # ------------------
         st.markdown("### 💰 销售额目标进度")
         s_cheer = "🎉 完美达标！" if s_total_rate >= 100 else ("🔥 销售额超前！" if s_total_rate >= time_progress_rate else "✨ 销售额加速中！")
         with st.container(border=True):
@@ -490,6 +490,7 @@ if data_dict:
                     )
                     st.markdown(site_html, unsafe_allow_html=True)
 
+        # 全局 MTD 销售同环比
         st.markdown("### 📈 全局 MTD 销售同环比")
         with st.container(border=True):
             if not df_hist.empty:
@@ -512,8 +513,9 @@ if data_dict:
                 with col_m2: st.metric(label=f"上月同期 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", value=f"${total_mom_historical:,.2f}", delta=f"{((total_sales_actual - total_mom_historical) / total_mom_historical) * 100:+.1f}% (环比)" if total_mom_historical > 0 else "0.0% (无历史)")
                 with col_m3: st.metric(label=f"去年同期 ({start_of_last_year_month.strftime('%Y/%m/%d')}-{end_of_last_year_mtd.strftime('%m/%d')})", value=f"${total_yoy_historical:,.2f}", delta=f"{((total_sales_actual - total_yoy_historical) / total_yoy_historical) * 100:+.1f}% (同比)" if total_yoy_historical > 0 else "0.0% (无历史)")
             else:
-                st.info("尚未在表单中抓取到有效的历史同环比数据。")
+                st.info("尚未在表单中抓取到有效的历史同环比销售数据。")
 
+        # 本月各站点每日销售明细
         st.markdown("### 🗄️ 本月各站点每日销售明细")
         with st.container(border=True):
             if not df_hist.empty:
@@ -548,10 +550,14 @@ if data_dict:
                 else:
                     st.info("💡 当前月份暂无每日销售明细数据。")
             else:
-                st.info("💡 尚未抓取到任何历史销售数据。")
+                st.info("💡 尚未抓取到任何历史销售明细数据。")
 
         st.write("---")
-        st.markdown("### 📊 SEO流量目标进度")
+
+        # ------------------
+        # 2. SEO流量目标进度
+        # ------------------
+        st.markdown("### 🌊 SEO流量目标进度")
         t_cheer = "🎉 流量完美达标！" if t_total_rate >= 100 else ("🌊 流量超前涌入！" if t_total_rate >= time_progress_rate else "✨ 流量蓄力中，冲鸭！")
         with st.container(border=True):
             col_t1, col_t2 = st.columns([1, 2.5])
@@ -612,6 +618,33 @@ if data_dict:
                     )
                     st.markdown(site_html, unsafe_allow_html=True)
 
+        # 🔥 新增：全局 MTD 流量同环比
+        st.markdown("### 📈 全局 MTD 流量同环比")
+        with st.container(border=True):
+            if not df_traffic.empty:
+                try:
+                    start_of_last_month = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
+                    end_of_last_month_mtd = start_of_last_month + pd.Timedelta(days=current_day - 1)
+                except:
+                    start_of_last_month = start_of_current_month - pd.DateOffset(months=1)
+                    end_of_last_month_mtd = start_of_last_month + pd.DateOffset(days=current_day - 1)
+                start_of_last_year_month = start_of_current_month - pd.DateOffset(years=1)
+                end_of_last_year_mtd = start_of_last_year_month + pd.DateOffset(days=current_day - 1)
+                
+                mask_mom_t = (df_traffic['Date'] >= pd.to_datetime(start_of_last_month)) & (df_traffic['Date'] <= pd.to_datetime(end_of_last_month_mtd))
+                total_mom_t_historical = df_traffic[mask_mom_t]['Value'].sum()
+                
+                mask_yoy_t = (df_traffic['Date'] >= pd.to_datetime(start_of_last_year_month)) & (df_traffic['Date'] <= pd.to_datetime(end_of_last_year_mtd))
+                total_yoy_t_historical = df_traffic[mask_yoy_t]['Value'].sum()
+                
+                col_tm1, col_tm2, col_tm3 = st.columns(3)
+                with col_tm1: st.metric(label=f"当前本月累计 (1日-{current_day}日)", value=f"{total_traffic_actual:,.0f}")
+                with col_tm2: st.metric(label=f"上月同期 ({start_of_last_month.strftime('%m/%d')}-{end_of_last_month_mtd.strftime('%m/%d')})", value=f"{total_mom_t_historical:,.0f}", delta=f"{((total_traffic_actual - total_mom_t_historical) / total_mom_t_historical) * 100:+.1f}% (环比)" if total_mom_t_historical > 0 else "0.0% (无历史)")
+                with col_tm3: st.metric(label=f"去年同期 ({start_of_last_year_month.strftime('%Y/%m/%d')}-{end_of_last_year_mtd.strftime('%m/%d')})", value=f"{total_yoy_t_historical:,.0f}", delta=f"{((total_traffic_actual - total_yoy_t_historical) / total_yoy_t_historical) * 100:+.1f}% (同比)" if total_yoy_t_historical > 0 else "0.0% (无历史)")
+            else:
+                st.info("尚未在表单中抓取到有效的历史同环比流量数据。")
+
+        # 本月各站点每日SEO流量明细
         st.markdown("### 🗄️ 本月各站点每日SEO流量明细")
         with st.container(border=True):
             if not df_traffic.empty:
