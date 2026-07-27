@@ -7,34 +7,10 @@ import plotly.graph_objects as go
 # ==========================================
 # 网页基础设置
 # ==========================================
-
-def _parse_excel_to_dict(xls_file):
-    """解析Excel并返回data_dict"""
-    import pandas as _pd
-    _xls = _pd.ExcelFile(xls_file)
-    _target = 'SEO销售额汇总' if 'SEO销售额汇总' in _xls.sheet_names else _xls.sheet_names[0]
-    _raw = _pd.read_excel(_xls, sheet_name=_target, header=None)
-    _nb = _all = _site = -1
-    for i, row in _raw.iterrows():
-        _strs = [str(x).replace("\n","").strip().upper() for x in row if _pd.notna(x)]
-        _joined = "".join(_strs)
-        if "'\u603b\u8ba1'" in _joined or "'\u5408\u8ba1'" in _joined:
-            if "'\u975e\u54c1\u724c'" in _joined: _nb = i
-            elif 'ALL' in _joined: _all = i
-            elif "'\u7f51\u7ad9\u603b\u9500\u552e\u989d'" in _joined: _site = i
-    if _nb < 0 or _all < 0 or _site < 0:
-        return None
-    _nb_df, _nb_det = extract_table(_raw, _nb, _all if _all > _nb else len(_raw))
-    _all_df, _all_det = extract_table(_raw, _all, _site if _site > _all else len(_raw))
-    _site_df, _site_det = extract_table(_raw, _site, len(_raw))
-    return {'nonbrand': _nb_df, 'allseo': _all_df, 'site': _site_df,
-            'nb_detail': _nb_det, 'all_detail': _all_det, 'site_detail': _site_det}
-
 st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 
 # 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
 CACHE_FILE = "seo_monthly_sales_v8.pkl"
-DEFAULT_EXCEL = "Callie小语种SEO 整体数据情况6月.xlsx"
 
 # ==========================================
 # 🧭 极限防乱码单行 CSS + 6栏导航
@@ -171,17 +147,6 @@ with st.container(border=True):
                 
         except Exception as e:
             st.error(f"❌ 解析失败，请检查文件格式。报错详情: {e}")
-
-
-if 'monthly_data' not in st.session_state:
-    if os.path.exists(DEFAULT_EXCEL):
-        try:
-            _loaded = _parse_excel_to_dict(DEFAULT_EXCEL)
-            if _loaded is not None:
-                st.session_state['monthly_data'] = _loaded
-                pd.to_pickle(_loaded, CACHE_FILE)
-        except:
-            pass
 
 if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
     try: st.session_state['monthly_data'] = pd.read_pickle(CACHE_FILE)
@@ -331,6 +296,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         
         # ------------------------------------------
         
+
 
         st.markdown("### \U0001f3ea 各站点详细数据")
         st.markdown('<style>.country-nav{position:fixed;top:5.5rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
@@ -663,6 +629,43 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 f.add_trace(go.Scatter(x=site_detail['Month'],y=site_detail['PL'],mode='lines+markers',name=f'PL Total'))
                 f.update_layout(height=300,legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
                 st.plotly_chart(f,use_container_width=True)
+
+
+def _parse_traffic_sheet(raw2, result):
+    import pandas as _pd
+    _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
+    _months = []; _traffic_total = {s: [] for s in _sites}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 0]
+        if _pd.isna(d): continue
+        dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else d
+        _months.append(dt.strftime('%Y-%m'))
+        for idx, s in enumerate(_sites):
+            v = raw2.iloc[ri, 1+idx]
+            _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_months'] = _months; result['traffic_total'] = _traffic_total
+    _onsite = {'DE':[],'FR':[],'IT':[]}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 11]
+        if _pd.isna(d): continue
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 12+idx]
+            _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_onsite'] = _onsite
+    _blog = {'DE':[],'FR':[],'IT':[]}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 16]
+        if _pd.isna(d): continue
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 17+idx]
+            _blog[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_blog'] = _blog
+
+    # traffic data loading
+    traffic_months = st.session_state['monthly_data'].get('traffic_months', [])
+    traffic_total = st.session_state['monthly_data'].get('traffic_total', {})
+    traffic_onsite = st.session_state['monthly_data'].get('traffic_onsite', {})
+    traffic_blog = st.session_state['monthly_data'].get('traffic_blog', {})
 
     st.info("👈 您的缓存池为空。请在上方上传最新整理好的《SEO 整体数据情况》台账以激活对比引擎。")
         
