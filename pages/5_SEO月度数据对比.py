@@ -760,7 +760,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 st.markdown(f"""<div class="country-nav">
                 <div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
                     <span style="font-size:18px;">\U0001f4cd</span> 流量站点</div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
                 <a href="#tjump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE 德国</a>
                 <a href="#tjump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR 法国</a>
                 <a href="#tjump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES 西班牙</a>
@@ -774,285 +774,285 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 </div>""", unsafe_allow_html=True)
 
                 st.markdown("### \U0001f4cc 各站点流量详情")
-            st.markdown(f'<div id="tjump-DE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 DE 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 DE 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["DE"],mode="lines+markers",name=f'DE 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 DE 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"DE":traffic_total["DE"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["DE"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 DE 站内流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["DE"],mode="lines+markers",name=f'DE 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x4:
-                    st.markdown(f"**\u2463 DE Blog流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["DE"],mode="lines+markers",name=f'DE Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-            st.markdown(f'<div id="tjump-FR" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 FR 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 FR 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["FR"],mode="lines+markers",name=f'FR 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 FR 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"FR":traffic_total["FR"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["FR"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 FR 站内流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["FR"],mode="lines+markers",name=f'FR 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x4:
-                    st.markdown(f"**\u2463 FR Blog流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["FR"],mode="lines+markers",name=f'FR Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-            st.markdown(f'<div id="tjump-ES" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 ES 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 ES 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["ES"],mode="lines+markers",name=f'ES 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 ES 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"ES":traffic_total["ES"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["ES"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
-            st.markdown(f'<div id="tjump-IT" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 IT 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 IT 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["IT"],mode="lines+markers",name=f'IT 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 IT 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"IT":traffic_total["IT"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["IT"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 IT 站内流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["IT"],mode="lines+markers",name=f'IT 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x4:
-                    st.markdown(f"**\u2463 IT Blog流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["IT"],mode="lines+markers",name=f'IT Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-            st.markdown(f'<div id="tjump-NL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 NL 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 NL 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["NL"],mode="lines+markers",name=f'NL 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 NL 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"NL":traffic_total["NL"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["NL"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
-            st.markdown(f'<div id="tjump-NO" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 NO 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 NO 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["NO"],mode="lines+markers",name=f'NO 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 NO 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"NO":traffic_total["NO"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["NO"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
-            st.markdown(f'<div id="tjump-SE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 SE 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 SE 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["SE"],mode="lines+markers",name=f'SE 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 SE 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"SE":traffic_total["SE"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["SE"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
-            st.markdown(f'<div id="tjump-FI" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 FI 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 FI 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["FI"],mode="lines+markers",name=f'FI 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 FI 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"FI":traffic_total["FI"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["FI"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
-            st.markdown(f'<div id="tjump-PL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-            with st.expander(f"📌 PL 站点 — 流量详情", expanded=True):
-                x1,x2=st.columns(2)
-                with x1:
-                    st.markdown(f"**\u2460 PL 月度总流量趋势**")
-                    f_t=go.Figure()
-                    f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["PL"],mode="lines+markers",name=f'PL 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
-                    st.plotly_chart(f_t,use_container_width=True)
-                with x2:
-                    st.markdown(f"**\u2461 PL 流量年度同比**")
-                    tdf=pd.DataFrame({'Month':traffic_months,"PL":traffic_total["PL"]})
-                    tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
-                    tdf['Year']=tdf['Date'].dt.year.astype(str)
-                    tdf['Mnum']=tdf['Date'].dt.month
-                    f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
-                    for i,y in enumerate(sorted(tdf['Year'].unique())):
-                        dy=tdf[tdf['Year']==y].sort_values('Mnum')
-                        f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["PL"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
-                    f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
-                    f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
-                    st.plotly_chart(f_t,use_container_width=True)
-                x3,x4=st.columns(2)
-                with x3:
-                    st.markdown(f"**\u2462 站内流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
-                with x4:
-                    st.markdown(f"**\u2463 Blog流量数据**")
-                    st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-DE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 DE 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 DE 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["DE"],mode="lines+markers",name=f'DE 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 DE 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"DE":traffic_total["DE"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["DE"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 DE 站内流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["DE"],mode="lines+markers",name=f'DE 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x4:
+                        st.markdown(f"**\u2463 DE Blog流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["DE"],mode="lines+markers",name=f'DE Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                st.markdown(f'<div id="tjump-FR" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 FR 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 FR 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["FR"],mode="lines+markers",name=f'FR 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 FR 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"FR":traffic_total["FR"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["FR"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 FR 站内流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["FR"],mode="lines+markers",name=f'FR 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x4:
+                        st.markdown(f"**\u2463 FR Blog流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["FR"],mode="lines+markers",name=f'FR Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                st.markdown(f'<div id="tjump-ES" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 ES 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 ES 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["ES"],mode="lines+markers",name=f'ES 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 ES 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"ES":traffic_total["ES"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["ES"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-IT" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 IT 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 IT 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["IT"],mode="lines+markers",name=f'IT 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 IT 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"IT":traffic_total["IT"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["IT"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 IT 站内流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_onsite["IT"],mode="lines+markers",name=f'IT 站内',line=dict(width=2,color="#f59e0b"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x4:
+                        st.markdown(f"**\u2463 IT Blog流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_blog["IT"],mode="lines+markers",name=f'IT Blog',line=dict(width=2,color="#8b5cf6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                st.markdown(f'<div id="tjump-NL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 NL 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 NL 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["NL"],mode="lines+markers",name=f'NL 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 NL 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"NL":traffic_total["NL"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["NL"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-NO" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 NO 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 NO 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["NO"],mode="lines+markers",name=f'NO 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 NO 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"NO":traffic_total["NO"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["NO"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-SE" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 SE 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 SE 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["SE"],mode="lines+markers",name=f'SE 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 SE 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"SE":traffic_total["SE"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["SE"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-FI" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 FI 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 FI 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["FI"],mode="lines+markers",name=f'FI 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 FI 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"FI":traffic_total["FI"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["FI"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
+                st.markdown(f'<div id="tjump-PL" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                with st.expander(f"📌 PL 站点 — 流量详情", expanded=True):
+                    x1,x2=st.columns(2)
+                    with x1:
+                        st.markdown(f"**\u2460 PL 月度总流量趋势**")
+                        f_t=go.Figure()
+                        f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total["PL"],mode="lines+markers",name=f'PL 总流量',line=dict(width=2,color="#3b82f6"),marker=dict(size=6)))
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type="category",tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    with x2:
+                        st.markdown(f"**\u2461 PL 流量年度同比**")
+                        tdf=pd.DataFrame({'Month':traffic_months,"PL":traffic_total["PL"]})
+                        tdf['Date']=pd.to_datetime(tdf['Month']+'-01')
+                        tdf['Year']=tdf['Date'].dt.year.astype(str)
+                        tdf['Mnum']=tdf['Date'].dt.month
+                        f_t=go.Figure();cs_t=["#10b981","#3b82f6","#f59e0b","#8b5cf6"]
+                        for i,y in enumerate(sorted(tdf['Year'].unique())):
+                            dy=tdf[tdf['Year']==y].sort_values('Mnum')
+                            f_t.add_trace(go.Scatter(x=dy['Mnum'],y=dy["PL"],mode="lines+markers",name=f'{y}年',line=dict(width=2,color=cs_t[i])))
+                        f_t.update_xaxes(tickvals=list(range(1,13)),ticktext=[f'{i}月' for i in range(1,13)])
+                        f_t.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation="h",yanchor="top",y=-0.2,xanchor="center",x=0.5))
+                        st.plotly_chart(f_t,use_container_width=True)
+                    x3,x4=st.columns(2)
+                    with x3:
+                        st.markdown(f"**\u2462 站内流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无站内流量数据</div>",unsafe_allow_html=True)
+                    with x4:
+                        st.markdown(f"**\u2463 Blog流量数据**")
+                        st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
 
 def _parse_traffic_sheet(raw2, result):
     import pandas as _pd
