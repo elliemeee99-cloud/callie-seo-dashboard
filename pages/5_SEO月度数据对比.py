@@ -16,11 +16,11 @@ def _parse_excel_to_dict(xls_file):
     _raw = _pd.read_excel(_xls, sheet_name=_target, header=None)
     _nb = _all = _site = -1
     for i, row in _raw.iterrows():
-        _strs = [str(x).replace("''\n''","").strip().upper() for x in row if _pd.notna(x)]
+        _strs = [str(x).replace("\n","").strip().upper() for x in row if _pd.notna(x)]
         _joined = "".join(_strs)
         if "'\u603b\u8ba1'" in _joined or "'\u5408\u8ba1'" in _joined:
             if "'\u975e\u54c1\u724c'" in _joined: _nb = i
-            elif "'ALL'" in _joined: _all = i
+            elif 'ALL' in _joined: _all = i
             elif "'\u7f51\u7ad9\u603b\u9500\u552e\u989d'" in _joined: _site = i
     if _nb < 0 or _all < 0 or _site < 0:
         return None
