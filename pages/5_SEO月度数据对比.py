@@ -95,6 +95,40 @@ def extract_table(df_raw, start_idx, end_idx):
     monthly_detail = df.groupby('Month')[country_cols].sum().reset_index() if country_cols else pd.DataFrame()
     return monthly_total, monthly_detail
 
+
+def _parse_traffic_sheet(raw2, result):
+    import pandas as _pd
+
+    _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
+    _months = []; _traffic_total = {s: [] for s in _sites}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 0]
+        if _pd.isna(d): continue
+        dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else d
+        _months.append(dt.strftime('%Y-%m'))
+        for idx, s in enumerate(_sites):
+            v = raw2.iloc[ri, 1+idx]
+            _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_months'] = _months; result['traffic_total'] = _traffic_total
+    _onsite = {'DE':[],'FR':[],'IT':[]}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 11]
+        if _pd.isna(d): continue
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 12+idx]
+            _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_onsite'] = _onsite
+    _blog = {'DE':[],'FR':[],'IT':[]}
+    for ri in range(1, len(raw2)):
+        d = raw2.iloc[ri, 16]
+        if _pd.isna(d): continue
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 17+idx]
+            _blog[s].append(float(v) if _pd.notna(v) else 0.0)
+    result['traffic_blog'] = _blog
+
+        
+
 # ==========================================
 # 🎯 页面头部与数据持久化上传
 # ==========================================
@@ -991,35 +1025,3 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         st.markdown(f"**\u2463 Blog流量数据**")
                         st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
 
-def _parse_traffic_sheet(raw2, result):
-    import pandas as _pd
-
-    _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
-    _months = []; _traffic_total = {s: [] for s in _sites}
-    for ri in range(1, len(raw2)):
-        d = raw2.iloc[ri, 0]
-        if _pd.isna(d): continue
-        dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else d
-        _months.append(dt.strftime('%Y-%m'))
-        for idx, s in enumerate(_sites):
-            v = raw2.iloc[ri, 1+idx]
-            _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
-    result['traffic_months'] = _months; result['traffic_total'] = _traffic_total
-    _onsite = {'DE':[],'FR':[],'IT':[]}
-    for ri in range(1, len(raw2)):
-        d = raw2.iloc[ri, 11]
-        if _pd.isna(d): continue
-        for idx, s in enumerate(['DE','FR','IT']):
-            v = raw2.iloc[ri, 12+idx]
-            _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
-    result['traffic_onsite'] = _onsite
-    _blog = {'DE':[],'FR':[],'IT':[]}
-    for ri in range(1, len(raw2)):
-        d = raw2.iloc[ri, 16]
-        if _pd.isna(d): continue
-        for idx, s in enumerate(['DE','FR','IT']):
-            v = raw2.iloc[ri, 17+idx]
-            _blog[s].append(float(v) if _pd.notna(v) else 0.0)
-    result['traffic_blog'] = _blog
-
-        
