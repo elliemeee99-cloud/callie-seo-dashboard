@@ -140,12 +140,22 @@ with st.container(border=True):
                 data_dict = {'nonbrand': df_nb, 'allseo': df_all, 'site': df_site,
                              'nb_detail': nb_detail, 'all_detail': all_detail, 'site_detail': site_detail}
                 # 解析流量数据表单 (SEO月度流量数据汇总)
-                if 'SEO月度流量数据汇总' in xls.sheet_names:
+                # 灵活匹配表单名（支持全称、简称、带空格等多种写法）
+                _traffic_sheet_name = None
+                for _sn in xls.sheet_names:
+                    _sn_clean = _sn.strip().replace(' ', '').replace('　', '')
+                    if 'SEO月度流量数据汇总' == _sn_clean or '流量' in _sn_clean or '流量数据' in _sn_clean:
+                        _traffic_sheet_name = _sn
+                        break
+                if _traffic_sheet_name:
                     try:
-                        df_traffic_raw = pd.read_excel(xls, sheet_name='SEO月度流量数据汇总', header=None)
+                        df_traffic_raw = pd.read_excel(xls, sheet_name=_traffic_sheet_name, header=None)
                         _parse_traffic_sheet(df_traffic_raw, data_dict)
+                        st.info(f"✅ 已识别流量表单: [{_traffic_sheet_name}]，解析 {len(data_dict.get('traffic_months',[]))} 个月度数据")
                     except Exception as te:
                         st.warning(f"⚠️ 流量数据表解析异常（不影响销售额看板）: {te}")
+                else:
+                    st.warning(f"⚠️ 未找到流量数据表单（当前表单: {xls.sheet_names}），流量看板不可用。")
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
                 st.success("✅ 数据报表完美解析！已识别销售额(3子表)与流量汇总表，含9站点逐月明细。")
@@ -199,9 +209,15 @@ with col_load:
                         dd2 = {'nonbrand':df_nb2,'allseo':df_all2,'site':df_site2,
                                'nb_detail':nb_d2,'all_detail':all_d2,'site_detail':site_d2}
                         
-                        if 'SEO月度流量数据汇总' in loaded.sheet_names:
+                        _traffic_sn2 = None
+                        for _sn2 in loaded.sheet_names:
+                            _sn2c = _sn2.strip().replace(' ', '').replace('\u3000', '')
+                            if 'SEO月度流量数据汇总' == _sn2c or '流量' in _sn2c or '流量数据' in _sn2c:
+                                _traffic_sn2 = _sn2
+                                break
+                        if _traffic_sn2:
                             try:
-                                tf2 = pd.read_excel(loaded, sheet_name='SEO月度流量数据汇总', header=None)
+                                tf2 = pd.read_excel(loaded, sheet_name=_traffic_sn2, header=None)
                                 _parse_traffic_sheet(tf2, dd2)
                             except Exception as te2:
                                 st.warning(f"流量表解析异常: {te2}")
@@ -724,7 +740,15 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             traffic_blog = st.session_state['monthly_data'].get('traffic_blog', {})
 
             if not traffic_months:
-                st.warning("流量数据未找到，请重新上传包含「SEO月度流量数据汇总」表单的Excel文件。")
+                st.warning("⚠️ 流量数据未找到。请检查Excel是否包含「SEO月度流量数据汇总」表单，或点击「清空本地缓存」后重新上传。")
+                # 显示诊断信息
+                if st.checkbox("🔍 显示诊断信息", key="traffic_debug"):
+                    st.markdown("**当前 session_state 中的键:**")
+                    st.write(list(st.session_state.get('monthly_data', {}).keys()))
+                    st.markdown("**traffic_months 内容:**")
+                    st.write(traffic_months)
+                    st.markdown("**traffic_total 中的站点:**")
+                    st.write(list(traffic_total.keys()))
             else:
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### 1. 各站点月度总流量趋势 (2025.01 ~ 至今)")
