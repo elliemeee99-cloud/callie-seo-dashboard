@@ -141,8 +141,11 @@ with st.container(border=True):
                              'nb_detail': nb_detail, 'all_detail': all_detail, 'site_detail': site_detail}
                 # 解析流量数据表单 (SEO月度流量数据汇总)
                 if 'SEO月度流量数据汇总' in xls.sheet_names:
-                    df_traffic_raw = pd.read_excel(xls, sheet_name='SEO月度流量数据汇总', header=None)
-                    _parse_traffic_sheet(df_traffic_raw, data_dict)
+                    try:
+                        df_traffic_raw = pd.read_excel(xls, sheet_name='SEO月度流量数据汇总', header=None)
+                        _parse_traffic_sheet(df_traffic_raw, data_dict)
+                    except Exception as te:
+                        st.warning(f"⚠️ 流量数据表解析异常（不影响销售额看板）: {te}")
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
                 st.success("✅ 数据报表完美解析！已识别销售额(3子表)与流量汇总表，含9站点逐月明细。")
@@ -155,6 +158,65 @@ with st.container(border=True):
 if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
     try: st.session_state['monthly_data'] = pd.read_pickle(CACHE_FILE)
     except: pass
+
+# ==========================================
+# 📂 本地文件自动加载（GitHub同步的Excel）
+# ==========================================
+st.markdown("<hr style='margin-top:8px;margin-bottom:12px;border-color:#e2e8f0;'/>", unsafe_allow_html=True)
+col_path, col_load = st.columns([4, 1])
+with col_path:
+    local_path = st.text_input(
+        "📁 本地Excel路径（GitHub同步文件，填写后自动加载）",
+        value=st.session_state.get('local_excel_path', ''),
+        placeholder="例如: /Users/elliekim/Documents/Codex/data/seo_data.xlsx",
+        key='local_path_input'
+    )
+with col_load:
+    st.write("")
+    st.write("")
+    if st.button("从路径加载", use_container_width=True):
+        if local_path and os.path.exists(local_path):
+            try:
+                with open(local_path, 'rb') as f:
+                    loaded = pd.ExcelFile(f)
+                    target_sheet = 'SEO销售额汇总' if 'SEO销售额汇总' in loaded.sheet_names else loaded.sheet_names[0]
+                    df_raw2 = pd.read_excel(loaded, sheet_name=target_sheet, header=None)
+                    
+                    nb_idx2=-1; all_idx2=-1; site_idx2=-1
+                    for i2, row2 in df_raw2.iterrows():
+                        rs2 = [str(x).replace(chr(10),'').strip().upper() for x in row2 if pd.notna(x)]
+                        rj2 = "".join(rs2)
+                        if '总计' in rj2 or '合计' in rj2:
+                            if '非品牌' in rj2: nb_idx2 = i2
+                            elif 'ALL' in rj2: all_idx2 = i2
+                            elif '网站总销售额' in rj2: site_idx2 = i2
+                    
+                    if nb_idx2 != -1 and all_idx2 != -1 and site_idx2 != -1:
+                        df_nb2, nb_d2 = extract_table(df_raw2, nb_idx2, all_idx2 if all_idx2 > nb_idx2 else len(df_raw2))
+                        df_all2, all_d2 = extract_table(df_raw2, all_idx2, site_idx2 if site_idx2 > all_idx2 else len(df_raw2))
+                        df_site2, site_d2 = extract_table(df_raw2, site_idx2, len(df_raw2))
+                        
+                        dd2 = {'nonbrand':df_nb2,'allseo':df_all2,'site':df_site2,
+                               'nb_detail':nb_d2,'all_detail':all_d2,'site_detail':site_d2}
+                        
+                        if 'SEO月度流量数据汇总' in loaded.sheet_names:
+                            try:
+                                tf2 = pd.read_excel(loaded, sheet_name='SEO月度流量数据汇总', header=None)
+                                _parse_traffic_sheet(tf2, dd2)
+                            except Exception as te2:
+                                st.warning(f"流量表解析异常: {te2}")
+                        
+                        st.session_state['monthly_data'] = dd2
+                        pd.to_pickle(dd2, CACHE_FILE)
+                        st.session_state['local_excel_path'] = local_path
+                        st.success(f"✅ 已从本地文件加载数据: {os.path.basename(local_path)}")
+                        st.rerun()
+                    else:
+                        st.error("表格结构不匹配，请检查文件。")
+            except Exception as le:
+                st.error(f"加载失败: {le}")
+        else:
+            st.error("文件路径不存在，请检查。")
 
 # ==========================================
 # 📈 深度对比图表渲染
