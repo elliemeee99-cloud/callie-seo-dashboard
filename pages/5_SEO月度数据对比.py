@@ -101,12 +101,12 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
 with _nc[0]: pass
-with _nc[1]: st.page_link("app.py", label="\U0001f3e0 App 首页")
-with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="\U0001f3af SEO 目标概览")
-with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="\U0001f5c2 SEO 站点明细")
-with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="\U0001f4cb SEO 需求管理")
-with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="\U0001f4c5 重点事件记录")
-with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="\U0001f4ca 月度数据对比")
+with _nc[1]: st.page_link("app.py", label="App 首页")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比")
 st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
 st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 # ==========================================
