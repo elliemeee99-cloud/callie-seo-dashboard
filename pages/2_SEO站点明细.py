@@ -15,108 +15,147 @@ cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT"
 en_to_cn = {v: k for k, v in cn_to_en.items()}
 site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
+# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
+GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
+
 # ==========================================
 # 网页基础设置
 # ==========================================
-st.set_page_config(page_title="SEO站点明细", page_icon="🗄️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide")
 
 # ==========================================
-# 🎨 UI Refinements V3 - Enterprise SaaS Style (统一全局风格)
+# 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
 # ==========================================
-st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
-st.markdown("""<style>
-.stApp{background-color:#F8FAFC!important}
-/* 🔥 给左侧悬浮导航留出 140px 空间 */
-.block-container{padding-top:.8rem!important;max-width:96%!important;padding-left:140px!important}
-h1{font-size:30px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.02em!important;margin-bottom:0px!important;}
-h2{font-size:24px!important;font-weight:700!important;color:#111827!important}
-h3{font-size:20px!important;font-weight:700!important;color:#111827!important}
-h4,h5,h6{font-size:18px!important;font-weight:700!important;color:#111827!important}
-p{color:#6B7280!important;font-size:14px!important}
-hr{border-color:#E5E7EB!important;margin:8px 0!important}
+st.markdown("""
+<style>
+/* 1. 彻底隐藏 Streamlit 默认的侧边栏目录 */
+[data-testid="stSidebarNav"] { display: none !important; }
 
-.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;padding:0 16px!important}
-.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important}
-.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important}
-.stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
-.stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
+/* 2. 美化横向导航按钮 */
+[data-testid="stPageLink-NavLink"] { 
+    background-color: #ffffff; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    padding: 10px 16px; 
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+[data-testid="stPageLink-NavLink"]:hover {
+    background-color: #f8fafc;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+[data-testid="stPageLink-NavLink"] p {
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    font-size: 15px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
+# 使用 columns 横向排布导航按钮 (按需分配宽度)
+col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
 
-/* Expander (下拉面板) 样式 */
-[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}
-[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}
+with col_nav1:
+    st.page_link("app.py", label="App 首页", icon="🏠")
+with col_nav2:
+    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with col_nav3:
+    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+
+st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
+
+# ==========================================
+# 🎨 现代 SaaS 顶级视觉重构 (包含左侧悬浮与避让)
+# ==========================================
+st.markdown("""
+<style>
+/* 1. 整体极简浅灰背景 */
+.stApp { 
+    background-color: #F5F7FA !important; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* 2. 页面容器：增加顶部留白，并为左侧固定的导航栏留出避让空间 */
+.block-container { 
+    padding-top: 5rem !important; 
+    padding-left: 260px !important; 
+    max-width: 98% !important; 
+}
+
+/* 3. 🔥 真正的全局吸附式左侧导航栏 */
+.floating-nav {
+    position: fixed;
+    top: 6rem;
+    left: 1.5rem;
+    width: 220px;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+    z-index: 9999;
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border: 1px solid #EEF2F6;
+}
+.floating-nav::-webkit-scrollbar { width: 0px; background: transparent; }
+
+/* 4. 强力胶囊化单选框 */
+div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
+div[role="radiogroup"] > label {
+    background-color: #ffffff !important; border: 1px solid #E5E7EB !important;
+    padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important;
+    align-items: center !important; justify-content: center !important; transition: all 0.2s !important;
+}
+div[role="radiogroup"] > label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
+div[role="radiogroup"] > label > div:first-child { display: none !important; } 
+div[role="radiogroup"] > label p, div[role="radiogroup"] > label div {
+    margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important;
+}
+div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) {
+    background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
+}
+div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p,
+div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] > label:has(input:checked) div {
+    color: #ffffff !important;
+}
+
+/* 5. 底层原始数据表格容器化 */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #ffffff !important; border: 1px solid #EEF2F6 !important;
+    border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important;
+}
+
+/* 6. 自定义大模块 Section */
+.saas-section {
+    background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px;
+}
+.saas-title {
+    font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
+}
+.icon-box {
+    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+
+/* 7. 折叠面板高级化 */
+[data-testid="stExpander"] {
+    border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden;
+}
+[data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
-[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}
+[data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
 
-/* 🔥 窄版左侧悬浮导航菜单 (包含国旗) */
-.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:100px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:12px 10px!important;border-radius:12px!important;border:1px solid #EEF2F6!important;box-shadow:0 8px 24px rgba(0,0,0,0.04)!important}
-.country-nav::-webkit-scrollbar{width:0;background:transparent}
-.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:6px 6px!important;margin-bottom:6px!important;border-radius:6px!important;color:#1e293b!important;font-weight:600!important;text-decoration:none!important;transition:all .15s ease!important}
-.country-nav a:hover{transform:translateX(2px)!important;background-color:#F1F5F9!important}
-.c-flag { font-size: 16px; line-height: 1; }
-.c-name { display:inline-block; color:#fff; font-size:11px; font-weight:700; border-radius:3px; padding:2px 4px; line-height:1.2; }
-
-/* 覆盖原生卡片字体 */
-div[data-testid="stMetricValue"] > div { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
-div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
-div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
-
-/* 各种表单小控件 */
-div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !important; font-weight: 600 !important; margin: 0 !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
-
-/* 顶部导航 Tabs (极简下划线风格) */
-[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;border-bottom:2px solid transparent!important;margin-bottom:-1px;display:flex!important;justify-content:center!important;align-items:center!important;white-space:nowrap}
-[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important}
-[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important;margin:0!important}
-[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
-[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
-.stAlert{border-radius:10px!important;padding:10px 14px!important;margin-bottom:8px!important}
-.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;text-decoration:none!important;z-index:99999}
-.back-to-top:hover{background:#1D4ED8}
-[data-testid="stSidebar"]{display:none!important}
-[data-testid="collapsedControl"]{display:none!important}
-[data-testid="stHeader"]{display:none!important}
-
-/* 自定义大模块 Section (保留特有样式) */
-.saas-section { background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6; box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px; }
-.saas-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
-.icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+/* 移除导致遮挡的超出隐藏 */
 div.element-container { overflow: visible !important; }
 div.stMarkdown { overflow: visible !important; }
-</style>""", unsafe_allow_html=True)
-
-# ==========================================
-# 🧭 统一横向导航栏 
-# ==========================================
-_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
-with _nc[0]: pass
-with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
-with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
-with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
-with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
-st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
-st.markdown("<a href='#top-anchor' class='back-to-top' title='回到顶部'>↑</a>", unsafe_allow_html=True)
-
-# ==========================================
-# ⚙️ 左侧悬浮挂件生成器 
-# ==========================================
-def get_nav_html(prefix, icon, title):
-    sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
-             ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
-             ('SE', '🇸🇪', '#FBBC05'), ('FI', '🇫🇮', '#34A853'), ('PL', '🇵🇱', '#4285F4')]
-    links = ""
-    for site, flag, color in sites:
-        links += f'<a href="#{prefix}-{site}" style="border-left:4px solid {color};"><span class="c-flag">{flag}</span><span class="c-name" style="background:{color};">{site}</span></a>'
-    return f'<div class="country-nav"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><span style="font-size:14px;">{icon}</span> {title}</div><div style="display:flex;flex-direction:column;">{links}</div></div>'
-
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # ⚙️ 底层数据与清洗逻辑 
@@ -204,7 +243,7 @@ def get_metric(metric_names, df_data, agg_type='sum'):
     return 0.0
 
 # ==========================================
-# 💎 图表渲染工厂
+# 💎 图表渲染工厂 (修复：精调字体大小)
 # ==========================================
 def render_kpi_card(label, value, theme, highlight=False):
     themes = {
@@ -217,11 +256,13 @@ def render_kpi_card(label, value, theme, highlight=False):
     bg = themes[theme]["bg"] if highlight else themes["default"]["bg"]
     border = themes[theme]["border"] if highlight else themes["default"]["border"]
     dot = themes[theme]["dot"]
-    return f'<div style="background: {bg}; border: 1px solid {border}; border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: {dot}; font-size: 12px;">●</span> {label}</div><div style="font-size: 40px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
+    # 将原来的 40px 修改为更加精致的 32px，并加重了字重
+    return f'<div style="background: {bg}; border: 1px solid {border}; border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: {dot}; font-size: 12px;">●</span> {label}</div><div style="font-size: 32px; font-weight: 700; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
 def render_traffic_item(label, value, is_last=False):
     br = "border-right: 1px solid #EEF2F6;" if not is_last else ""
-    return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 42px; font-weight: 600; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
+    # 将原来的 42px 修改为 32px
+    return f'<div style="flex: 1; {br} padding: 0 24px;"><div style="font-size: 14.5px; color: #6B7280; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><span style="color: #06B6D4; font-size: 12px;">●</span> {label}</div><div style="font-size: 32px; font-weight: 700; color: #2563EB; line-height: 1; letter-spacing: -0.5px;">{value}</div></div>'
 
 def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, prefix="", chart_key="", is_snapshot=False):
     clean_names = [m.replace(' ', '').upper() for m in metric_names]
@@ -264,26 +305,31 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         try: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, width="stretch")
         except BaseException: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, use_container_width=True)
 
+# ==========================================
+# 📌 注入绝对定位的悬浮导航栏 (脱离布局)
+# ==========================================
+nav_html = "<div class='floating-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 20px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:10px;'>"
+for idx, site in enumerate(fixed_sites_order):
+    g_color = GOOGLE_COLORS[idx % 4]
+    flag = site_flags.get(site, '🌍')
+    cn_name = en_to_cn.get(site, site)
+    nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 14px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 14px;'>{site} {cn_name}</span></a>"
+nav_html += "</div></div>"
+st.markdown(nav_html, unsafe_allow_html=True)
+
 
 # ==========================================
 # 📐 页面头部与同步按钮
 # ==========================================
-col_title, col_actions = st.columns([1.5, 1])
-with col_title:
-    st.markdown("# 🗄️ SEO 站点明细")
-    st.markdown("<p style='color:#6B7280; font-size:15px; margin-top:-12px; margin-bottom:16px;'>全局站点全景与深度体检数据台</p>", unsafe_allow_html=True)
-    
-with col_actions:
-    st.markdown(f"<div style='text-align:right; font-size:12px; color:#9CA3AF; margin-bottom: 8px;'>最后更新：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
-    btn1, btn2, btn3 = st.columns([1.2, 1, 1])
-    with btn2:
-        if st.button("✨ 清空缓存", use_container_width=True):
-            load_site_full_details.clear()
-            st.rerun()
-    with btn3:
-        if st.button("🔄 同步数据", type="primary", use_container_width=True):
-            load_site_full_details.clear()
-            st.rerun()
+col_header, col_refresh = st.columns([5, 1])
+with col_header:
+    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
+with col_refresh:
+    st.write("") 
+    if st.button("🔄 同步最新数据"):
+        load_site_full_details.clear()
+        st.rerun()
 
 with st.spinner("✨ 正在智能扫描最新数据..."):
     df_all = load_site_full_details()
@@ -295,23 +341,23 @@ if df_all is not None and not df_all.empty:
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
     # ==========================================
-    # 🎛️ 顶部控制器
+    # 🎛️ 顶部控制器 (修复：取消左右分列，全部左对齐堆叠)
     # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
-    col_ctrl1, col_ctrl2 = st.columns([2.5, 1])
-    with col_ctrl1:
-        try:
-            selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
-            if not selected_site_cn: selected_site_cn = "全部站点"
-        except AttributeError:
-            selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
-            
-    with col_ctrl2:
-        try:
-            time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
-            if not time_view: time_view = "昨日数据"
-        except AttributeError:
-            time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
+    
+    try:
+        selected_site_cn = st.pills("站点切换", site_options, default="全部站点", label_visibility="collapsed")
+        if not selected_site_cn: selected_site_cn = "全部站点"
+    except AttributeError:
+        selected_site_cn = st.radio("站点切换", site_options, horizontal=True, label_visibility="collapsed")
+        
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    
+    try:
+        time_view = st.pills("时间切换", ["昨日数据", "过去7天数据"], default="昨日数据", label_visibility="collapsed")
+        if not time_view: time_view = "昨日数据"
+    except AttributeError:
+        time_view = st.radio("时间切换", ["昨日数据", "过去7天数据"], horizontal=True, label_visibility="collapsed")
 
     st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
 
@@ -426,9 +472,6 @@ if df_all is not None and not df_all.empty:
     """, unsafe_allow_html=True)
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
-
-    # 🔥 插入左侧精简悬浮窗 (包含国旗)
-    st.markdown(get_nav_html('jump', '📍', '快速定位'), unsafe_allow_html=True)
 
     # --- 开始遍历渲染分站点数据 ---
     for site in fixed_sites_order:
