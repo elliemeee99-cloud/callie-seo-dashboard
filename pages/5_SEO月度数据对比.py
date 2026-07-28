@@ -1067,6 +1067,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'gsc':
+            st.markdown('<style>.block-container{padding-left:250px!important}.country-nav{position:fixed;top:5.5rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
             if not gsc_data:
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
@@ -1106,31 +1107,31 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 
                 for _s2 in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']:
                     _d2 = gsc_data[_s2]
-                    st.markdown(f'<div id="gjump-{{_s2}}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-                    with st.expander(f"🖱️ {{_s2}} 站点 — GSC点击详情", expanded=True):
+                    st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                    with st.expander(f"🖱️ {_s2} 站点 — GSC点击详情", expanded=True):
                         x1,x2=st.columns(2)
                         with x1:
-                            st.markdown(f"**󊅠 {{_s2}} 总点击趋势**")
+                            st.markdown(f"**① {_s2} 总点击趋势**")
                             f2=go.Figure()
-                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['total'],mode='lines+markers',name=f'{{_s2}} 总点击',line=dict(width=2,color='#3b82f6'),marker=dict(size=5)))
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['total'],mode='lines+markers',name=f'{_s2} 总点击',line=dict(width=2,color='#3b82f6'),marker=dict(size=5)))
                             f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                             st.plotly_chart(f2,use_container_width=True)
                         with x2:
-                            st.markdown(f"**󊅡 {{_s2}} 品牌词点击趋势**")
+                            st.markdown(f"**② {_s2} 品牌词点击趋势**")
                             f2=go.Figure()
-                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['brand'],mode='lines+markers',name=f'{{_s2}} 品牌词',line=dict(width=2,color='#ef4444'),marker=dict(size=5)))
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['brand'],mode='lines+markers',name=f'{_s2} 品牌词',line=dict(width=2,color='#ef4444'),marker=dict(size=5)))
                             f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                             st.plotly_chart(f2,use_container_width=True)
                         x3,x4=st.columns(2)
                         with x3:
-                            st.markdown(f"**󊅢 {{_s2}} Blog点击趋势**")
+                            st.markdown(f"**③ {_s2} Blog点击趋势**")
                             f2=go.Figure()
-                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['blog'],mode='lines+markers',name=f'{{_s2}} Blog',line=dict(width=2,color='#f59e0b'),marker=dict(size=5)))
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['blog'],mode='lines+markers',name=f'{_s2} Blog',line=dict(width=2,color='#f59e0b'),marker=dict(size=5)))
                             f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                             st.plotly_chart(f2,use_container_width=True)
                         with x4:
-                            st.markdown(f"**󊅣 {{_s2}} 站内点击趋势**")
+                            st.markdown(f"**④ {_s2} 站内点击趋势**")
                             f2=go.Figure()
-                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['onsite'],mode='lines+markers',name=f'{{_s2}} 站内',line=dict(width=2,color='#8b5cf6'),marker=dict(size=5)))
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['onsite'],mode='lines+markers',name=f'{_s2} 站内',line=dict(width=2,color='#8b5cf6'),marker=dict(size=5)))
                             f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                             st.plotly_chart(f2,use_container_width=True)
