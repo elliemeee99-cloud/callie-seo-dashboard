@@ -36,24 +36,24 @@ st.markdown("""<style>
 [data-testid="stExpander"] summary p{font-size:16px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.01em!important}
 
 /* === Left Country Navigation === */
-.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:160px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important}
+.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:140px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important}
 .country-nav::-webkit-scrollbar{width:0!important;background:transparent!important}
-.country-nav a{display:flex!important;align-items:center!important;gap:8px!important;padding:7px 10px!important;margin-bottom:3px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;transition:all .12s ease!important}
+.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:8px 8px!important;margin-bottom:2px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;transition:all .12s ease!important}
 .country-nav a:hover{background-color:#F1F5F9!important;color:#111827!important;border-left-color:#CBD5E1!important}
 .country-nav a span{font-size:14px!important}
 
 /* === Top Navigation Tabs === */
 [data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;text-align:center!important;display:flex!important;justify-content:center!important;align-items:center!important;transition:background .15s ease!important;text-decoration:none!important;white-space:nowrap;border-bottom:2px solid transparent!important;margin-bottom:-1px}
 [data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important;border-bottom-color:#E2E8F0!important;transform:none!important;box-shadow:none!important}
-[data-testid="stPageLink-NavLink"] p{font-weight:500!important;color:#64748B!important;font-size:15px!important;margin:0!important;transition:color .15s ease}
+[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important;margin:0!important;transition:color .15s ease;letter-spacing:-.01em!important}
 [data-testid="stPageLink-NavLink"]:hover p{color:#1E293B!important}
 [aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
 [aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
 
 /* === Buttons (All) === */
 .stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.04)!important;padding:0 16px!important}
-.stButton button[kind="primary"]{background:#2563EB!important;color:#FFFFFF!important;border:1px solid #2563EB!important}
-.stButton button[kind="primary"]:hover{background:#1D4ED8!important;border-color:#1D4ED8!important;box-shadow:0 2px 6px rgba(37,99,235,.3)!important}
+.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important;font-weight:600!important}
+.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important;box-shadow:0 1px 3px rgba(59,130,246,.2)!important}
 .stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
 .stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
 
@@ -89,12 +89,12 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
 with _nc[0]: pass
-with _nc[1]: st.page_link("app.py", label="App 首页")
-with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览")
-with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细")
-with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理")
-with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录")
-with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比")
+with _nc[1]: st.page_link("app.py", label="\U0001f3e0 App 首页")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="\U0001f3af SEO 目标概览")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="\U0001f5c2 SEO 站点明细")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="\U0001f4cb SEO 需求管理")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="\U0001f4c5 重点事件记录")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="\U0001f4ca 月度数据对比")
 # ==========================================
 # ⚙️ 核心解析引擎 (彻底修复错位Bug)
 # ==========================================
@@ -236,21 +236,19 @@ with col_h_left:
     st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>SEO 月度数据对比</div>", unsafe_allow_html=True)
     st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与站点表现</div>", unsafe_allow_html=True)
 with col_h_right:
-    st.markdown(f"<div style='text-align:right;color:#9CA3AF;font-size:13px;margin-bottom:6px;'>\u66f4\u65b0\u65f6\u95f4\uff1a{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:right;'>", unsafe_allow_html=True)
-    if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=True):
-        pass
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.write("")
-    if st.button("\u2726 \u6e05\u7a7a\u672c\u5730\u7f13\u5b58"):
-        if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
-        if 'monthly_data' in st.session_state: del st.session_state['monthly_data']
-        st.success("缓存已清空！")
-        st.rerun()
-
-with st.container(border=True):
-    st.markdown("<div style='font-weight: 700; color: #334155; font-size: 16px; margin-bottom: 12px;'>📥 上传数据报表</div>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("请上传最新版的《SEO 整体数据情况》台账 (支持 Excel xlsx 格式)", type=['xlsx', 'xls'])
+    st.markdown(f"<div style='color:#9CA3AF;font-size:12px;text-align:right;margin-bottom:4px;'>\u66f4\u65b0\u65f6\u95f4\uff1a{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+    col_b1, col_b2, col_b3 = st.columns([1, 1, 2])
+    with col_b1:
+        if st.button("\u2726 \u6e05\u7a7a\u7f13\u5b58", use_container_width=True):
+            if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
+            if 'monthly_data' in st.session_state: del st.session_state['monthly_data']
+            st.success("\u7f13\u5b58\u5df2\u6e05\u7a7a\uff01")
+            st.rerun()
+    with col_b2:
+        if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=True):
+            pass
+    with col_b3:
+        uploaded_file = st.file_uploader("\u4e0a\u4f20Excel", type=['xlsx', 'xls'], label_visibility="collapsed")
     
     if uploaded_file is not None:
         try:
@@ -467,18 +465,18 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
             st.markdown("### \U0001f3ea 各站点详细数据")
-            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:140px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
 
             _nav_html = """<div class="country-nav"><div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">\U0001f4cd</span> 快速定位</div><div style="display:flex;flex-direction:column;gap:8px;">
-            <a href="#jump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE 德国</a>
-            <a href="#jump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR 法国</a>
-            <a href="#jump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES 西班牙</a>
-            <a href="#jump-IT" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT 意大利</a>
-            <a href="#jump-NL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL 荷兰</a>
-            <a href="#jump-NO" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO 挪威</a>
-            <a href="#jump-SE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE 瑞典</a>
-            <a href="#jump-FI" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI 芬兰</a>
-            <a href="#jump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL 波兰</a>
+            <a href="#jump-DE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE</a>
+            <a href="#jump-FR" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR</a>
+            <a href="#jump-ES" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES</a>
+            <a href="#jump-IT" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT</a>
+            <a href="#jump-NL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL</a>
+            <a href="#jump-NO" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO</a>
+            <a href="#jump-SE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE</a>
+            <a href="#jump-FI" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI</a>
+            <a href="#jump-PL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
             </div></div>"""
             st.markdown(_nav_html, unsafe_allow_html=True)
 
@@ -800,7 +798,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'traffic':
-            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:140px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             # 流量看板内容
             traffic_months = st.session_state['monthly_data'].get('traffic_months', [])
             traffic_total = st.session_state['monthly_data'].get('traffic_total', {})
@@ -845,15 +843,15 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 <div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
                     <span style="font-size:18px;">\U0001f4cd</span> 流量站点</div>
             <div style="display:flex;flex-direction:column;gap:8px;">
-                <a href="#tjump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE 德国</a>
-                <a href="#tjump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR 法国</a>
-                <a href="#tjump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES 西班牙</a>
-                <a href="#tjump-IT" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT 意大利</a>
-                <a href="#tjump-NL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL 荷兰</a>
-                <a href="#tjump-NO" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO 挪威</a>
-                <a href="#tjump-SE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE 瑞典</a>
-                <a href="#tjump-FI" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI 芬兰</a>
-                <a href="#tjump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL 波兰</a>
+                <a href="#tjump-DE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE</a>
+                <a href="#tjump-FR" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR</a>
+                <a href="#tjump-ES" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES</a>
+                <a href="#tjump-IT" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT</a>
+                <a href="#tjump-NL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL</a>
+                <a href="#tjump-NO" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO</a>
+                <a href="#tjump-SE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE</a>
+                <a href="#tjump-FI" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI</a>
+                <a href="#tjump-PL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
                 </div>
                 </div>""", unsafe_allow_html=True)
 
@@ -1141,7 +1139,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'gsc':
-            st.markdown('<style>.block-container{padding-left:250px!important}.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.block-container{padding-left:250px!important}.country-nav{position:fixed;top:11rem;left:1.2rem;width:140px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
             if not gsc_data:
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
@@ -1166,15 +1164,15 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
     <div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
         <span style="font-size:18px;">\U0001f5b1</span> GSC\u7ad9\u70b9</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-        <a href="#gjump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE</a>
-        <a href="#gjump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR</a>
-        <a href="#gjump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES</a>
-        <a href="#gjump-IT" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT</a>
-        <a href="#gjump-NL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL</a>
-        <a href="#gjump-NO" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO</a>
-        <a href="#gjump-SE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE</a>
-        <a href="#gjump-FI" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI</a>
-        <a href="#gjump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
+        <a href="#gjump-DE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE</a>
+        <a href="#gjump-FR" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR</a>
+        <a href="#gjump-ES" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES</a>
+        <a href="#gjump-IT" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT</a>
+        <a href="#gjump-NL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL</a>
+        <a href="#gjump-NO" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO</a>
+        <a href="#gjump-SE" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE</a>
+        <a href="#gjump-FI" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI</a>
+        <a href="#gjump-PL" style="text-decoration:none;padding:8px 8px;background-color:#f8fafc;border-radius:6px;border-left:4px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
     </div>
 </div>""", unsafe_allow_html=True)
                 st.markdown("### 各站点GSC点击详情")
