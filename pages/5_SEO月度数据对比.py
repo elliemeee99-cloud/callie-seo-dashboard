@@ -15,18 +15,57 @@ CACHE_FILE = "seo_monthly_sales_v9.pkl"
 # ==========================================
 # 🧭 极限防乱码单行 CSS + 6栏导航
 # ==========================================
-compressed_css = """<div id="top-anchor"></div><style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 6px !important;text-align:center !important;display:flex !important;justify-content:center !important;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;white-space:nowrap;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:14px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}</style><a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>"""
-st.markdown(compressed_css, unsafe_allow_html=True)
+# ==========================================
+# 🎨 Vercel/Linear Style CSS
+# ==========================================
+st.markdown("""<style>
+[data-testid="stSidebar"]{display:none!important}
+[data-testid="collapsedControl"]{display:none!important}
+[data-testid="stHeader"]{display:none!important}
+.stApp{background-color:#F8FAFC!important}
+.block-container{padding-top:1.2rem!important;max-width:95%!important}
+[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:20px}
+[data-testid="stExpander"]{border:1px solid #E5E7EB!important;border-radius:12px!important;background-color:#FFFFFF!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;margin-bottom:20px!important;overflow:hidden}
+[data-testid="stExpander"] summary{padding:18px 22px!important;background-color:#FFFFFF!important}
+[data-testid="stExpander"] summary p{font-size:17px!important;font-weight:700!important;color:#111827!important}
+/* Page Link Tabs */
+[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:10px 14px!important;text-align:center!important;display:flex!important;justify-content:center!important;align-items:center!important;transition:background .15s ease!important;text-decoration:none!important;white-space:nowrap;border-bottom:2px solid transparent!important;margin-bottom:-1px}
+[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important;border-bottom-color:#E2E8F0!important;transform:none!important;box-shadow:none!important}
+[data-testid="stPageLink-NavLink"] p{font-weight:500!important;color:#64748B!important;font-size:15px!important;margin:0!important;transition:color .15s ease}
+[data-testid="stPageLink-NavLink"]:hover p{color:#1E293B!important}
+/* Active tab */
+[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom-color:#2563EB!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
+/* Buttons */
+.stButton button{height:36px!important;border-radius:8px!important;font-size:14px!important;font-weight:500!important;transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.05)!important}
+.stButton button[kind="primary"]{background:#2563EB!important;color:#fff!important;border:none!important}
+.stButton button[kind="primary"]:hover{background:#1D4ED8!important;box-shadow:0 1px 3px rgba(37,99,235,.3)!important}
+/* File uploader */
+[data-testid="stFileUploader"]{border:1px dashed #D1D5DB!important;border-radius:10px!important;padding:8px!important;background:#FAFBFC!important}
+/* Text inputs */
+.stTextInput input{border-radius:8px!important;border:1px solid #E5E7EB!important;font-size:14px!important;padding:8px 12px!important}
+/* Info/Warning/Error boxes */
+.stAlert{border-radius:10px!important;border:none!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important}
+/* Tabs inside dashboard (the 3-view switcher) */
+.stTabs [data-baseweb="tab-list"]{gap:0!important;border-bottom:1px solid #E5E7EB!important}
+.stTabs [data-baseweb="tab"]{padding:10px 20px!important;font-size:15px!important;font-weight:500!important;color:#64748B!important}
+.stTabs [aria-selected="true"]{color:#2563EB!important;font-weight:600!important}
+/* Chart containers */
+.js-plotly-plot .plot-container{border-radius:10px!important}
+/* Multi-line text in markdown */
+h1,h2,h3,h4,h5,h6{color:#111827!important;letter-spacing:-.02em!important}
+p{color:#6B7280!important;font-size:14px!important;line-height:1.5!important}
+hr{border-color:#E5E7EB!important;margin:12px 0!important}
+</style>""", unsafe_allow_html=True)
 
-spacer_left, nav1, nav2, nav3, nav4, nav5, nav6, spacer_right = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
-with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
-with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
-with nav5: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
-with nav6: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
-st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
-
+_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
+with _nc[0]: pass
+with _nc[1]: st.page_link("app.py", label="App 首页")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比")
 # ==========================================
 # ⚙️ 核心解析引擎 (彻底修复错位Bug)
 # ==========================================
@@ -163,13 +202,18 @@ def _parse_gsc_sheet(raw2, result):
 # ==========================================
 # 🎯 页面头部与数据持久化上传
 # ==========================================
-col_header, col_refresh = st.columns([5, 1])
-with col_header:
-    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>📊 SEO 核心指标深度对比</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color: #6B7280; margin-bottom: 24px; font-size: 15px;'>取消繁琐确认，AI 自动提取非品牌词与整体销售额的同环比走势。</div>", unsafe_allow_html=True)
-with col_refresh:
-    st.write("") 
-    if st.button("🗑️ 清空本地缓存"):
+col_h_left, col_h_right = st.columns([3, 1])
+with col_h_left:
+    st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>SEO 月度数据对比</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与站点表现</div>", unsafe_allow_html=True)
+with col_h_right:
+    st.markdown(f"<div style='text-align:right;color:#9CA3AF;font-size:13px;margin-bottom:6px;'>\u66f4\u65b0\u65f6\u95f4\uff1a{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:right;'>", unsafe_allow_html=True)
+    if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=True):
+        pass
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.write("")
+    if st.button("\u2726 \u6e05\u7a7a\u672c\u5730\u7f13\u5b58"):
         if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
         if 'monthly_data' in st.session_state: del st.session_state['monthly_data']
         st.success("缓存已清空！")
@@ -245,17 +289,17 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         tab_selected = st.session_state.get('tab_selected', 'sales')
         col_ts1, col_ts2, col_ts3 = st.columns(3)
         with col_ts1:
-            if st.button('📊 销售额对比', key='tab_switch_sales', use_container_width=True,
+            if st.button('销售额对比', key='tab_switch_sales', use_container_width=True,
                          type='primary' if tab_selected == 'sales' else 'secondary'):
                 st.session_state.tab_selected = 'sales'
                 st.rerun()
         with col_ts2:
-            if st.button('📈 流量数据对比', key='tab_switch_traffic', use_container_width=True,
+            if st.button('流量数据对比', key='tab_switch_traffic', use_container_width=True,
                          type='primary' if tab_selected == 'traffic' else 'secondary'):
                 st.session_state.tab_selected = 'traffic'
                 st.rerun()
         with col_ts3:
-            if st.button('🖱️ GSC点击数据对比', key='tab_switch_gsc', use_container_width=True,
+            if st.button('GSC点击数据对比', key='tab_switch_gsc', use_container_width=True,
                          type='primary' if tab_selected == 'gsc' else 'secondary'):
                 st.session_state.tab_selected = 'gsc'
                 st.rerun()
@@ -1074,7 +1118,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
             else:
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-                st.markdown("#### 🖱️ 1. 各站点GSC总点击趋势 (2024.06 ~ 至今)")
+                st.markdown("#### 1. 各站点GSC总点击趋势 (2024.06 ~ 至今)")
                 with st.container(border=True):
                     # Merge all sites by month for combined chart
                     _all_months = sorted(set().union(*[set(gsc_data[s]['months']) for s in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']]))
@@ -1104,12 +1148,12 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         <a href="#gjump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
     </div>
 </div>""", unsafe_allow_html=True)
-                st.markdown("### 🖱️ 各站点GSC点击详情")
+                st.markdown("### 各站点GSC点击详情")
                 
                 for _s2 in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']:
                     _d2 = gsc_data[_s2]
                     st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-                    with st.expander(f"🖱️ {_s2} 站点 — GSC点击详情", expanded=True):
+                    with st.expander(f"GSC {_s2} 站点 — 点击详情", expanded=True):
                         x1,x2=st.columns(2)
                         with x1:
                             st.markdown(f"**① {_s2} 总点击趋势**")
