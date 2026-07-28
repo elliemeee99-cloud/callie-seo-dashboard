@@ -126,6 +126,37 @@ def _parse_traffic_sheet(raw2, result):
             v = raw2.iloc[ri, 17+idx]
             _blog[s].append(float(v) if _pd.notna(v) else 0.0)
     result['traffic_blog'] = _blog
+def _parse_gsc_sheet(raw2, result):
+    import pandas as _pd
+    # GSC表纵向分区: 每段有自己的header行+数据行
+    # 段1(行0): DE(col0-5) FR(col7-12) ES(col14-19) 行1-25
+    # 段2(行28): IT(col0-5) NL(col7-12) 行29-53
+    # 段3(行55): NO(col0-5) SE(col7-12) 行56-69
+    # 段4(行71): FI(col0-5) PL(col7-12) 行72-85
+    _segments = [
+        (0, [('DE',0), ('FR',7), ('ES',14)]),
+        (28, [('IT',0), ('NL',7)]),
+        (55, [('NO',0), ('SE',7)]),
+        (71, [('FI',0), ('PL',7)]),
+    ]
+    _gsc = {}
+    for _hr, _sites in _segments:
+        for _sc, _base in _sites:
+            _m=[]; _tv=[]; _bv=[]; _lv=[]; _uv=[]; _ov=[]
+            for _ri in range(_hr+1, len(raw2)):
+                _v = raw2.iloc[_ri, _base]
+                if not isinstance(_v, (int,float)) or _pd.isna(_v):
+                    break
+                _dt = _pd.to_datetime(_v, origin='1899-12-30', unit='D')
+                _m.append(_dt.strftime('%Y-%m'))
+                _tv.append(float(raw2.iloc[_ri,_base+1]) if _pd.notna(raw2.iloc[_ri,_base+1]) else 0.0)
+                _bv.append(float(raw2.iloc[_ri,_base+2]) if _pd.notna(raw2.iloc[_ri,_base+2]) else 0.0)
+                _lv.append(float(raw2.iloc[_ri,_base+3]) if _pd.notna(raw2.iloc[_ri,_base+3]) else 0.0)
+                _uv.append(float(raw2.iloc[_ri,_base+4]) if _pd.notna(raw2.iloc[_ri,_base+4]) else 0.0)
+                _ov.append(float(raw2.iloc[_ri,_base+5]) if _pd.notna(raw2.iloc[_ri,_base+5]) else 0.0)
+            _gsc[_sc] = {'months':_m,'total':_tv,'brand':_bv,'blog':_lv,'utm':_uv,'onsite':_ov}
+    result['gsc_data'] = _gsc
+
 
         
 
@@ -178,6 +209,9 @@ with st.container(border=True):
                 if 'SEO月度流量数据汇总' in xls.sheet_names:
                     df_traffic_raw = pd.read_excel(xls, sheet_name='SEO月度流量数据汇总', header=None)
                     _parse_traffic_sheet(df_traffic_raw, data_dict)
+                if 'SEO GSC月度点击数据汇总' in xls.sheet_names:
+                    df_gsc_raw = pd.read_excel(xls, sheet_name='SEO GSC月度点击数据汇总', header=None)
+                    _parse_gsc_sheet(df_gsc_raw, data_dict)
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
                 st.success("✅ 数据报表完美解析！已识别销售额(3子表)与流量汇总表，含9站点逐月明细。")
@@ -209,7 +243,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
         # 🎴 看板切换 (销售额 / 流量)
         # ==========================================
         tab_selected = st.session_state.get('tab_selected', 'sales')
-        col_ts1, col_ts2 = st.columns(2)
+        col_ts1, col_ts2, col_ts3 = st.columns(3)
         with col_ts1:
             if st.button('📊 销售额对比', key='tab_switch_sales', use_container_width=True,
                          type='primary' if tab_selected == 'sales' else 'secondary'):
@@ -219,6 +253,11 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             if st.button('📈 流量数据对比', key='tab_switch_traffic', use_container_width=True,
                          type='primary' if tab_selected == 'traffic' else 'secondary'):
                 st.session_state.tab_selected = 'traffic'
+                st.rerun()
+        with col_ts3:
+            if st.button('🖱️ GSC点击数据对比', key='tab_switch_gsc', use_container_width=True,
+                         type='primary' if tab_selected == 'gsc' else 'secondary'):
+                st.session_state.tab_selected = 'gsc'
                 st.rerun()
         st.markdown('<hr style="margin-top:6px;margin-bottom:20px;border-color:#e2e8f0;"/>', unsafe_allow_html=True)
 
@@ -1025,3 +1064,73 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         st.markdown(f"**\u2463 Blog流量数据**")
                         st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
 
+
+
+        elif tab_selected == 'gsc':
+            gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
+            if not gsc_data:
+                st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
+            else:
+                st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                st.markdown("#### 🖱️ 1. 各站点GSC总点击趋势 (2024.06 ~ 至今)")
+                with st.container(border=True):
+                    # Merge all sites by month for combined chart
+                    _all_months = sorted(set().union(*[set(gsc_data[s]['months']) for s in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']]))
+                    f_g=go.Figure()
+                    _gsc_colors = ['#3b82f6','#ef4444','#f59e0b','#22c55e','#06b6d4','#ec4899','#8b5cf6','#14b8a6','#f97316']
+                    for _i,_s in enumerate(['DE','FR','ES','IT','NL','NO','SE','FI','PL']):
+                        _gd = gsc_data[_s]
+                        f_g.add_trace(go.Scatter(x=_gd['months'],y=_gd['total'],mode='lines+markers',name=f'{_s} 总点击',line=dict(width=2,color=_gsc_colors[_i]),marker=dict(size=5)))
+                    f_g.update_layout(height=400,hovermode='x unified',plot_bgcolor='rgba(0,0,0,0)',margin=dict(l=20,r=20,t=20,b=20),
+                        legend=dict(orientation='h',yanchor='top',y=-0.15,xanchor='center',x=0.5),
+                        xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category',tickangle=-45,nticks=18),
+                        yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
+                    st.plotly_chart(f_g,use_container_width=True)
+                
+                st.markdown("""<div class="country-nav">
+    <div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">\U0001f5b1</span> GSC\u7ad9\u70b9</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="#gjump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE</a>
+        <a href="#gjump-FR" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1f7</span> FR</a>
+        <a href="#gjump-ES" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ea\U0001f1f8</span> ES</a>
+        <a href="#gjump-IT" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1ee\U0001f1f9</span> IT</a>
+        <a href="#gjump-NL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f1</span> NL</a>
+        <a href="#gjump-NO" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #EA4335;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f3\U0001f1f4</span> NO</a>
+        <a href="#gjump-SE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #FBBC05;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f8\U0001f1ea</span> SE</a>
+        <a href="#gjump-FI" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #34A853;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1eb\U0001f1ee</span> FI</a>
+        <a href="#gjump-PL" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1f5\U0001f1f1</span> PL</a>
+    </div>
+</div>""", unsafe_allow_html=True)
+                st.markdown("### 🖱️ 各站点GSC点击详情")
+                
+                for _s2 in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']:
+                    _d2 = gsc_data[_s2]
+                    st.markdown(f'<div id="gjump-{{_s2}}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+                    with st.expander(f"🖱️ {{_s2}} 站点 — GSC点击详情", expanded=True):
+                        x1,x2=st.columns(2)
+                        with x1:
+                            st.markdown(f"**󊅠 {{_s2}} 总点击趋势**")
+                            f2=go.Figure()
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['total'],mode='lines+markers',name=f'{{_s2}} 总点击',line=dict(width=2,color='#3b82f6'),marker=dict(size=5)))
+                            f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
+                            st.plotly_chart(f2,use_container_width=True)
+                        with x2:
+                            st.markdown(f"**󊅡 {{_s2}} 品牌词点击趋势**")
+                            f2=go.Figure()
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['brand'],mode='lines+markers',name=f'{{_s2}} 品牌词',line=dict(width=2,color='#ef4444'),marker=dict(size=5)))
+                            f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
+                            st.plotly_chart(f2,use_container_width=True)
+                        x3,x4=st.columns(2)
+                        with x3:
+                            st.markdown(f"**󊅢 {{_s2}} Blog点击趋势**")
+                            f2=go.Figure()
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['blog'],mode='lines+markers',name=f'{{_s2}} Blog',line=dict(width=2,color='#f59e0b'),marker=dict(size=5)))
+                            f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
+                            st.plotly_chart(f2,use_container_width=True)
+                        with x4:
+                            st.markdown(f"**󊅣 {{_s2}} 站内点击趋势**")
+                            f2=go.Figure()
+                            f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['onsite'],mode='lines+markers',name=f'{{_s2}} 站内',line=dict(width=2,color='#8b5cf6'),marker=dict(size=5)))
+                            f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
+                            st.plotly_chart(f2,use_container_width=True)
