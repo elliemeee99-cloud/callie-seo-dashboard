@@ -19,7 +19,7 @@ CACHE_FILE = "seo_monthly_sales_v9.pkl"
 # ==========================================
 # 🎨 UI Refinements V2 - Enterprise SaaS Style
 # ==========================================
-st.markdown("""<style>
+st.markdown("""<div id="top-anchor"></div><style>
 /* === Base === */
 [data-testid="stSidebar"]{display:none!important}
 [data-testid="collapsedControl"]{display:none!important}
@@ -89,6 +89,14 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 
 /* === Info/Status messages === */
 .stInfo,.stWarning,.stError,.stSuccess{border-radius:10px!important;font-size:13px!important;padding:8px 14px!important}
+/* File uploader */
+[data-testid="stFileUploader"]{min-height:38px!important;display:flex!important;align-items:center!important}
+[data-testid="stFileUploader"] section{border:1px solid #D1D5DB!important;border-radius:10px!important;padding:0 12px!important;display:flex!important;align-items:center!important;min-height:36px!important}
+[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"]{display:none!important}
+/* Back to top */
+#top-anchor{position:absolute;top:0;left:0}
+.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:18px;font-weight:700;box-shadow:0 2px 8px rgba(37,99,235,.3);text-decoration:none!important;z-index:99999;transition:all .15s ease}
+.back-to-top:hover{background:#1D4ED8;transform:translateY(-2px);box-shadow:0 4px 12px rgba(37,99,235,.4);color:#fff!important}
 </style>""", unsafe_allow_html=True)
 
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
@@ -100,6 +108,7 @@ with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="\U0001f4cb SEO �
 with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="\U0001f4c5 重点事件记录")
 with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="\U0001f4ca 月度数据对比")
 st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
+st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 # ==========================================
 # ⚙️ 核心解析引擎 (彻底修复错位Bug)
 # ==========================================
