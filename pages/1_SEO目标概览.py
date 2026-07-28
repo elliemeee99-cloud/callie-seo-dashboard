@@ -14,125 +14,64 @@ import gc
 st.set_page_config(page_title="SEO数据看板", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🚀 悬浮挂件：一键回到顶部按钮 (草莓牛奶多巴胺粉)
+# 🎨 统一全局 CSS 与顶部导航栏 (极简 SaaS 风格)
 # ==========================================
+st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
 st.markdown("""
-<div id="top-anchor"></div>
 <style>
-/* 右下角悬浮按钮样式：治愈系多巴胺粉 */
-.back-to-top {
-    position: fixed;
-    bottom: 40px;
-    right: 40px;
-    background-color: #FF8FAB; /* 🍓 柔和的草莓牛奶多巴胺粉 */
-    color: #ffffff !important; 
-    border: none; 
-    width: 50px;
-    height: 50px;
-    border-radius: 50%; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    font-weight: 800;
-    box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35); /* 极柔和的粉色光晕 */
-    text-decoration: none !important;
-    z-index: 99999; 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.back-to-top:hover {
-    background-color: #FF5D8F; /* 悬浮时变成略深的蜜桃粉，增加交互反馈 */
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); /* 光晕柔和放大 */
-    color: #ffffff !important;
-}
-</style>
-<a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
-""", unsafe_allow_html=True)
+.stApp { background-color: #F8FAFC !important; }
+.block-container { padding-top: 1rem !important; max-width: 96% !important; }
 
-# ==========================================
-# 🧭 顶部横向导航栏 (安全、居中、稳定版 - 6个按钮)
-# ==========================================
-st.markdown("""
-<style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏、左上角的展开箭头、以及原始的顶部白条 */
+/* 隐藏默认元素 */
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stHeader"] { display: none !important; }
 
-/* 2. 导航卡片本体：精致、放大字号、SaaS 阴影 */
-[data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff !important; 
-    border: 1px solid #cbd5e1 !important; 
-    border-radius: 12px !important; 
-    padding: 12px 6px !important; 
+/* 顶部导航 Tabs (极简下划线风格) */
+[data-testid="stPageLink-NavLink"] {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 8px 14px !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -1px;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    transition: all 0.25s ease !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
     text-decoration: none !important;
     white-space: nowrap;
 }
-[data-testid="stPageLink-NavLink"]:hover {
-    background-color: #ffffff !important;
-    border-color: #3b82f6 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1) !important;
+[data-testid="stPageLink-NavLink"]:hover { background: #F1F5F9 !important; }
+[data-testid="stPageLink-NavLink"] p { font-weight: 600 !important; color: #64748B !important; font-size: 16px !important; margin: 0 !important; }
+[aria-current="page"] [data-testid="stPageLink-NavLink"] { border-bottom: 2px solid #2563EB !important; }
+[aria-current="page"] [data-testid="stPageLink-NavLink"] p { color: #2563EB !important; font-weight: 600 !important; }
+
+/* 返回顶部按钮 (保留原有的多巴胺粉色) */
+.back-to-top {
+    position: fixed; bottom: 40px; right: 40px;
+    background-color: #FF8FAB; color: #ffffff !important; 
+    border: none; width: 50px; height: 50px; border-radius: 50%; 
+    display: flex; justify-content: center; align-items: center;
+    font-size: 24px; font-weight: 800;
+    box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35);
+    text-decoration: none !important; z-index: 99999; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-[data-testid="stPageLink-NavLink"] p {
-    font-weight: 800 !important;
-    color: #1e293b !important;
-    font-size: 14px !important; 
-    margin: 0 !important;
+.back-to-top:hover {
+    background-color: #FF5D8F; transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); color: #ffffff !important;
 }
 
-/* 3. 页面顶部留白，替代被隐藏的 Header */
-.block-container { 
-    padding-top: 2rem !important; 
-    max-width: 98% !important; 
-}
-</style>
-""", unsafe_allow_html=True)
-
-spacer_left, nav1, nav2, nav3, nav4, nav5, nav6, spacer_right = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
-
-with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
-with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
-with nav5: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
-with nav6: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
-
-st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
-
-
-# ==========================================
-# 🎨 页面底层定制 CSS 
-# ==========================================
-st.markdown("""
-<style>
-.stApp { background-color: #f8fafc !important; }
-#MainMenu {visibility: hidden;}
-
-/* 圆角分区容器 */
+/* 原有底层定制 CSS */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 16px !important;
-    border: 1px solid #e2e8f0 !important;
-    background-color: #ffffff;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    padding: 10px;
+    border-radius: 16px !important; border: 1px solid #e2e8f0 !important;
+    background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 10px;
 }
-
-/* 覆盖原生卡片字体 */
 div[data-testid="stMetricValue"] > div { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
 div[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 14px !important; font-weight: 600 !important; }
 div[data-testid="stMetricDelta"] > div { font-size: 14px !important; }
-
-/* 自定义精美 HTML 表格悬浮效果 */
 .custom-table-row:hover { background-color: #f1f5f9 !important; }
 
-/* 🔥 顶部 Tab 看板切换 -> 蓝底胶囊风格 */
 div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; box-shadow: none !important; transition: all 0.3s ease; }
@@ -140,7 +79,6 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] p { color: #64748b !importa
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] { background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff !important; }
 
-/* 🔥 Radio 日期聚合切换 -> 卡片式按钮 */
 div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
 div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
 div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
@@ -148,16 +86,25 @@ div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !impor
 div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; }
 div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
 
-/* 🔥 多选框站点筛选 -> 统一蓝色实心胶囊 */
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] { background-color: #2563eb !important; color: #ffffff !important; border-radius: 8px !important; padding: 6px 14px !important; font-weight: 600 !important; border: none !important; }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span { color: #ffffff !important; }
 div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg { fill: #ffffff !important; }
 
-/* 🔥 同步数据按钮样式优化 */
 div[data-testid="stButton"] button { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; font-weight: 600 !important; border-radius: 8px !important; padding: 10px 16px !important; transition: all 0.2s ease !important; }
 div[data-testid="stButton"] button:hover { border-color: #2563eb !important; color: #2563eb !important; background-color: #f8fafc !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important; }
 </style>
 """, unsafe_allow_html=True)
+
+_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
+with _nc[0]: pass
+with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
+st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
+st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
 
 # ==========================================
