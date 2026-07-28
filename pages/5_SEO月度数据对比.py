@@ -19,84 +19,40 @@ CACHE_FILE = "seo_monthly_sales_v9.pkl"
 # ==========================================
 # 🎨 UI Refinements V2 - Enterprise SaaS Style
 # ==========================================
-st.markdown("""<div id="top-anchor"></div><style>
-/* === Base === */
+st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
+st.markdown("""<style>
+.stApp{background-color:#F8FAFC!important}
+.block-container{padding-top:.8rem!important;max-width:96%!important;padding-left:270px!important}
+h1{font-size:30px!important;font-weight:700!important;color:#111827!important}
+h2{font-size:24px!important;font-weight:700!important;color:#111827!important}
+h3{font-size:20px!important;font-weight:700!important;color:#111827!important}
+h4,h5,h6{font-size:18px!important;font-weight:700!important;color:#111827!important}
+p{color:#6B7280!important;font-size:14px!important}
+hr{border-color:#E5E7EB!important;margin:8px 0!important}
+.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;padding:0 16px!important}
+.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important}
+.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important}
+.stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
+.stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
+[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
+[data-testid="stExpander"]{border:1px solid #E5E7EB!important;border-radius:12px!important;background-color:#FFFFFF!important;margin-bottom:16px!important;overflow:hidden}
+[data-testid="stExpander"] summary{padding:14px 20px!important;background-color:#FFFFFF!important}
+[data-testid="stExpander"] summary p{font-size:16px!important;font-weight:700!important;color:#111827!important}
+.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:140px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important}
+.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:8px 8px!important;margin-bottom:2px!important;border-radius:6px!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;border-left:3px solid transparent!important;transition:all .12s!important}
+.country-nav a:hover{background-color:#F1F5F9!important;color:#111827!important;border-left-color:#CBD5E1!important}
+.country-nav a span{font-size:14px!important}
+[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;border-bottom:2px solid transparent!important;margin-bottom:-1px}
+[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important}
+[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
+.stAlert{border-radius:10px!important;padding:10px 14px!important;margin-bottom:8px!important}
+.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;text-decoration:none!important;z-index:99999}
+.back-to-top:hover{background:#1D4ED8}
 [data-testid="stSidebar"]{display:none!important}
 [data-testid="collapsedControl"]{display:none!important}
 [data-testid="stHeader"]{display:none!important}
-.stApp{background-color:#F8FAFC!important}
-.block-container{padding-top:.8rem!important;max-width:96%!important;padding-left:270px!important}
-
-/* === Card / Container === */
-[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
-
-/* === Expanders (per-site details) === */
-[data-testid="stExpander"]{border:1px solid #E5E7EB!important;border-radius:12px!important;background-color:#FFFFFF!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important;margin-bottom:16px!important;overflow:hidden}
-[data-testid="stExpander"] summary{padding:14px 20px!important;background-color:#FFFFFF!important}
-[data-testid="stExpander"] summary p{font-size:16px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.01em!important}
-
-/* === Left Country Navigation === */
-.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:140px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important}
-.country-nav::-webkit-scrollbar{width:0!important;background:transparent!important}
-.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:8px 8px!important;margin-bottom:2px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;transition:all .12s ease!important}
-/* File uploader match button height */
-[data-testid="stFileUploader"]{min-height:38px!important;display:flex!important;align-items:center!important}
-[data-testid="stFileUploader"] section{border:1px solid #E5E7EB!important;border-radius:10px!important;padding:0 12px!important;display:flex!important;align-items:center!important;height:38px!important}
-[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"]{display:none!important}
-.country-nav a:hover{background-color:#F1F5F9!important;color:#111827!important;border-left-color:#CBD5E1!important}
-.country-nav a span{font-size:14px!important}
-
-/* === Top Navigation Tabs === */
-[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;text-align:center!important;display:flex!important;justify-content:center!important;align-items:center!important;transition:background .15s ease!important;text-decoration:none!important;white-space:nowrap;border-bottom:2px solid transparent!important;margin-bottom:-1px}
-[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important;border-bottom-color:#E2E8F0!important;transform:none!important;box-shadow:none!important}
-[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important;margin:0!important;transition:color .15s ease;letter-spacing:-.01em!important}
-[data-testid="stPageLink-NavLink"]:hover p{color:#1E293B!important}
-[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
-[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
-
-/* === Buttons (All) === */
-.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.04)!important;padding:0 16px!important}
-.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important;font-weight:600!important}
-.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important;box-shadow:0 1px 3px rgba(59,130,246,.2)!important}
-.stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
-.stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
-
-/* === Tab Switcher (3 views) - Specifically target the button row === */
-div[data-testid="column"]:has(button[key="tab_switch_sales"]) button,
-div[data-testid="column"]:has(button[key="tab_switch_traffic"]) button,
-div[data-testid="column"]:has(button[key="tab_switch_gsc"]) button{height:42px!important;font-size:14px!important}
-
-/* === File Uploader === */
-[data-testid="stFileUploader"]{border:1px dashed #D1D5DB!important;border-radius:10px!important;padding:4px 8px!important;background:#FAFBFC!important;margin-bottom:2px!important}
-
-/* === Inputs === */
-.stTextInput input{border-radius:10px!important;border:1px solid #E5E7EB!important;font-size:14px!important;padding:8px 12px!important}
-.stTextInput input:focus{border-color:#2563EB!important;box-shadow:0 0 0 2px rgba(37,99,235,.15)!important}
-
-/* === Alerts === */
-.stAlert{border-radius:10px!important;border:none!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;margin-bottom:8px!important;padding:10px 14px!important}
-
-/* === Typography === */
-h1{font-size:30px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.03em!important}
-h2{font-size:24px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.02em!important}
-h3{font-size:20px!important;font-weight:700!important;color:#111827!important}
-h4,h5,h6{font-size:18px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.01em!important}
-p{color:#6B7280!important;font-size:14px!important;line-height:1.5!important}
-hr{border-color:#E5E7EB!important;margin:8px 0!important}
-
-/* === Plotly Charts === */
-.js-plotly-plot .plot-container{border-radius:10px!important}
-
-/* === Info/Status messages === */
-.stInfo,.stWarning,.stError,.stSuccess{border-radius:10px!important;font-size:13px!important;padding:8px 14px!important}
-/* File uploader */
-[data-testid="stFileUploader"]{min-height:38px!important;display:flex!important;align-items:center!important}
-[data-testid="stFileUploader"] section{border:1px solid #D1D5DB!important;border-radius:10px!important;padding:0 12px!important;display:flex!important;align-items:center!important;min-height:36px!important}
-[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"]{display:none!important}
-/* Back to top */
-#top-anchor{position:absolute;top:0;left:0}
-.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:18px;font-weight:700;box-shadow:0 2px 8px rgba(37,99,235,.3);text-decoration:none!important;z-index:99999;transition:all .15s ease}
-.back-to-top:hover{background:#1D4ED8;transform:translateY(-2px);box-shadow:0 4px 12px rgba(37,99,235,.4);color:#fff!important}
 </style>""", unsafe_allow_html=True)
 
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
@@ -262,7 +218,7 @@ with col_h_right:
         if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=False):
             pass
     with col_b3:
-        uploaded_file = st.file_uploader("", type=['xlsx', 'xls'], label_visibility="collapsed")
+        uploaded_file = st.file_uploader("上传Excel", type=['xlsx', 'xls'], label_visibility="collapsed")
     msg_area = st.empty()
     
     if uploaded_file is not None:
