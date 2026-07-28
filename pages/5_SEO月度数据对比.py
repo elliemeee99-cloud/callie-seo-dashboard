@@ -16,46 +16,75 @@ CACHE_FILE = "seo_monthly_sales_v9.pkl"
 # 🧭 极限防乱码单行 CSS + 6栏导航
 # ==========================================
 # ==========================================
-# 🎨 Vercel/Linear Style CSS
+# ==========================================
+# 🎨 UI Refinements V2 - Enterprise SaaS Style
 # ==========================================
 st.markdown("""<style>
+/* === Base === */
 [data-testid="stSidebar"]{display:none!important}
 [data-testid="collapsedControl"]{display:none!important}
 [data-testid="stHeader"]{display:none!important}
 .stApp{background-color:#F8FAFC!important}
-.block-container{padding-top:1.2rem!important;max-width:95%!important}
-[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:20px}
-[data-testid="stExpander"]{border:1px solid #E5E7EB!important;border-radius:12px!important;background-color:#FFFFFF!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;margin-bottom:20px!important;overflow:hidden}
-[data-testid="stExpander"] summary{padding:18px 22px!important;background-color:#FFFFFF!important}
-[data-testid="stExpander"] summary p{font-size:17px!important;font-weight:700!important;color:#111827!important}
-/* Page Link Tabs */
-[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:10px 14px!important;text-align:center!important;display:flex!important;justify-content:center!important;align-items:center!important;transition:background .15s ease!important;text-decoration:none!important;white-space:nowrap;border-bottom:2px solid transparent!important;margin-bottom:-1px}
+.block-container{padding-top:.8rem!important;max-width:96%!important;padding-left:270px!important}
+
+/* === Card / Container === */
+[data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
+
+/* === Expanders (per-site details) === */
+[data-testid="stExpander"]{border:1px solid #E5E7EB!important;border-radius:12px!important;background-color:#FFFFFF!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important;margin-bottom:16px!important;overflow:hidden}
+[data-testid="stExpander"] summary{padding:14px 20px!important;background-color:#FFFFFF!important}
+[data-testid="stExpander"] summary p{font-size:16px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.01em!important}
+
+/* === Left Country Navigation === */
+.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:160px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important}
+.country-nav::-webkit-scrollbar{width:0!important;background:transparent!important}
+.country-nav a{display:flex!important;align-items:center!important;gap:8px!important;padding:7px 10px!important;margin-bottom:3px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;transition:all .12s ease!important}
+.country-nav a:hover{background-color:#F1F5F9!important;color:#111827!important;border-left-color:#CBD5E1!important}
+.country-nav a span{font-size:14px!important}
+
+/* === Top Navigation Tabs === */
+[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;text-align:center!important;display:flex!important;justify-content:center!important;align-items:center!important;transition:background .15s ease!important;text-decoration:none!important;white-space:nowrap;border-bottom:2px solid transparent!important;margin-bottom:-1px}
 [data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important;border-bottom-color:#E2E8F0!important;transform:none!important;box-shadow:none!important}
 [data-testid="stPageLink-NavLink"] p{font-weight:500!important;color:#64748B!important;font-size:15px!important;margin:0!important;transition:color .15s ease}
 [data-testid="stPageLink-NavLink"]:hover p{color:#1E293B!important}
-/* Active tab */
-[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom-color:#2563EB!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
 [aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
-/* Buttons */
-.stButton button{height:36px!important;border-radius:8px!important;font-size:14px!important;font-weight:500!important;transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.05)!important}
-.stButton button[kind="primary"]{background:#2563EB!important;color:#fff!important;border:none!important}
-.stButton button[kind="primary"]:hover{background:#1D4ED8!important;box-shadow:0 1px 3px rgba(37,99,235,.3)!important}
-/* File uploader */
-[data-testid="stFileUploader"]{border:1px dashed #D1D5DB!important;border-radius:10px!important;padding:8px!important;background:#FAFBFC!important}
-/* Text inputs */
-.stTextInput input{border-radius:8px!important;border:1px solid #E5E7EB!important;font-size:14px!important;padding:8px 12px!important}
-/* Info/Warning/Error boxes */
-.stAlert{border-radius:10px!important;border:none!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important}
-/* Tabs inside dashboard (the 3-view switcher) */
-.stTabs [data-baseweb="tab-list"]{gap:0!important;border-bottom:1px solid #E5E7EB!important}
-.stTabs [data-baseweb="tab"]{padding:10px 20px!important;font-size:15px!important;font-weight:500!important;color:#64748B!important}
-.stTabs [aria-selected="true"]{color:#2563EB!important;font-weight:600!important}
-/* Chart containers */
-.js-plotly-plot .plot-container{border-radius:10px!important}
-/* Multi-line text in markdown */
-h1,h2,h3,h4,h5,h6{color:#111827!important;letter-spacing:-.02em!important}
+
+/* === Buttons (All) === */
+.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.04)!important;padding:0 16px!important}
+.stButton button[kind="primary"]{background:#2563EB!important;color:#FFFFFF!important;border:1px solid #2563EB!important}
+.stButton button[kind="primary"]:hover{background:#1D4ED8!important;border-color:#1D4ED8!important;box-shadow:0 2px 6px rgba(37,99,235,.3)!important}
+.stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
+.stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
+
+/* === Tab Switcher (3 views) - Specifically target the button row === */
+div[data-testid="column"]:has(button[key="tab_switch_sales"]) button,
+div[data-testid="column"]:has(button[key="tab_switch_traffic"]) button,
+div[data-testid="column"]:has(button[key="tab_switch_gsc"]) button{height:42px!important;font-size:14px!important}
+
+/* === File Uploader === */
+[data-testid="stFileUploader"]{border:1px dashed #D1D5DB!important;border-radius:10px!important;padding:4px 8px!important;background:#FAFBFC!important;margin-bottom:2px!important}
+
+/* === Inputs === */
+.stTextInput input{border-radius:10px!important;border:1px solid #E5E7EB!important;font-size:14px!important;padding:8px 12px!important}
+.stTextInput input:focus{border-color:#2563EB!important;box-shadow:0 0 0 2px rgba(37,99,235,.15)!important}
+
+/* === Alerts === */
+.stAlert{border-radius:10px!important;border:none!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;margin-bottom:8px!important;padding:10px 14px!important}
+
+/* === Typography === */
+h1{font-size:30px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.03em!important}
+h2{font-size:24px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.02em!important}
+h3{font-size:20px!important;font-weight:700!important;color:#111827!important}
+h4,h5,h6{font-size:18px!important;font-weight:700!important;color:#111827!important;letter-spacing:-.01em!important}
 p{color:#6B7280!important;font-size:14px!important;line-height:1.5!important}
-hr{border-color:#E5E7EB!important;margin:12px 0!important}
+hr{border-color:#E5E7EB!important;margin:8px 0!important}
+
+/* === Plotly Charts === */
+.js-plotly-plot .plot-container{border-radius:10px!important}
+
+/* === Info/Status messages === */
+.stInfo,.stWarning,.stError,.stSuccess{border-radius:10px!important;font-size:13px!important;padding:8px 14px!important}
 </style>""", unsafe_allow_html=True)
 
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
@@ -438,7 +467,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
             st.markdown("### \U0001f3ea 各站点详细数据")
-            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
 
             _nav_html = """<div class="country-nav"><div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">\U0001f4cd</span> 快速定位</div><div style="display:flex;flex-direction:column;gap:8px;">
             <a href="#jump-DE" style="text-decoration:none;padding:10px 12px;background-color:#f8fafc;border-radius:8px;border-left:5px solid #4285F4;color:#1e293b;font-weight:600;display:flex;align-items:center;gap:10px;"><span>\U0001f1e9\U0001f1ea</span> DE 德国</a>
@@ -771,7 +800,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'traffic':
-            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             # 流量看板内容
             traffic_months = st.session_state['monthly_data'].get('traffic_months', [])
             traffic_total = st.session_state['monthly_data'].get('traffic_total', {})
@@ -1112,7 +1141,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'gsc':
-            st.markdown('<style>.block-container{padding-left:250px!important}.country-nav{position:fixed;top:11rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
+            st.markdown('<style>.block-container{padding-left:250px!important}.country-nav{position:fixed;top:11rem;left:1.2rem;width:160px;max-height:calc(100vh - 10rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:10px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
             if not gsc_data:
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
