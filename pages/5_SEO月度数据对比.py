@@ -95,6 +95,7 @@ with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="\U0001f5c2 SEO �
 with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="\U0001f4cb SEO 需求管理")
 with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="\U0001f4c5 重点事件记录")
 with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="\U0001f4ca 月度数据对比")
+st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
 # ==========================================
 # ⚙️ 核心解析引擎 (彻底修复错位Bug)
 # ==========================================
@@ -231,7 +232,7 @@ def _parse_gsc_sheet(raw2, result):
 # ==========================================
 # 🎯 页面头部与数据持久化上传
 # ==========================================
-col_h_left, col_h_right = st.columns([3, 1])
+col_h_left, col_h_right = st.columns([1.8, 1.2])
 with col_h_left:
     st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>SEO 月度数据对比</div>", unsafe_allow_html=True)
     st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与站点表现</div>", unsafe_allow_html=True)
@@ -239,16 +240,16 @@ with col_h_right:
     st.markdown(f"<div style='color:#9CA3AF;font-size:11px;text-align:right;margin-bottom:2px;line-height:1;'>更新时间：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
     col_b1, col_b2, col_b3 = st.columns([1, 1, 1.8])
     with col_b1:
-        if st.button("\u2726 \u6e05\u7a7a\u7f13\u5b58", use_container_width=True):
+        if st.button("\u2726 \u6e05\u7a7a", use_container_width=False):
             if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
             if 'monthly_data' in st.session_state: del st.session_state['monthly_data']
             st.success("\u7f13\u5b58\u5df2\u6e05\u7a7a\uff01")
             st.rerun()
     with col_b2:
-        if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=True):
+        if st.button("\u540c\u6b65\u6570\u636e", type="primary", use_container_width=False):
             pass
     with col_b3:
-        uploaded_file = st.file_uploader("\u4e0a\u4f20Excel", type=['xlsx', 'xls'], label_visibility="collapsed")
+        uploaded_file = st.file_uploader("", type=['xlsx', 'xls'], label_visibility="collapsed")
     msg_area = st.empty()
     
     if uploaded_file is not None:
