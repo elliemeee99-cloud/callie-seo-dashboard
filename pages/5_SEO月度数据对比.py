@@ -727,6 +727,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
 
         elif tab_selected == 'traffic':
+            st.markdown('<style>.country-nav{position:fixed;top:11rem;left:1.5rem;width:200px;max-height:calc(100vh - 8rem);overflow-y:auto;z-index:9999;background:#ffffff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.04);border:1px solid #EEF2F6}.country-nav::-webkit-scrollbar{width:0;background:transparent}.block-container{padding-left:250px!important}[data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}[data-testid="stExpander"]summary{padding:20px 24px!important;background-color:#ffffff!important}[data-testid="stExpander"]summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}</style>', unsafe_allow_html=True)
             # 流量看板内容
             traffic_months = st.session_state['monthly_data'].get('traffic_months', [])
             traffic_total = st.session_state['monthly_data'].get('traffic_total', {})
