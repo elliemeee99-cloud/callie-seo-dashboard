@@ -236,8 +236,8 @@ with col_h_left:
     st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>SEO 月度数据对比</div>", unsafe_allow_html=True)
     st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与站点表现</div>", unsafe_allow_html=True)
 with col_h_right:
-    st.markdown(f"<div style='color:#9CA3AF;font-size:12px;text-align:right;margin-bottom:4px;'>\u66f4\u65b0\u65f6\u95f4\uff1a{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
-    col_b1, col_b2, col_b3 = st.columns([1, 1, 2])
+    st.markdown(f"<div style='color:#9CA3AF;font-size:11px;text-align:right;margin-bottom:2px;line-height:1;'>更新时间：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+    col_b1, col_b2, col_b3 = st.columns([1, 1, 1.8])
     with col_b1:
         if st.button("\u2726 \u6e05\u7a7a\u7f13\u5b58", use_container_width=True):
             if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
@@ -249,6 +249,7 @@ with col_h_right:
             pass
     with col_b3:
         uploaded_file = st.file_uploader("\u4e0a\u4f20Excel", type=['xlsx', 'xls'], label_visibility="collapsed")
+    msg_area = st.empty()
     
     if uploaded_file is not None:
         try:
@@ -285,12 +286,12 @@ with col_h_right:
                     _parse_gsc_sheet(df_gsc_raw, data_dict)
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
-                st.success("✅ 数据报表完美解析！已识别销售额(3子表)与流量汇总表，含9站点逐月明细。")
+                msg_area.success("✅ 数据解析成功！")
             else:
-                st.error("❌ 表格结构未能精准匹配！请确保三张表头分别带有'非品牌'、'ALL'与'网站总销售额'字样，并且包含'总计'列。")
+                msg_area.error("❌ 表格结构不匹配，请检查。")
                 
         except Exception as e:
-            st.error(f"❌ 解析失败，请检查文件格式。报错详情: {e}")
+            msg_area.error(f"❌ 解析失败: {e}")
 
 if 'monthly_data' not in st.session_state and os.path.exists(CACHE_FILE):
     try: st.session_state['monthly_data'] = pd.read_pickle(CACHE_FILE)
