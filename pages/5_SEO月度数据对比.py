@@ -38,11 +38,11 @@ st.markdown("""<div id="top-anchor"></div><style>
 /* === Left Country Navigation === */
 .country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:140px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:10px!important;border-radius:10px!important;border:1px solid #E5E7EB!important;box-shadow:0 1px 3px rgba(0,0,0,.05)!important}
 .country-nav::-webkit-scrollbar{width:0!important;background:transparent!important}
-.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:8px 8px!important;margin-bottom:2px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important
+.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:8px 8px!important;margin-bottom:2px!important;border-radius:6px!important;background-color:transparent!important;border-left:3px solid transparent!important;color:#374151!important;font-weight:500!important;font-size:13px!important;text-decoration:none!important;transition:all .12s ease!important}
 /* File uploader match button height */
 [data-testid="stFileUploader"]{min-height:38px!important;display:flex!important;align-items:center!important}
 [data-testid="stFileUploader"] section{border:1px solid #E5E7EB!important;border-radius:10px!important;padding:0 12px!important;display:flex!important;align-items:center!important;height:38px!important}
-[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"]{display:none!important};transition:all .12s ease!important}
+[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"]{display:none!important}
 .country-nav a:hover{background-color:#F1F5F9!important;color:#111827!important;border-left-color:#CBD5E1!important}
 .country-nav a span{font-size:14px!important}
 
