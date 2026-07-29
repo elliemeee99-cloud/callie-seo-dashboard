@@ -13,140 +13,65 @@ import plotly.graph_objects as go
 fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
 cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
 en_to_cn = {v: k for k, v in cn_to_en.items()}
-site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
-
-# 🔥 Google 经典四色循环 (蓝, 红, 黄, 绿)
-GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']
 
 # ==========================================
 # 网页基础设置
 # ==========================================
-st.set_page_config(page_title="SEO站点明细", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="SEO站点明细", page_icon="🗄️", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🧭 顶部横向导航栏 & 隐藏原生侧边栏目录
+# 🎨 现代 SaaS 顶级视觉重构 (统一全局风格)
 # ==========================================
-st.markdown("""
-<style>
-/* 1. 彻底隐藏 Streamlit 默认的侧边栏目录 */
-[data-testid="stSidebarNav"] { display: none !important; }
-
-/* 2. 美化横向导航按钮 */
-[data-testid="stPageLink-NavLink"] { 
-    background-color: #ffffff; 
-    border: 1px solid #e2e8f0; 
-    border-radius: 12px; 
-    padding: 10px 16px; 
-    text-align: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-}
-[data-testid="stPageLink-NavLink"]:hover {
-    background-color: #f8fafc;
-    border-color: #3b82f6;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
-}
-[data-testid="stPageLink-NavLink"] p {
-    font-weight: 700 !important;
-    color: #1e293b !important;
-    font-size: 15px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# 使用 columns 横向排布导航按钮 (按需分配宽度)
-col_nav1, col_nav2, col_nav3, _ = st.columns([1.2, 1.5, 1.5, 5])
-
-with col_nav1:
-    st.page_link("app.py", label="App 首页", icon="🏠")
-with col_nav2:
-    st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with col_nav3:
-    st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-
-st.markdown("<div style='margin-bottom: 24px; border-bottom: 1px solid #EEF2F6; padding-bottom: 10px;'></div>", unsafe_allow_html=True)
-
-# ==========================================
-# 🎨 现代 SaaS 顶级视觉重构 (包含左侧悬浮与避让)
-# ==========================================
+st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
 st.markdown("""
 <style>
 /* 1. 整体极简浅灰背景 */
 .stApp { 
-    background-color: #F5F7FA !important; 
+    background-color: #F8FAFC !important; 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-/* 2. 页面容器：增加顶部留白，并为左侧固定的导航栏留出避让空间 */
+/* 2. 页面容器：增加顶部留白，为左侧留出 140px */
 .block-container { 
-    padding-top: 5rem !important; 
-    padding-left: 260px !important; 
+    padding-top: 1rem !important; 
+    padding-left: 140px !important; 
     max-width: 98% !important; 
 }
 
-/* 3. 🔥 真正的全局吸附式左侧导航栏 */
-.floating-nav {
-    position: fixed;
-    top: 6rem;
-    left: 1.5rem;
-    width: 220px;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    z-index: 9999;
-    background: #ffffff;
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    border: 1px solid #EEF2F6;
-}
-.floating-nav::-webkit-scrollbar { width: 0px; background: transparent; }
+/* 🔥 窄版左侧悬浮导航菜单 */
+.country-nav { position:fixed!important; top:11rem!important; left:1.2rem!important; width:100px!important; max-height:calc(100vh - 10rem)!important; overflow-y:auto!important; z-index:9999!important; background:#FFFFFF!important; padding:12px 10px!important; border-radius:12px!important; border:1px solid #EEF2F6!important; box-shadow:0 8px 24px rgba(0,0,0,0.04)!important }
+.country-nav::-webkit-scrollbar { width:0; background:transparent }
+.country-nav a { display:flex!important; align-items:center!important; gap:6px!important; padding:6px 6px!important; margin-bottom:6px!important; border-radius:6px!important; color:#1e293b!important; font-weight:600!important; text-decoration:none!important; transition:all .15s ease!important }
+.country-nav a:hover { transform:translateX(2px)!important; background-color:#F1F5F9!important }
+.c-flag { font-size: 16px; line-height: 1; }
+.c-name { display:inline-block; color:#fff; font-size:11px; font-weight:700; border-radius:3px; padding:2px 4px; line-height:1.2; }
+
+/* 顶部导航 Tabs (极简下划线风格) */
+[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;border-bottom:2px solid transparent!important;margin-bottom:-1px;display:flex!important;justify-content:center!important;align-items:center!important;white-space:nowrap}
+[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important}
+[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important;margin:0!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
 
 /* 4. 强力胶囊化单选框 */
-div[role="radiogroup"] { gap: 12px !important; flex-wrap: wrap; }
-div[role="radiogroup"] > label {
-    background-color: #ffffff !important; border: 1px solid #E5E7EB !important;
-    padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important;
-    align-items: center !important; justify-content: center !important; transition: all 0.2s !important;
-}
+div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
+div[role="radiogroup"] > label { background-color: #ffffff !important; border: 1px solid #E5E7EB !important; padding: 8px 24px !important; border-radius: 30px !important; cursor: pointer !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; transition: all 0.2s !important; }
 div[role="radiogroup"] > label:hover { background-color: #F9FAFB !important; border-color: #D1D5DB !important; }
 div[role="radiogroup"] > label > div:first-child { display: none !important; } 
-div[role="radiogroup"] > label p, div[role="radiogroup"] > label div {
-    margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important;
-}
-div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) {
-    background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
-}
-div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p,
-div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] > label:has(input:checked) div {
-    color: #ffffff !important;
-}
+div[role="radiogroup"] > label p, div[role="radiogroup"] > label div { margin: 0 !important; font-weight: 600 !important; color: #4B5563 !important; font-size: 14px !important; }
+div[role="radiogroup"] > label[aria-checked="true"], div[role="radiogroup"] > label:has(input:checked) { background-color: #2563EB !important; border-color: #2563EB !important; box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important; }
+div[role="radiogroup"] > label[aria-checked="true"] p, div[role="radiogroup"] > label:has(input:checked) p, div[role="radiogroup"] > label[aria-checked="true"] div, div[role="radiogroup"] > label:has(input:checked) div { color: #ffffff !important; }
 
 /* 5. 底层原始数据表格容器化 */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #ffffff !important; border: 1px solid #EEF2F6 !important;
-    border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important;
-}
+div[data-testid="stVerticalBlockBorderWrapper"] { background-color: #ffffff !important; border: 1px solid #EEF2F6 !important; border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; padding: 24px !important; }
 
 /* 6. 自定义大模块 Section */
-.saas-section {
-    background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px;
-}
-.saas-title {
-    font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px;
-    display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
-}
-.icon-box {
-    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
-}
+.saas-section { background: #ffffff; border-radius: 16px; border: 1px solid #EEF2F6; box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 32px; margin-bottom: 32px; }
+.saas-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+.icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 
 /* 7. 折叠面板高级化 */
-[data-testid="stExpander"] {
-    border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden;
-}
+[data-testid="stExpander"] { border: 1px solid #EEF2F6 !important; border-radius: 16px !important; background-color: #ffffff !important; box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; margin-bottom: 24px !important; overflow: hidden; }
 [data-testid="stExpander"] summary { padding: 20px 24px !important; background-color: #ffffff !important; }
 [data-testid="stExpander"] summary:hover { background-color: #F9FAFB !important; }
 [data-testid="stExpander"] summary p { font-size: 18px !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; }
@@ -154,8 +79,45 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 /* 移除导致遮挡的超出隐藏 */
 div.element-container { overflow: visible !important; }
 div.stMarkdown { overflow: visible !important; }
+
+.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;text-decoration:none!important;z-index:99999}
+.back-to-top:hover{background:#1D4ED8}
+[data-testid="stSidebar"]{display:none!important}
+[data-testid="collapsedControl"]{display:none!important}
+[data-testid="stHeader"]{display:none!important}
+
+.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;padding:0 16px!important}
+.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important}
+.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important}
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================
+# 🧭 统一横向导航栏 
+# ==========================================
+_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
+with _nc[0]: pass
+with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
+st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
+st.markdown("<a href='#top-anchor' class='back-to-top' title='回到顶部'>↑</a>", unsafe_allow_html=True)
+
+# ==========================================
+# ⚙️ 辅助模块：左侧挂件生成器 
+# ==========================================
+def get_nav_html(prefix, icon, title):
+    sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
+             ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
+             ('SE', '🇸🇪', '#FBBC05'), ('FI', '🇫🇮', '#34A853'), ('PL', '🇵🇱', '#4285F4')]
+    links = ""
+    for site, flag, color in sites:
+        links += f'<a href="#{prefix}-{site}" style="border-left:4px solid {color};"><span class="c-flag">{flag}</span><span class="c-name" style="background:{color};">{site}</span></a>'
+    return f'<div class="country-nav"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><span style="font-size:14px;">{icon}</span> {title}</div><div style="display:flex;flex-direction:column;">{links}</div></div>'
+
 
 # ==========================================
 # ⚙️ 底层数据与清洗逻辑 
@@ -305,31 +267,26 @@ def render_comparison_chart(df_site, metric_names, title, p1_dates, p2_dates, pr
         try: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, width="stretch")
         except BaseException: st.plotly_chart(fig, config={'displayModeBar': False}, key=chart_key, use_container_width=True)
 
-# ==========================================
-# 📌 注入绝对定位的悬浮导航栏 (脱离布局)
-# ==========================================
-nav_html = "<div class='floating-nav'><div style='font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;'><span style='font-size: 20px;'>📍</span> 快速定位</div><div style='display:flex; flex-direction:column; gap:10px;'>"
-for idx, site in enumerate(fixed_sites_order):
-    g_color = GOOGLE_COLORS[idx % 4]
-    flag = site_flags.get(site, '🌍')
-    cn_name = en_to_cn.get(site, site)
-    nav_html += f"<a href='#jump-{site}' target='_self' style='text-decoration: none; padding: 10px 14px; background-color: #f8fafc; border-radius: 8px; border-left: 5px solid {g_color}; color: #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s;' onmouseover=\"this.style.backgroundColor='#ffffff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateX(3px)';\" onmouseout=\"this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none'; this.style.transform='translateX(0)';\"><span style='font-size: 18px;'>{flag}</span><span style='font-size: 14px;'>{site} {cn_name}</span></a>"
-nav_html += "</div></div>"
-st.markdown(nav_html, unsafe_allow_html=True)
-
 
 # ==========================================
 # 📐 页面头部与同步按钮
 # ==========================================
-col_header, col_refresh = st.columns([5, 1])
-with col_header:
-    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>🌍 Analytics Dashboard</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color: #6B7280; margin-bottom: 32px; font-size: 15px;'>全局站点全景与深度体检数据台。</div>", unsafe_allow_html=True)
-with col_refresh:
-    st.write("") 
-    if st.button("🔄 同步最新数据"):
-        load_site_full_details.clear()
-        st.rerun()
+col_title, col_actions = st.columns([1.5, 1])
+with col_title:
+    st.markdown("# 🗄️ SEO 站点明细")
+    st.markdown("<p style='color:#6B7280; font-size:15px; margin-top:-12px; margin-bottom:16px;'>全局站点全景与深度体检数据台。</p>", unsafe_allow_html=True)
+    
+with col_actions:
+    st.markdown(f"<div style='text-align:right; font-size:12px; color:#9CA3AF; margin-bottom: 8px;'>最后更新：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+    btn1, btn2, btn3 = st.columns([1.2, 1, 1])
+    with btn2:
+        if st.button("✨ 清空缓存", use_container_width=True):
+            load_site_full_details.clear()
+            st.rerun()
+    with btn3:
+        if st.button("🔄 同步数据", type="primary", use_container_width=True):
+            load_site_full_details.clear()
+            st.rerun()
 
 with st.spinner("✨ 正在智能扫描最新数据..."):
     df_all = load_site_full_details()
@@ -472,6 +429,9 @@ if df_all is not None and not df_all.empty:
     """, unsafe_allow_html=True)
 
     df_raw_tables = df_all[(df_all['Date'].dt.date >= s_date_ts.date()) & (df_all['Date'].dt.date <= e_date_ts.date())]
+
+    # 🔥 插入带国旗的窄版悬浮窗
+    st.markdown(get_nav_html('jump', '📍', '快速定位'), unsafe_allow_html=True)
 
     # --- 开始遍历渲染分站点数据 ---
     for site in fixed_sites_order:
