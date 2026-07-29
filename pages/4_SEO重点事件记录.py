@@ -10,7 +10,87 @@ import re
 # ==========================================
 st.set_page_config(page_title="SEO重点事件记录", page_icon="📅", layout="wide", initial_sidebar_state="collapsed")
 
-CACHE_FILE = "seo_events_cache.pkl"
+# 强制使用新版缓存名称，确保数据稳定固化
+CACHE_FILE = "seo_events_cache_v2.pkl"
+
+# ==========================================
+# 🎨 现代 SaaS 顶级视觉重构 (统一全局风格)
+# ==========================================
+st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
+st.markdown("""<style>
+/* 1. 整体极简浅灰背景 */
+.stApp { 
+    background-color: #F8FAFC !important; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* 2. 页面容器留白 */
+.block-container { 
+    padding-top: 1rem !important; 
+    max-width: 96% !important; 
+}
+
+h1{font-size:30px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.02em!important;margin-bottom:0px!important;}
+h2{font-size:24px!important;font-weight:700!important;color:#111827!important}
+h3{font-size:20px!important;font-weight:700!important;color:#111827!important}
+p{color:#6B7280!important;font-size:14px!important}
+hr{border-color:#E5E7EB!important;margin:8px 0!important}
+
+/* 按钮统一风格 */
+.stButton button{height:38px!important;border-radius:10px!important;font-size:14px!important;font-weight:600!important;padding:0 16px!important}
+.stButton button[kind="primary"]{background:#EFF6FF!important;color:#1D4ED8!important;border:1px solid #BFDBFE!important}
+.stButton button[kind="primary"]:hover{background:#DBEAFE!important;border-color:#93C5FD!important;color:#1E40AF!important}
+.stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
+.stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
+
+/* 统一卡片容器 */
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 16px !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; }
+
+/* 顶部看板切换 Tabs 样式 */
+div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 12px !important; border-bottom: none !important; }
+div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"] { background-color: #f1f5f9 !important; border-radius: 8px !important; padding: 12px 28px !important; border: none !important; box-shadow: none !important; transition: all 0.3s ease; }
+div[data-testid="stTabs"] button[data-baseweb="tab"] p { color: #64748b !important; font-weight: 700 !important; font-size: 17px !important; margin: 0 !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] { background-color: #2563eb !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff !important; }
+
+/* 顶部导航 Tabs (极简下划线风格) */
+[data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;border-bottom:2px solid transparent!important;margin-bottom:-1px;display:flex!important;justify-content:center!important;align-items:center!important;white-space:nowrap}
+[data-testid="stPageLink-NavLink"]:hover{background:#F1F5F9!important}
+[data-testid="stPageLink-NavLink"] p{font-weight:600!important;color:#64748B!important;font-size:16px!important;margin:0!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"]{border-bottom:2px solid #2563EB!important}
+[aria-current="page"] [data-testid="stPageLink-NavLink"] p{color:#2563EB!important;font-weight:600!important}
+
+.stAlert{border-radius:10px!important;padding:10px 14px!important;margin-bottom:8px!important}
+.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;text-decoration:none!important;z-index:99999}
+.back-to-top:hover{background:#1D4ED8}
+[data-testid="stSidebar"]{display:none!important}
+[data-testid="collapsedControl"]{display:none!important}
+[data-testid="stHeader"]{display:none!important}
+
+/* 各种表单小控件 */
+div[data-testid="stRadio"] div[role="radiogroup"] { display: flex !important; flex-direction: row !important; gap: 10px !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] { background-color: #f1f5f9 !important; padding: 8px 24px !important; border-radius: 8px !important; cursor: pointer !important; transition: all 0.2s; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { display: none !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"] p { color: #64748b !important; font-weight: 600 !important; margin: 0 !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"], div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) { background-color: #2563eb !important; }
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] p, div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p { color: #ffffff !important; }
+</style>""", unsafe_allow_html=True)
+
+# ==========================================
+# 🧭 统一横向导航栏 
+# ==========================================
+_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
+with _nc[0]: pass
+with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
+with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
+with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
+with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
+with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
+with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
+st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
+st.markdown("<a href='#top-anchor' class='back-to-top' title='回到顶部'>↑</a>", unsafe_allow_html=True)
+
 
 # ==========================================
 # 🎨 标签色彩自动分配引擎 (多巴胺色系)
@@ -62,42 +142,38 @@ def get_link_info(url):
     return info
 
 # ==========================================
-# 🧭 极限压缩防乱码 CSS + 导航栏
+# 🎯 页面头部结构与排版优化 (Fix UI)
 # ==========================================
-compressed_css = """
-<div id="top-anchor"></div>
-<style>[data-testid="stSidebar"]{display:none !important;}[data-testid="collapsedControl"]{display:none !important;}[data-testid="stHeader"]{display:none !important;}.block-container{padding-top:2rem !important;max-width:95% !important;}.stApp{background-color:#f8fafc !important;}[data-testid="stPageLink-NavLink"]{background-color:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:12px 10px !important;text-align:center !important;display:flex !important;justify-content:center !important;align-items:center !important;transition:all 0.25s ease !important;box-shadow:0 2px 4px rgba(0,0,0,0.02) !important;text-decoration:none !important;}[data-testid="stPageLink-NavLink"]:hover{background-color:#ffffff !important;border-color:#3b82f6 !important;transform:translateY(-2px) !important;box-shadow:0 8px 16px rgba(37,99,235,0.1) !important;}[data-testid="stPageLink-NavLink"] p{font-weight:800 !important;color:#1e293b !important;font-size:15.5px !important;margin:0 !important;}.back-to-top{position:fixed;bottom:40px;right:40px;background-color:#FF8FAB;color:#ffffff !important;border:none;width:50px;height:50px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:24px;font-weight:800;box-shadow:0 4px 15px rgba(255,143,171,0.35);text-decoration:none !important;z-index:99999;transition:all 0.3s ease;}.back-to-top:hover{background-color:#FF5D8F;transform:translateY(-5px);box-shadow:0 8px 20px rgba(255,143,171,0.55);color:#ffffff !important;}[data-testid="stVerticalBlockBorderWrapper"]{border-radius:16px !important;border:1px solid #e2e8f0 !important;background-color:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);padding:20px;}div[data-testid="stTabs"] div[data-baseweb="tab-list"]{gap:12px !important;border-bottom:none !important;}div[data-testid="stTabs"] div[data-baseweb="tab-highlight"]{display:none !important;}div[data-testid="stTabs"] button[data-baseweb="tab"]{background-color:#f1f5f9 !important;border-radius:8px !important;padding:12px 28px !important;border:none !important;transition:all 0.3s ease;}div[data-testid="stTabs"] button[data-baseweb="tab"] p{color:#64748b !important;font-weight:700 !important;font-size:16px !important;}div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"]{background-color:#2563eb !important;box-shadow:0 4px 6px rgba(37,99,235,0.2) !important;}div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p{color:#ffffff !important;}</style>
-<a href="#top-anchor" class="back-to-top" title="回到顶部">↑</a>
-"""
-st.markdown(compressed_css, unsafe_allow_html=True)
-
-spacer_left, nav1, nav2, nav3, nav4, nav5, spacer_right = st.columns([0.1, 1.2, 1.2, 1.2, 1.2, 1.2, 0.1])
-with nav1: st.page_link("app.py", label="App 首页", icon="🏠")
-with nav2: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
-with nav3: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细", icon="🗄️")
-with nav4: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
-with nav5: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
-st.markdown("<hr style='margin-top: 10px; margin-bottom: 25px; border-color: #e2e8f0;'/>", unsafe_allow_html=True)
+col_title, col_actions = st.columns([1.5, 1])
+with col_title:
+    st.markdown("# 📅 SEO 重点事件记录")
+    st.markdown("<p style='color:#6B7280; font-size:15px; margin-top:-12px; margin-bottom:16px;'>复盘流量起伏核心依据，追踪记录所有优化动作与 Google 核心算法更迭</p>", unsafe_allow_html=True)
+    
+with col_actions:
+    st.markdown(f"<div style='text-align:right; font-size:12px; color:#9CA3AF; margin-bottom: 8px;'>最后访问：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+    btn1, btn2, btn3 = st.columns([1.2, 1, 1])
+    with btn2:
+        if st.button("✨ 清空缓存", use_container_width=True):
+            if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
+            if 'event_data' in st.session_state: del st.session_state['event_data']
+            st.rerun()
+    with btn3:
+        pass # 占位，保持排版齐平
 
 # ==========================================
-# 🎯 页面头部结构与持久化引擎
+# 📥 强力缓存与文件自动解析引擎
 # ==========================================
-col_header, col_refresh = st.columns([5, 1])
-with col_header:
-    st.markdown("<div style='font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 8px; margin-top: 10px;'>📅 SEO 重点事件与算法追踪</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color: #6B7280; margin-bottom: 24px; font-size: 15px;'>复盘流量起伏核心依据，追踪记录所有优化动作与 Google 核心算法更迭。</div>", unsafe_allow_html=True)
-with col_refresh:
-    st.write("") 
-    if st.button("🗑️ 清空本地缓存"):
-        if os.path.exists(CACHE_FILE): os.remove(CACHE_FILE)
-        if 'event_data' in st.session_state: del st.session_state['event_data']
-        st.success("缓存已清空！")
-        st.rerun()
+# 第一步：不管用户传没传文件，只要有本地缓存，立刻拿出来！
+if 'event_data' not in st.session_state and os.path.exists(CACHE_FILE):
+    try:
+        st.session_state['event_data'] = pd.read_pickle(CACHE_FILE)
+    except:
+        pass
 
-# 📥 文件上传与自动解析引擎
 with st.container(border=True):
-    st.markdown("<div style='font-weight: 700; color: #334155; font-size: 16px; margin-bottom: 12px;'>🔄 一键更新事件台账</div>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("请在此上传《要事记录》台账 (支持 Excel xlsx 格式)", type=['xlsx', 'xls'])
+    st.markdown("<div style='font-weight: 700; color: #334155; font-size: 16px; margin-bottom: 12px;'>🔄 更新事件记录台账 (无更新则跳过此步)</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("若有新事件记录，请在此上传《要事记录》台账 (Excel)，系统将自动刷新并永久缓存", type=['xlsx', 'xls'], label_visibility="collapsed")
+    msg_area = st.empty()
     
     if uploaded_file is not None:
         try:
@@ -105,15 +181,14 @@ with st.container(border=True):
             df_events = pd.read_excel(xls, sheet_name='重点事件记录') if '重点事件记录' in xls.sheet_names else pd.DataFrame()
             df_algo = pd.read_excel(xls, sheet_name='Google算法更新记录') if 'Google算法更新记录' in xls.sheet_names else pd.DataFrame()
             data_dict = {'events': df_events, 'algo': df_algo}
+            
+            # 🔥 重点：保存到本地持久化文件，并立刻写入内存
             pd.to_pickle(data_dict, CACHE_FILE)
             st.session_state['event_data'] = data_dict
-            st.success("✅ 事件台账解析并保存成功！刷新页面数据也不会丢失。")
+            msg_area.success("✅ 事件台账解析并保存成功！由于缓存引擎生效，刷新页面数据也不会丢失。")
         except Exception as e:
-            st.error(f"❌ 文件解析失败，请检查文件格式。报错详情：{e}")
+            msg_area.error(f"❌ 文件解析失败，请检查文件格式。报错详情：{e}")
 
-if 'event_data' not in st.session_state and os.path.exists(CACHE_FILE):
-    try: st.session_state['event_data'] = pd.read_pickle(CACHE_FILE)
-    except: pass
 
 # ==========================================
 # 📊 双轨看板渲染引擎
@@ -249,4 +324,4 @@ if 'event_data' in st.session_state:
             st.info("📂 当前台账中缺乏规范的【Google算法更新记录】数据。")
 
 else:
-    st.info("👈 您的记录库为空，请在上方上传台账 (Excel) 以激活记录追踪功能。")
+    st.info("👈 您的系统缓存中目前没有数据。请在上方上传本地事件台账 (Excel) 以激活记录追踪功能，此后只需在有数据更新时再次上传即可。")
