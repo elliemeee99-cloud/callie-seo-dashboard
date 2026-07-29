@@ -13,6 +13,8 @@ import plotly.graph_objects as go
 fixed_sites_order = ["DE", "FR", "ES", "IT", "NL", "NO", "SE", "FI", "PL"]
 cn_to_en = {"德国": "DE", "法国": "FR", "西班牙": "ES", "意大利": "IT", "荷兰": "NL", "波兰": "PL", "挪威": "NO", "瑞典": "SE", "芬兰": "FI"}
 en_to_cn = {v: k for k, v in cn_to_en.items()}
+# 🔥 补回丢失的国旗字典变量
+site_flags = {"DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "IT": "🇮🇹", "NL": "🇳🇱", "NO": "🇳🇴", "SE": "🇸🇪", "FI": "🇫🇮", "PL": "🇵🇱"}
 
 # ==========================================
 # 网页基础设置
@@ -298,7 +300,7 @@ if df_all is not None and not df_all.empty:
     actual_max_date = valid_dates.max() if not valid_dates.empty else df_all['Date'].max()
 
     # ==========================================
-    # 🎛️ 顶部控制器 (修复：取消左右分列，全部左对齐堆叠)
+    # 🎛️ 顶部控制器 (全部左对齐堆叠)
     # ==========================================
     site_options = ["全部站点"] + list(cn_to_en.keys())
     
