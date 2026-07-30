@@ -1,54 +1,55 @@
 import streamlit as st
 import requests
-import pandas as pd
 
-st.set_page_config(page_title="SE Ranking 最终测试", page_icon="🔥", layout="wide")
-st.markdown("### 🔥 SE Ranking API 暴力直连测试")
+st.set_page_config(page_title="SE Ranking 审计测试", page_icon="🩺", layout="wide")
+st.markdown("### 🩺 SE Ranking 网站审计 (Audit) 数据抓取测试")
 
 try:
-    # 💥 直接绕过 secrets 配置，把 Key 硬编码写死在这里！
-    # 即使它在下面换成了两行，三引号也能完美包容，代码会自动把它拼成一行。
+    # 填入我们刚才验证成功的 API Key
     raw_key = """
     d5cf8caa-acd4-a096-166c-49670c92a88c
     """
-    
-    # 强行清洗所有隐藏的换行、空格和多余符号
     api_key = raw_key.strip().replace('"', '').replace("'", "").replace("\n", "").replace(" ", "")
     
-    st.info(f"🔑 当前暴力注入的 API Key: `{api_key[:6]}......{api_key[-4:]}`")
+    # 选取法国站 FR 作为测试目标
+    test_site_id = "9339803"
+    st.info(f"正在尝试拉取 **FR 法国站 (ID: {test_site_id})** 的审计健康数据...")
 
-    # 官方 v1 核心接口
-    url = "https://api.seranking.com/v1/project-management/sites"
-    
+    # SE Ranking 官方 Audit 摘要接口 (不同版本的 API 路径可能微调，这里用主流的 v1/v3 探测)
     headers = {
         "Authorization": f"Token {api_key}",
         "Content-Type": "application/json"
     }
 
-    with st.spinner("正在直连官方 v1 核心接口..."):
-        res = requests.get(url, headers=headers)
+    # 测试常用的审计接口路径
+    audit_urls = [
+        f"https://api.seranking.com/v1/audit/projects/{test_site_id}/reports/latest",
+        f"https://api.seranking.com/audit/{test_site_id}",
+        f"https://api.seranking.com/v1/project-management/sites/{test_site_id}/audit"
+    ]
 
-    if res.status_code == 200:
-        projects = res.json()
+    success_data = None
+    
+    with st.spinner("正在连接 Audit 服务器..."):
+        for url in audit_urls:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                success_data = res.json()
+                break
+
+    if success_data:
         st.balloons()
-        st.success("✅ 完美通关！终于拿到数据了！下方就是你的所有站点信息：")
+        st.success("✅ 审计数据拉取成功！")
         
-        parsed_data = []
-        for p in projects:
-            parsed_data.append({
-                "🔑 站点 ID (id)": p.get("id", "N/A"),
-                "🌍 站点名称 (title)": p.get("title", p.get("name", "N/A")),
-                "🔗 监控的域名": p.get("name", "N/A"),
-                "📊 收录关键词数": p.get("keyword_count", 0)
-            })
+        # 提取核心数据 (不同账号数据结构可能不同，直接展示全貌)
+        with st.container(border=True):
+            st.markdown("#### 🔍 原始审计数据拆解")
+            st.json(success_data)
             
-        st.dataframe(pd.DataFrame(parsed_data), use_container_width=True)
-        st.write("---")
-        with st.expander("🧩 查看完整原始 JSON 数据"):
-            st.json(projects)
-            
+        st.info("💡 请把上面的 JSON 截图发我，我看看它的数据字段叫什么（比如 health_score），确认后我们立刻用它画多站点对比看板！")
+        
     else:
-        st.error(f"❌ 请求失败。状态码: {res.status_code}")
+        st.error(f"❌ 请求失败。服务器最后返回的状态码: {res.status_code}")
         st.code(res.text)
 
 except Exception as e:
