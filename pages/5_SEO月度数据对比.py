@@ -481,7 +481,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
                     st.plotly_chart(f_t,use_container_width=True)
 
-                st.markdown("### 各站点流量详情")
+                st.markdown("### 🏬 各站点流量详情")
                 
                 # 🔥 插入左侧精简悬浮窗 (包含国旗)
                 st.markdown(get_nav_html('tjump', '🌊', '流量站点'), unsafe_allow_html=True)
@@ -531,14 +531,80 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                                 st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
 
         # ==========================================
-        # 🖱️ GSC 点击数据看板
+        # 🖱️ GSC 点击数据看板 (加入全站汇总大盘)
         # ==========================================
         elif tab_selected == 'gsc':
             gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
             if not gsc_data:
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
             else:
+                # ------------------------------------------
+                # 🔥 核心新增：全站 GSC 汇总大盘计算与渲染
+                # ------------------------------------------
+                all_gsc_records = []
+                for site, d2 in gsc_data.items():
+                    for i, m in enumerate(d2['months']):
+                        # 安全检查以防数据缺失导致索引越界
+                        if i < len(d2['total']):
+                            all_gsc_records.append({
+                                'Site': site,
+                                'Month': m,
+                                'Total': d2['total'][i],
+                                'Brand': d2['brand'][i] if i < len(d2['brand']) else 0,
+                                'Blog': d2['blog'][i] if i < len(d2['blog']) else 0,
+                                'Onsite': d2['onsite'][i] if i < len(d2['onsite']) else 0
+                            })
+                
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                
+                if all_gsc_records:
+                    df_gsc_all = pd.DataFrame(all_gsc_records)
+                    # 针对月份分组并求和全站数据
+                    df_gsc_agg = df_gsc_all.groupby('Month').sum().reset_index().sort_values('Month')
+                    
+                    st.markdown("### 🌐 全站 GSC 汇总大盘 (不分站点)")
+                    
+                    # 1. 全站总点击
+                    st.markdown("#### 全站 GSC 总点击走势")
+                    with st.container(border=True):
+                        f_agg_total = go.Figure()
+                        f_agg_total.add_trace(go.Scatter(x=df_gsc_agg['Month'], y=df_gsc_agg['Total'], mode='lines+markers', name='全站总点击', line=dict(width=3, color='#2563EB'), marker=dict(size=8)))
+                        f_agg_total.update_layout(height=350, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(f_agg_total, use_container_width=True)
+                    
+                    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                    
+                    # 2. 三个细分维度的总和
+                    st.markdown("#### 全站各细分维度点击走势")
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        with st.container(border=True):
+                            st.markdown("**① 品牌词总点击**")
+                            f_agg_brand = go.Figure()
+                            f_agg_brand.add_trace(go.Scatter(x=df_gsc_agg['Month'], y=df_gsc_agg['Brand'], mode='lines+markers', name='全站品牌词', line=dict(width=2, color='#EF4444'), marker=dict(size=6)))
+                            f_agg_brand.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                            st.plotly_chart(f_agg_brand, use_container_width=True)
+                    with c2:
+                        with st.container(border=True):
+                            st.markdown("**② Blog 总点击**")
+                            f_agg_blog = go.Figure()
+                            f_agg_blog.add_trace(go.Scatter(x=df_gsc_agg['Month'], y=df_gsc_agg['Blog'], mode='lines+markers', name='全站 Blog', line=dict(width=2, color='#F59E0B'), marker=dict(size=6)))
+                            f_agg_blog.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                            st.plotly_chart(f_agg_blog, use_container_width=True)
+                    with c3:
+                        with st.container(border=True):
+                            st.markdown("**③ 站内总点击**")
+                            f_agg_onsite = go.Figure()
+                            f_agg_onsite.add_trace(go.Scatter(x=df_gsc_agg['Month'], y=df_gsc_agg['Onsite'], mode='lines+markers', name='全站站内', line=dict(width=2, color='#10B981'), marker=dict(size=6)))
+                            f_agg_onsite.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                            st.plotly_chart(f_agg_onsite, use_container_width=True)
+
+                    st.markdown("<hr style='margin:32px 0; border-color:#e2e8f0;'/>", unsafe_allow_html=True)
+                
+                # ------------------------------------------
+                # 原始代码：各站点分列明细
+                # ------------------------------------------
+                st.markdown("### 🏬 各站点 GSC 数据对比与详情")
                 st.markdown("#### 1. 各站点GSC总点击趋势 (2024.06 ~ 至今)")
                 with st.container(border=True):
                     _all_months = sorted(set().union(*[set(gsc_data[s]['months']) for s in ['DE','FR','ES','IT','NL','NO','SE','FI','PL'] if s in gsc_data]))
@@ -553,8 +619,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         xaxis=dict(showgrid=True,gridcolor='#f1f5f9',type='category',tickangle=-45,nticks=18),
                         yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                     st.plotly_chart(f_g,use_container_width=True)
-                
-                st.markdown("### 各站点GSC点击详情")
                 
                 # 🔥 插入左侧精简悬浮窗 (包含国旗)
                 st.markdown(get_nav_html('gjump', '🖱️', 'GSC站点'), unsafe_allow_html=True)
