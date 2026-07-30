@@ -8,12 +8,12 @@ st.markdown("## 🔧 SE Ranking API 连通性测试")
 st.markdown("正在尝试连接官方服务器并拉取您的所有站点项目...")
 
 try:
-    # 自动读取你刚刚配置好的 Key
+    # 自动读取配置好的 Key
     api_key = st.secrets["seranking_api_key"]
     st.success("✅ 本地 API Key 读取成功！")
     
-    # SE Ranking 官方获取项目的 API 节点
-    url = "https://api4.seranking.com/projects"
+    # 🔥 核心修复：SE Ranking 官方获取站点列表的正确 endpoint 是 /sites
+    url = "https://api4.seranking.com/sites"
     headers = {
         "Authorization": f"Token {api_key}",
         "Content-Type": "application/json"
@@ -33,7 +33,7 @@ try:
             parsed_data = []
             for p in projects:
                 parsed_data.append({
-                    "🔑 站点 ID (Project ID)": p.get("id", "N/A"),
+                    "🔑 站点 ID (Site ID)": p.get("id", "N/A"),
                     "🌍 站点名称 (Title)": p.get("title", p.get("name", "N/A")),
                     "🔍 监控的搜索引擎数": len(p.get("search_engines", [])),
                 })
