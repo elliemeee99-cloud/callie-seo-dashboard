@@ -3,16 +3,21 @@ import requests
 import pandas as pd
 
 st.set_page_config(page_title="SE Ranking 最终测试", page_icon="🔥", layout="wide")
-st.markdown("### 🔥 SE Ranking API 官方标准接口测试")
+st.markdown("### 🔥 SE Ranking API 暴力直连测试")
 
 try:
-    # 自动清理 Key（防止万一真的有物理换行，这里也会被代码强行合并）
-    raw_key = str(st.secrets["seranking_api_key"])
-    api_key = raw_key.strip().replace('"', '').replace("'", "").replace("\n", "")
+    # 💥 直接绕过 secrets 配置，把 Key 硬编码写死在这里！
+    # 即使它在下面换成了两行，三引号也能完美包容，代码会自动把它拼成一行。
+    raw_key = """
+    d5cf8caa-acd4-a096-166c-49670c92a88c
+    """
     
-    st.info(f"🔑 当前使用的 API Key: `{api_key[:6]}......{api_key[-4:]}`")
+    # 强行清洗所有隐藏的换行、空格和多余符号
+    api_key = raw_key.strip().replace('"', '').replace("'", "").replace("\n", "").replace(" ", "")
+    
+    st.info(f"🔑 当前暴力注入的 API Key: `{api_key[:6]}......{api_key[-4:]}`")
 
-    # 🔥 核心修正：SE Ranking 官方最新的 v1 项目管理接口！
+    # 官方 v1 核心接口
     url = "https://api.seranking.com/v1/project-management/sites"
     
     headers = {
@@ -46,7 +51,5 @@ try:
         st.error(f"❌ 请求失败。状态码: {res.status_code}")
         st.code(res.text)
 
-except KeyError:
-    st.error("❌ 无法读取 `seranking_api_key`，请检查 `secrets.toml` 配置。")
 except Exception as e:
     st.error(f"⚠️ 发生未知错误: {e}")
