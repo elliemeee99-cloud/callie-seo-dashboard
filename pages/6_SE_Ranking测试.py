@@ -8,12 +8,15 @@ st.markdown("## 🔧 SE Ranking API 连通性测试")
 st.markdown("正在尝试连接官方服务器并拉取您的所有站点项目...")
 
 try:
-    # 自动读取配置好的 Key
-    api_key = st.secrets["seranking_api_key"]
-    st.success("✅ 本地 API Key 读取成功！")
+    # 强制清理 Key 的前后空格或多余的引号，防止 toml 解析带来多余字符
+    raw_key = str(st.secrets["seranking_api_key"])
+    api_key = raw_key.strip().strip('"').strip("'")
     
-    # 🔥 核心修复：SE Ranking 官方获取站点列表的正确 endpoint 是 /sites
-    url = "https://api4.seranking.com/sites"
+    st.success(f"✅ 本地 API Key 读取成功！（Key 前缀校验：{api_key[:6]}...）")
+    
+    # 🔥 修正：使用 SE Ranking 官方公共 API 的标准基地址 (去掉 api4 里的 4)
+    url = "https://api.seranking.com/sites"
+    
     headers = {
         "Authorization": f"Token {api_key}",
         "Content-Type": "application/json"
@@ -41,7 +44,7 @@ try:
             df = pd.DataFrame(parsed_data)
             st.dataframe(df, use_container_width=True)
             
-            st.info("💡 **请注意**：请核对上方表格中的【站点 ID】。在写正式看板前，我需要知道比如 `DE` 对应的 ID 是多少，`FR` 对应的 ID 是多少。")
+            st.info("💡 **请注意**：请把上方表格中你需要监控的【站点 ID】以及对应的国家记下来，我们在写正式看板时马上就会用到！")
             
             with st.expander("🧩 点击查看 API 返回的完整原始数据 (JSON)"):
                 st.json(projects)
