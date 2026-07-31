@@ -4,56 +4,28 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="全球站点健康度大盘", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 注入自定义 CSS：实现圆角胶囊选择器 ---
+# --- 🎨 注入自定义 CSS ---
 st.markdown("""
 <style>
-/* 隐藏默认的单选圆圈 */
-div[role="radiogroup"] > label > div:first-child {
-    display: none;
-}
-/* 胶囊默认样式 */
+div[role="radiogroup"] > label > div:first-child { display: none; }
 div[role="radiogroup"] > label {
-    background-color: #f1f3f4;
-    padding: 8px 20px !important;
-    border-radius: 20px !important;
-    margin-right: 10px;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    cursor: pointer;
+    background-color: #f1f3f4; padding: 8px 20px !important; border-radius: 20px !important;
+    margin-right: 10px; border: 1px solid transparent; transition: all 0.2s ease; cursor: pointer;
 }
-div[role="radiogroup"] > label p {
-    margin: 0;
-    font-weight: 500;
-    color: #5f6368;
-}
-/* 选中后的浅科技蓝样式 */
-div[role="radiogroup"] > label[data-checked="true"] {
-    background-color: #e8f0fe !important; 
-    border: 1px solid #d2e3fc !important;
-}
-div[role="radiogroup"] > label[data-checked="true"] p {
-    color: #1a73e8 !important; 
-    font-weight: 700 !important;
-}
-/* 卡片悬浮效果 */
+div[role="radiogroup"] > label p { margin: 0; font-weight: 500; color: #5f6368; }
+div[role="radiogroup"] > label[data-checked="true"] { background-color: #e8f0fe !important; border: 1px solid #d2e3fc !important; }
+div[role="radiogroup"] > label[data-checked="true"] p { color: #1a73e8 !important; font-weight: 700 !important; }
 .audit-card {
-    padding: 20px; 
-    border: 1px solid #e6e6e6; 
-    border-radius: 8px; 
-    background-color: white; 
-    height: 100%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: box-shadow 0.2s;
+    padding: 20px; border: 1px solid #e6e6e6; border-radius: 8px; background-color: white; 
+    height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: box-shadow 0.2s;
 }
-.audit-card:hover {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
+.audit-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("## 🩺 全球站点技术 SEO 健康度监控")
+st.markdown("## 🩺 欧洲区站点技术 SEO 健康度监控")
 
 try:
     raw_key = """
@@ -66,7 +38,8 @@ try:
         "Content-Type": "application/json"
     }
 
-    url = "https://api.seranking.com/v1/site-audit/audits"
+    # 💥 核心修复 1: 增加 limit=50 参数，防止 API 分页吃掉法国站数据
+    url = "https://api.seranking.com/v1/site-audit/audits?limit=50"
     
     with st.spinner("正在从 SE Ranking 实时拉取各站点审计数据..."):
         res = requests.get(url, headers=headers)
@@ -78,10 +51,12 @@ try:
         if items:
             parsed_data = []
             for item in items:
-                if item.get("status") == "finished":
+                title = item.get("title", "")
+                # 💥 核心修复 2: 过滤掉非欧洲区的 US 站点
+                if item.get("status") == "finished" and "US" not in title:
                     stats = item.get("stats", {})
                     parsed_data.append({
-                        "站点名称": item.get("title", "N/A"),
+                        "站点名称": title,
                         "健康分 (Score)": stats.get("score", 0),
                         "严重错误 (Errors)": stats.get("errors", 0),
                         "警告 (Warnings)": stats.get("warnings", 0),
@@ -94,10 +69,8 @@ try:
                 df = pd.DataFrame(parsed_data)
                 df = df.sort_values(by="健康分 (Score)", ascending=False).reset_index(drop=True)
                 
-                # --- 图表区 1：全局大盘 (Google 配色) ---
-                st.markdown("### 🏆 全局健康分排名")
+                st.markdown("### 🏆 欧洲各国健康分大盘")
                 
-                # 🌈 Google 标志性配色：红 (DB4437) -> 黄 (F4B400) -> 绿 (0F9D58) -> 蓝 (4285F4)
                 google_colors = ["#DB4437", "#F4B400", "#0F9D58", "#4285F4"]
                 
                 fig = px.bar(
@@ -106,7 +79,7 @@ try:
                     y="健康分 (Score)", 
                     color="健康分 (Score)",
                     color_continuous_scale=google_colors, 
-                    range_color=[40, 100], # 40以下深红，100满分科技蓝
+                    range_color=[40, 100],
                     text="健康分 (Score)",
                     height=350
                 )
@@ -116,13 +89,11 @@ try:
                 
                 st.divider()
                 
-                # --- 模块 2：分站点 Audit 详情 (SE Ranking 看板风格) ---
                 st.markdown("### 🔍 分站点详细体检报告")
                 
-                # 预定义的站点列表
+                # 更新为纯欧洲站点列表
                 target_sites = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
                 
-                # 渲染圆角胶囊选择器
                 selected_site_code = st.radio(
                     "选择要查看的站点:",
                     options=target_sites,
@@ -130,7 +101,6 @@ try:
                     label_visibility="collapsed"
                 )
                 
-                # 在 DataFrame 中匹配选中的站点 (假设 title 中包含 DE, FR 等)
                 matched_row = df[df["站点名称"].str.contains(selected_site_code, case=False, na=False)]
                 
                 if not matched_row.empty:
@@ -140,7 +110,6 @@ try:
                     
                     col1, col2, col3 = st.columns(3)
                     
-                    # 🃏 卡片 1: HEALTH SCORE (仪表盘)
                     with col1:
                         score = site_data['健康分 (Score)']
                         gauge_color = "#0F9D58" if score >= 80 else "#F4B400" if score >= 50 else "#DB4437"
@@ -161,67 +130,56 @@ try:
                         st.plotly_chart(fig_gauge, use_container_width=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
-                    # 🃏 卡片 2: ISSUES BY TYPE (堆叠进度条)
                     with col2:
                         err = site_data['严重错误 (Errors)']
                         warn = site_data['警告 (Warnings)']
                         notc = site_data['提示 (Notices)']
                         total = err + warn + notc
                         
-                        # 避免除以0
                         p_err = (err/total*100) if total > 0 else 0
                         p_warn = (warn/total*100) if total > 0 else 0
                         p_notc = (notc/total*100) if total > 0 else 0
                         
-                        # HTML 直接绘制 SE Ranking 风格卡片
-                        html_card2 = f"""
-                        <div class='audit-card'>
-                            <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">ISSUES BY TYPE <i>i</i></p>
-                            <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{total:,}</h2>
-                            <p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Total Issues</p>
-                            
-                            <div style="width: 100%; height: 16px; display: flex; border-radius: 4px; overflow: hidden; gap: 3px;">
-                                <div style="width: {p_err}%; background-color: #DB4437;" title="Errors: {err}"></div>
-                                <div style="width: {p_warn}%; background-color: #F4B400;" title="Warnings: {warn}"></div>
-                                <div style="width: {p_notc}%; background-color: #4285F4;" title="Notices: {notc}"></div>
-                            </div>
-                            
-                            <div style="margin-top: 25px; font-size: 14px; color: #333;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span><span style="color: #DB4437;">●</span> Errors</span> <b>{err:,}</b>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span><span style="color: #F4B400;">●</span> Warnings</span> <b>{warn:,}</b>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span><span style="color: #4285F4;">●</span> Notices</span> <b>{notc:,}</b>
-                                </div>
-                            </div>
-                        </div>
-                        """
+                        # 💥 核心修复 3: HTML 代码全部顶格写，去掉缩进，防止 Markdown 误判为代码块
+                        html_card2 = f"""<div class='audit-card'>
+<p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">ISSUES BY TYPE <i>i</i></p>
+<h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{total:,}</h2>
+<p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Total Issues</p>
+<div style="width: 100%; height: 16px; display: flex; border-radius: 4px; overflow: hidden; gap: 3px;">
+<div style="width: {p_err}%; background-color: #DB4437;" title="Errors: {err}"></div>
+<div style="width: {p_warn}%; background-color: #F4B400;" title="Warnings: {warn}"></div>
+<div style="width: {p_notc}%; background-color: #4285F4;" title="Notices: {notc}"></div>
+</div>
+<div style="margin-top: 25px; font-size: 14px; color: #333;">
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span><span style="color: #DB4437;">●</span> Errors</span> <b>{err:,}</b>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span><span style="color: #F4B400;">●</span> Warnings</span> <b>{warn:,}</b>
+</div>
+<div style="display: flex; justify-content: space-between;">
+<span><span style="color: #4285F4;">●</span> Notices</span> <b>{notc:,}</b>
+</div>
+</div>
+</div>"""
                         st.markdown(html_card2, unsafe_allow_html=True)
 
-                    # 🃏 卡片 3: PAGE HEALTH RATIO
                     with col3:
                         crawled = site_data['已抓取页面']
-                        html_card3 = f"""
-                        <div class='audit-card'>
-                            <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">PAGE HEALTH RATIO <i>i</i></p>
-                            <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{crawled:,}</h2>
-                            <p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Pages Crawled</p>
-                            
-                            <div style="width: 100%; height: 16px; display: flex; border-radius: 4px; overflow: hidden; gap: 3px;">
-                                <div style="width: 100%; background-color: #0F9D58;"></div>
-                            </div>
-                            
-                            <div style="margin-top: 25px; font-size: 14px; color: #333;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span><span style="color: #0F9D58;">●</span> Scanned Successfully</span> <b>{crawled:,}</b>
-                                </div>
-                                <p style="font-size: 12px; color: #888; margin-top: 15px;">*Detailed healthy vs error page breakdown requires deeper API call.</p>
-                            </div>
-                        </div>
-                        """
+                        html_card3 = f"""<div class='audit-card'>
+<p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">PAGE HEALTH RATIO <i>i</i></p>
+<h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{crawled:,}</h2>
+<p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Pages Crawled</p>
+<div style="width: 100%; height: 16px; display: flex; border-radius: 4px; overflow: hidden; gap: 3px;">
+<div style="width: 100%; background-color: #0F9D58;"></div>
+</div>
+<div style="margin-top: 25px; font-size: 14px; color: #333;">
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span><span style="color: #0F9D58;">●</span> Scanned Successfully</span> <b>{crawled:,}</b>
+</div>
+<p style="font-size: 12px; color: #888; margin-top: 15px;">*Detailed healthy vs error page breakdown requires deeper API call.</p>
+</div>
+</div>"""
                         st.markdown(html_card3, unsafe_allow_html=True)
                 else:
                     st.warning(f"⚠️ 暂未在 API 数据中找到对应 {selected_site_code} 站点的体检完成记录。")
