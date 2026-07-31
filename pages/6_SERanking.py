@@ -6,11 +6,13 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 注入全新的块状 Tab 标签 CSS (透视级隐藏圆点) ---
+# --- 🎨 注入全新的块状 Tab 标签 CSS (无情抹杀圆圈版) ---
 st.markdown("""
 <style>
-/* 💥 针对 Streamlit 专用属性进行终极隐藏 */
-div[role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]) {
+/* 💥 终极连环绞杀：隐藏第一个容器块、隐藏 SVG 图形、隐藏原生 input */
+div[role="radiogroup"] label > div:first-child,
+div[role="radiogroup"] label svg,
+div[role="radiogroup"] label input {
     display: none !important;
 }
 
@@ -102,7 +104,8 @@ try:
                     stats = item.get("stats", {})
                     parsed_data.append({
                         "站点名称": title,
-                        "audit_id": item.get("id"), # 💥 保存独立的体检报告 ID，用于二次抓取
+                        "audit_id": item.get("id"), 
+                        "site_id": item.get("site_id"), # 💥 提取站点的核心 Project ID，以备雷达扫描使用
                         "健康分 (Score)": stats.get("score", 0),
                         "严重错误 (Errors)": stats.get("errors", 0),
                         "警告 (Warnings)": stats.get("warnings", 0),
@@ -130,7 +133,6 @@ try:
                 st.divider()
                 st.markdown("### 🔍 分站点详细体检报告")
                 
-                # --- 取消全部站点，直接纯国家映射 ---
                 site_mapping = {
                     '德国': 'DE', '法国': 'FR', '西班牙': 'ES', '意大利': 'IT', 
                     '荷兰': 'NL', '波兰': 'PL', '挪威': 'NO', '瑞典': 'SE', '芬兰': 'FI'
@@ -151,10 +153,10 @@ try:
                 if not matched_row.empty:
                     site_data = matched_row.iloc[0]
                     audit_id = site_data['audit_id']
+                    site_id = site_data['site_id']
                     
                     st.markdown(f"<p style='color: #666; font-size: 14px; margin-top: 15px;'>Last update <b>{site_data['最后体检时间']}</b> &nbsp;|&nbsp; Pages crawled <b>{site_data['已抓取页面']}</b></p>", unsafe_allow_html=True)
                     
-                    # --- 渲染三大核心卡片 ---
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         score = site_data['健康分 (Score)']
@@ -216,25 +218,41 @@ try:
                     
                     st.write("")
                     
-                    # --- 💥 核心：二次拉取具体 Top Issues ---
-                    st.markdown("#### 🚨 具体技术问题清单 (Top Issues)")
+                    # --- 💥 雷达启动：探测正确的 Top Issues 接口 ---
+                    st.markdown("#### 🚨 具体技术问题清单 (Top Issues) 接口扫描诊断仪")
                     
-                    # 使用当前站点的 audit_id 发起二次请求
-                    issues_url = f"https://api.seranking.com/v1/site-audit/audits/{audit_id}/issues"
-                    
-                    with st.spinner(f"正在深入拉取 {selected_label} 站点的具体问题清单..."):
-                        issues_res = requests.get(issues_url, headers=headers)
-                    
-                    if issues_res.status_code == 200:
-                        issues_data = issues_res.json()
-                        st.success(f"✅ 成功获取 {selected_label} 站点的完整问题明细！")
-                        
-                        # 暂时将 JSON 展开展示，方便确认真实的数据结构字段
-                        with st.expander("🧩 查看底层 Top Issues 数据结构 (请截图发我，确认后排版为表格)", expanded=True):
-                            st.json(issues_data)
+                    # 定义可能存有明细数据的常见 URL
+                    test_endpoints = {
+                        "探测A (标准 Report)": f"https://api.seranking.com/v1/site-audit/audits/{audit_id}/report",
+                        "探测B (通过 Project ID)": f"https://api.seranking.com/v1/site-audit/projects/{site_id}/reports/latest",
+                        "探测C (Issue 独立接口)": f"https://api.seranking.com/v1/site-audit/issues?audit_id={audit_id}",
+                        "探测D (获取整个 Audit 全貌)": f"https://api.seranking.com/v1/site-audit/audits/{audit_id}",
+                        "探测E (Project 下拉取)": f"https://api.seranking.com/v1/site-audit/projects/{site_id}"
+                    }
+
+                    success_data = None
+                    success_name = ""
+                    logs = []
+
+                    with st.spinner(f"正在全网段扫描 {selected_label} 站点的底层问题明细..."):
+                        for name, test_url in test_endpoints.items():
+                            try:
+                                res_test = requests.get(test_url, headers=headers)
+                                logs.append({"测试节点": name, "请求路径": test_url, "返回状态码": res_test.status_code})
+                                if res_test.status_code == 200:
+                                    success_data = res_test.json()
+                                    success_name = test_url
+                                    break
+                            except Exception as e:
+                                logs.append({"测试节点": name, "请求路径": test_url, "返回状态码": "网络错误"})
+
+                    if success_data:
+                        st.success(f"✅ 雷达命中目标！成功路径：`{success_name}`")
+                        with st.expander("🧩 查看底层 Top Issues 数据结构 (请截图发我！)", expanded=True):
+                            st.json(success_data)
                     else:
-                        st.error(f"❌ 拉取具体清单失败。状态码: {issues_res.status_code}")
-                        st.code(issues_res.text)
+                        st.error("❌ 所有已知探针均返回失败 (404/401)。这表明官方 API 路径极为隐蔽。请查看下方扫描日志：")
+                        st.dataframe(pd.DataFrame(logs), width="stretch")
                         
                 else:
                     st.warning(f"⚠️ 暂未在 API 数据中找到对应 {selected_label} 站点的体检完成记录。")
