@@ -6,17 +6,49 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 注入自定义 CSS ---
+# --- 🎨 注入全新的块状 Tab 标签 CSS ---
 st.markdown("""
 <style>
+/* 隐藏默认的单选圆圈 */
 div[role="radiogroup"] > label > div:first-child { display: none; }
+
+/* 默认未选中状态 */
 div[role="radiogroup"] > label {
-    background-color: #f1f3f4; padding: 8px 20px !important; border-radius: 20px !important;
-    margin-right: 10px; border: 1px solid transparent; transition: all 0.2s ease; cursor: pointer;
+    background-color: #ffffff; 
+    padding: 10px 24px !important; 
+    border-radius: 6px !important; /* 微圆角矩形 */
+    margin-right: 12px; 
+    margin-bottom: 8px;
+    border: 1px solid #dcdfe6; /* 浅灰边框 */
+    transition: all 0.2s ease; 
+    cursor: pointer;
 }
-div[role="radiogroup"] > label p { margin: 0; font-weight: 500; color: #5f6368; }
-div[role="radiogroup"] > label[data-checked="true"] { background-color: #e8f0fe !important; border: 1px solid #d2e3fc !important; }
-div[role="radiogroup"] > label[data-checked="true"] p { color: #1a73e8 !important; font-weight: 700 !important; }
+div[role="radiogroup"] > label p { 
+    margin: 0; 
+    font-weight: 400; 
+    color: #606266; /* 深灰文字 */
+    font-size: 15px;
+}
+
+/* 鼠标悬浮状态 (类似截图中的“芬兰”) */
+div[role="radiogroup"] > label:hover {
+    border: 1px solid #3366FF;
+}
+div[role="radiogroup"] > label:hover p {
+    color: #3366FF;
+}
+
+/* 选中状态 (类似截图中的“全部站点”) */
+div[role="radiogroup"] > label[data-checked="true"] { 
+    background-color: #3366FF !important; /* 纯蓝底色 */
+    border: 1px solid #3366FF !important; 
+}
+div[role="radiogroup"] > label[data-checked="true"] p { 
+    color: #ffffff !important; /* 纯白文字 */
+    font-weight: 500 !important; 
+}
+
+/* 卡片悬浮效果 */
 .audit-card {
     padding: 20px; border: 1px solid #e6e6e6; border-radius: 8px; background-color: white; 
     height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: box-shadow 0.2s;
@@ -38,7 +70,6 @@ try:
         "Content-Type": "application/json"
     }
 
-    # 💥 核心修复 1: 增加 limit=50 参数，防止 API 分页吃掉法国站数据
     url = "https://api.seranking.com/v1/site-audit/audits?limit=50"
     
     with st.spinner("正在从 SE Ranking 实时拉取各站点审计数据..."):
@@ -52,7 +83,6 @@ try:
             parsed_data = []
             for item in items:
                 title = item.get("title", "")
-                # 💥 核心修复 2: 过滤掉非欧洲区的 US 站点
                 if item.get("status") == "finished" and "US" not in title:
                     stats = item.get("stats", {})
                     parsed_data.append({
@@ -91,57 +121,66 @@ try:
                 
                 st.markdown("### 🔍 分站点详细体检报告")
                 
-                # 更新为纯欧洲站点列表
-                target_sites = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+                # --- 国家名称中英文映射字典 ---
+                site_mapping = {
+                    '德国': 'DE', '法国': 'FR', '西班牙': 'ES', '意大利': 'IT', 
+                    '荷兰': 'NL', '波兰': 'PL', '挪威': 'NO', '瑞典': 'SE', '芬兰': 'FI'
+                }
                 
-                selected_site_code = st.radio(
+                options = ['全部站点'] + list(site_mapping.keys())
+                
+                selected_label = st.radio(
                     "选择要查看的站点:",
-                    options=target_sites,
+                    options=options,
                     horizontal=True,
                     label_visibility="collapsed"
                 )
                 
-                matched_row = df[df["站点名称"].str.contains(selected_site_code, case=False, na=False)]
-                
-                if not matched_row.empty:
-                    site_data = matched_row.iloc[0]
+                # 如果选择的是“全部站点”，提示用户选择具体国家
+                if selected_label == '全部站点':
+                    st.info("👆 请在上方选择具体的国家站点以查看详细的体检看板。")
+                else:
+                    selected_site_code = site_mapping[selected_label]
+                    matched_row = df[df["站点名称"].str.contains(selected_site_code, case=False, na=False)]
                     
-                    st.markdown(f"<p style='color: #666; font-size: 14px; margin-top: 15px;'>Last update <b>{site_data['最后体检时间']}</b> &nbsp;|&nbsp; Pages crawled <b>{site_data['已抓取页面']}</b></p>", unsafe_allow_html=True)
-                    
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        score = site_data['健康分 (Score)']
-                        gauge_color = "#0F9D58" if score >= 80 else "#F4B400" if score >= 50 else "#DB4437"
+                    if not matched_row.empty:
+                        site_data = matched_row.iloc[0]
                         
-                        fig_gauge = go.Figure(go.Indicator(
-                            mode = "gauge+number",
-                            value = score,
-                            title = {'text': "<span style='font-size:14px;color:#888'>HEALTH SCORE <i>i</i></span><br>"},
-                            gauge = {
-                                'axis': {'range': [None, 100], 'visible': False},
-                                'bar': {'color': gauge_color, 'thickness': 0.85},
-                                'steps': [{'range': [0, 100], 'color': "#f1f3f4"}],
-                            }
-                        ))
-                        fig_gauge.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20))
+                        st.markdown(f"<p style='color: #666; font-size: 14px; margin-top: 15px;'>Last update <b>{site_data['最后体检时间']}</b> &nbsp;|&nbsp; Pages crawled <b>{site_data['已抓取页面']}</b></p>", unsafe_allow_html=True)
                         
-                        st.markdown("<div class='audit-card'>", unsafe_allow_html=True)
-                        st.plotly_chart(fig_gauge, use_container_width=True)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            score = site_data['健康分 (Score)']
+                            gauge_color = "#0F9D58" if score >= 80 else "#F4B400" if score >= 50 else "#DB4437"
+                            
+                            fig_gauge = go.Figure(go.Indicator(
+                                mode = "gauge+number",
+                                value = score,
+                                title = {'text': "<span style='font-size:14px;color:#888'>HEALTH SCORE <i>i</i></span><br>"},
+                                gauge = {
+                                    'axis': {'range': [None, 100], 'visible': False},
+                                    'bar': {'color': gauge_color, 'thickness': 0.85},
+                                    'steps': [{'range': [0, 100], 'color': "#f1f3f4"}],
+                                }
+                            ))
+                            fig_gauge.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20))
+                            
+                            st.markdown("<div class='audit-card'>", unsafe_allow_html=True)
+                            st.plotly_chart(fig_gauge, use_container_width=True)
+                            st.markdown("</div>", unsafe_allow_html=True)
 
-                    with col2:
-                        err = site_data['严重错误 (Errors)']
-                        warn = site_data['警告 (Warnings)']
-                        notc = site_data['提示 (Notices)']
-                        total = err + warn + notc
-                        
-                        p_err = (err/total*100) if total > 0 else 0
-                        p_warn = (warn/total*100) if total > 0 else 0
-                        p_notc = (notc/total*100) if total > 0 else 0
-                        
-                        # 💥 核心修复 3: HTML 代码全部顶格写，去掉缩进，防止 Markdown 误判为代码块
-                        html_card2 = f"""<div class='audit-card'>
+                        with col2:
+                            err = site_data['严重错误 (Errors)']
+                            warn = site_data['警告 (Warnings)']
+                            notc = site_data['提示 (Notices)']
+                            total = err + warn + notc
+                            
+                            p_err = (err/total*100) if total > 0 else 0
+                            p_warn = (warn/total*100) if total > 0 else 0
+                            p_notc = (notc/total*100) if total > 0 else 0
+                            
+                            html_card2 = f"""<div class='audit-card'>
 <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">ISSUES BY TYPE <i>i</i></p>
 <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{total:,}</h2>
 <p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Total Issues</p>
@@ -162,11 +201,11 @@ try:
 </div>
 </div>
 </div>"""
-                        st.markdown(html_card2, unsafe_allow_html=True)
+                            st.markdown(html_card2, unsafe_allow_html=True)
 
-                    with col3:
-                        crawled = site_data['已抓取页面']
-                        html_card3 = f"""<div class='audit-card'>
+                        with col3:
+                            crawled = site_data['已抓取页面']
+                            html_card3 = f"""<div class='audit-card'>
 <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">PAGE HEALTH RATIO <i>i</i></p>
 <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{crawled:,}</h2>
 <p style="font-size: 12px; color: #888; margin-top: 0; margin-bottom: 20px;">Pages Crawled</p>
@@ -180,12 +219,12 @@ try:
 <p style="font-size: 12px; color: #888; margin-top: 15px;">*Detailed healthy vs error page breakdown requires deeper API call.</p>
 </div>
 </div>"""
-                        st.markdown(html_card3, unsafe_allow_html=True)
-                else:
-                    st.warning(f"⚠️ 暂未在 API 数据中找到对应 {selected_site_code} 站点的体检完成记录。")
+                            st.markdown(html_card3, unsafe_allow_html=True)
+                    else:
+                        st.warning(f"⚠️ 暂未在 API 数据中找到对应 {selected_label} 站点的体检完成记录。")
                     
             else:
-                st.warning("没有找到状态为 'finished' 的审计报告。")
+                st.warning("没有找到状态为 'finished' 的欧洲区审计报告。")
         else:
             st.warning("返回的数据中没有审计项目。")
             
