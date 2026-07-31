@@ -6,45 +6,63 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 注入全新的块状 Tab 标签 CSS ---
+# --- 🎨 注入全新的块状 Tab 标签 CSS (强制隐藏圆点版) ---
 st.markdown("""
 <style>
-/* 隐藏默认的单选圆圈 */
-div[role="radiogroup"] > label > div:first-child { display: none; }
+/* 💥 终极隐藏默认单选圆圈：覆盖所有可能出现的 DOM 层级结构 */
+div[role="radiogroup"] > label > div:first-child,
+div[role="radiogroup"] > label > div:first-of-type,
+div[role="radiogroup"] label input[type="radio"] { 
+    display: none !important; 
+}
 
-/* 默认未选中状态 */
+/* 优化整个单选组的排版，允许多行自动换行 */
+div[role="radiogroup"] {
+    flex-wrap: wrap;
+    gap: 0px;
+}
+
+/* 默认未选中状态：白底灰边框 */
 div[role="radiogroup"] > label {
-    background-color: #ffffff; 
-    padding: 10px 24px !important; 
+    background-color: #ffffff !important; 
+    padding: 8px 24px !important; 
     border-radius: 6px !important; /* 微圆角矩形 */
-    margin-right: 12px; 
-    margin-bottom: 8px;
-    border: 1px solid #dcdfe6; /* 浅灰边框 */
+    margin-right: 12px !important; 
+    margin-bottom: 10px !important;
+    border: 1px solid #dcdfe6 !important; /* 浅灰边框 */
     transition: all 0.2s ease; 
     cursor: pointer;
-}
-div[role="radiogroup"] > label p { 
-    margin: 0; 
-    font-weight: 400; 
-    color: #606266; /* 深灰文字 */
-    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* 鼠标悬浮状态 (类似截图中的“芬兰”) */
+/* 统一文字样式，防止被内部的 p 或 div 标签干扰 */
+div[role="radiogroup"] > label p,
+div[role="radiogroup"] > label div { 
+    margin: 0 !important; 
+    font-weight: 400 !important; 
+    color: #606266 !important; /* 深灰文字 */
+    font-size: 15px !important;
+}
+
+/* 鼠标悬浮状态：蓝色边框 */
 div[role="radiogroup"] > label:hover {
-    border: 1px solid #3366FF;
+    border: 1px solid #3366FF !important;
 }
-div[role="radiogroup"] > label:hover p {
-    color: #3366FF;
+div[role="radiogroup"] > label:hover p,
+div[role="radiogroup"] > label:hover div {
+    color: #3366FF !important;
 }
 
-/* 选中状态 (类似截图中的“全部站点”) */
+/* 选中状态：纯蓝底色，纯白文字 */
 div[role="radiogroup"] > label[data-checked="true"] { 
-    background-color: #3366FF !important; /* 纯蓝底色 */
+    background-color: #3366FF !important; 
     border: 1px solid #3366FF !important; 
 }
-div[role="radiogroup"] > label[data-checked="true"] p { 
-    color: #ffffff !important; /* 纯白文字 */
+div[role="radiogroup"] > label[data-checked="true"] p,
+div[role="radiogroup"] > label[data-checked="true"] div { 
+    color: #ffffff !important; 
     font-weight: 500 !important; 
 }
 
@@ -136,7 +154,6 @@ try:
                     label_visibility="collapsed"
                 )
                 
-                # 如果选择的是“全部站点”，提示用户选择具体国家
                 if selected_label == '全部站点':
                     st.info("👆 请在上方选择具体的国家站点以查看详细的体检看板。")
                 else:
