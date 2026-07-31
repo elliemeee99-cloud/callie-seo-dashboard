@@ -6,30 +6,23 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 注入全新的块状 Tab 标签 CSS (强制隐藏圆点版) ---
+# --- 🎨 注入全新的块状 Tab 标签 CSS (文字保护版) ---
 st.markdown("""
 <style>
-/* 💥 终极隐藏默认单选圆圈：覆盖所有可能出现的 DOM 层级结构 */
-div[role="radiogroup"] > label > div:first-child,
-div[role="radiogroup"] > label > div:first-of-type,
-div[role="radiogroup"] label input[type="radio"] { 
-    display: none !important; 
-}
-
 /* 优化整个单选组的排版，允许多行自动换行 */
 div[role="radiogroup"] {
     flex-wrap: wrap;
     gap: 0px;
 }
 
-/* 默认未选中状态：白底灰边框 */
+/* 默认未选中状态 */
 div[role="radiogroup"] > label {
     background-color: #ffffff !important; 
     padding: 8px 24px !important; 
-    border-radius: 6px !important; /* 微圆角矩形 */
+    border-radius: 6px !important; 
     margin-right: 12px !important; 
     margin-bottom: 10px !important;
-    border: 1px solid #dcdfe6 !important; /* 浅灰边框 */
+    border: 1px solid #dcdfe6 !important; 
     transition: all 0.2s ease; 
     cursor: pointer;
     display: inline-flex;
@@ -37,16 +30,23 @@ div[role="radiogroup"] > label {
     justify-content: center;
 }
 
-/* 统一文字样式，防止被内部的 p 或 div 标签干扰 */
+/* 💥 精准隐藏圆圈：只干掉原生 input、span 和不包含文字段落(p)的空壳 div */
+div[role="radiogroup"] > label input,
+div[role="radiogroup"] > label > span,
+div[role="radiogroup"] > label > div:not(:has(p)) { 
+    display: none !important; 
+}
+
+/* 保护文字，统一颜色和字号 */
 div[role="radiogroup"] > label p,
 div[role="radiogroup"] > label div { 
     margin: 0 !important; 
     font-weight: 400 !important; 
-    color: #606266 !important; /* 深灰文字 */
+    color: #606266 !important; 
     font-size: 15px !important;
 }
 
-/* 鼠标悬浮状态：蓝色边框 */
+/* 鼠标悬浮状态 */
 div[role="radiogroup"] > label:hover {
     border: 1px solid #3366FF !important;
 }
@@ -55,7 +55,7 @@ div[role="radiogroup"] > label:hover div {
     color: #3366FF !important;
 }
 
-/* 选中状态：纯蓝底色，纯白文字 */
+/* 选中状态 */
 div[role="radiogroup"] > label[data-checked="true"] { 
     background-color: #3366FF !important; 
     border: 1px solid #3366FF !important; 
