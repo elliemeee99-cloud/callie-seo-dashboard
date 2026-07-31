@@ -9,7 +9,6 @@ st.markdown("## 🩺 全球站点技术 SEO 健康度监控")
 st.markdown("数据来源于 SE Ranking Website Audit 官方接口。")
 
 try:
-    # 使用我们验证过的三引号注入法，确保 Key 不会被意外换行破坏
     raw_key = """
     d5cf8caa-acd4-a096-166c-49670c92a88c
     """
@@ -32,7 +31,6 @@ try:
         if items:
             parsed_data = []
             for item in items:
-                # 仅筛选已经完成审计的站点
                 if item.get("status") == "finished":
                     stats = item.get("stats", {})
                     parsed_data.append({
@@ -42,50 +40,61 @@ try:
                         "警告 (Warnings)": stats.get("warnings", 0),
                         "提示 (Notices)": stats.get("notices", 0),
                         "已抓取页面": stats.get("crawled", 0),
-                        "最后体检时间": item.get("last_update", "N/A")[:10] # 截取日期部分
+                        "最后体检时间": item.get("last_update", "N/A")[:10]
                     })
             
             if parsed_data:
                 df = pd.DataFrame(parsed_data)
-                
-                # 按照健康分从高到低排序
                 df = df.sort_values(by="健康分 (Score)", ascending=False).reset_index(drop=True)
                 
-                # --- 图表区：健康分排名对比 ---
                 st.markdown("### 🏆 各地区站点健康分排名")
                 
-                # 设置柱状图颜色规则：分数越高越绿，越低越红
+                # 🌈 使用高饱和度清新配色：珊瑚红 -> 亮黄 -> 薄荷绿
+                fresh_colors = ["#FF4B4B", "#FFD166", "#06D6A0"]
+                
                 fig = px.bar(
                     df, 
                     x="站点名称", 
                     y="健康分 (Score)", 
                     color="健康分 (Score)",
-                    color_continuous_scale="RdYlGn", 
+                    color_continuous_scale=fresh_colors, 
                     range_color=[50, 100],
                     text="健康分 (Score)",
-                    height=400
+                    height=450
                 )
                 fig.update_traces(textposition='outside')
-                fig.update_layout(xaxis_title="", yaxis_title="Health Score")
-                st.plotly_chart(fig, use_container_width=True)
+                fig.update_layout(xaxis_title="", yaxis_title="Health Score", margin=dict(b=0))
                 
-                # --- 表格区：详细数据清单 ---
+                # 移除了引发弃用警告的参数
+                st.plotly_chart(fig)
+                
                 st.markdown("### 📋 详细技术指标对比")
                 
-                # 给表格加上条件格式高亮 (类似 Excel)
-                styled_df = df.style.background_gradient(
-                    subset=['健康分 (Score)'], cmap='Greens'
-                ).background_gradient(
-                    subset=['严重错误 (Errors)'], cmap='Reds'
-                ).format({
-                    "健康分 (Score)": "{:.0f}",
-                    "严重错误 (Errors)": "{:,}",
-                    "警告 (Warnings)": "{:,}",
-                    "提示 (Notices)": "{:,}",
-                    "已抓取页面": "{:,}"
-                })
-                
-                st.dataframe(styled_df, use_container_width=True, height=400)
+                # ✨ 使用 Streamlit 原生组件，彻底解决 matplotlib 报错，并增加进度条展示
+                st.dataframe(
+                    df, 
+                    column_config={
+                        "健康分 (Score)": st.column_config.ProgressColumn(
+                            "健康分 (Score)",
+                            help="满分100，分数越高越健康",
+                            format="%d",
+                            min_value=0,
+                            max_value=100,
+                        ),
+                        "严重错误 (Errors)": st.column_config.NumberColumn(
+                            "严重错误 (Errors)",
+                            format="%d 🔴"
+                        ),
+                        "警告 (Warnings)": st.column_config.NumberColumn(
+                            "警告 (Warnings)",
+                            format="%d 🟡"
+                        ),
+                        "提示 (Notices)": st.column_config.NumberColumn(
+                            "提示 (Notices)",
+                            format="%d 🔵"
+                        )
+                    }
+                )
                 
             else:
                 st.warning("没有找到状态为 'finished' 的审计报告。")
