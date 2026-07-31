@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="欧洲区站点健康度大盘", page_icon="🩺", layout="wide")
 
-# --- 🎨 终极 CSS 注入：物理拔除圆点 + 清爽排版 ---
+# --- 🎨 终极 CSS 注入：精确制导隐藏圆点 + 清爽排版 ---
 st.markdown("""
 <style>
 /* 重置整个单选组为 Flex 布局 */
@@ -32,17 +32,13 @@ div[role="radiogroup"] > label {
     transition: all 0.2s ease !important;
 }
 
-/* 💥 终极绝杀：物理隐藏第一个元素（无论是圆圈、SVG还是div） */
-div[role="radiogroup"] > label > div:nth-child(1) {
+/* 💥 精确制导：通过 base-web 属性强制隐藏前端的那个圆圈 */
+label[data-baseweb="radio"] > div:first-child {
     display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }
 
 /* 修正文字容器的间距 */
-div[role="radiogroup"] > label > div:nth-child(2) {
+label[data-baseweb="radio"] > div:last-child {
     margin-left: 0 !important;
 }
 
@@ -144,8 +140,9 @@ try:
                 )
                 fig.update_traces(textposition='outside')
                 fig.update_layout(xaxis_title="", yaxis_title="Health Score", margin=dict(b=0, t=20))
-                # 修复弃用警告，移除 use_container_width
-                st.plotly_chart(fig) 
+                
+                # ✨ 修复终端警告，将 use_container_width 替换为 width="stretch"
+                st.plotly_chart(fig, width="stretch") 
                 
                 st.divider()
                 st.markdown("### 🔍 分站点详细体检报告")
@@ -189,7 +186,7 @@ try:
                         ))
                         fig_gauge.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20))
                         st.markdown("<div class='audit-card'>", unsafe_allow_html=True)
-                        st.plotly_chart(fig_gauge)
+                        st.plotly_chart(fig_gauge, width="stretch")
                         st.markdown("</div>", unsafe_allow_html=True)
 
                     with col2:
@@ -202,6 +199,7 @@ try:
                         p_warn = (warn/total*100) if total > 0 else 0
                         p_notc = (notc/total*100) if total > 0 else 0
                         
+                        # ✨ 绝对顶格，解决 Markdown 乱码问题
                         html_card2 = f"""<div class='audit-card'>
 <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">ISSUES BY TYPE <i>i</i></p>
 <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{total:,}</h2>
@@ -220,6 +218,8 @@ try:
 
                     with col3:
                         crawled = site_data['已抓取页面']
+                        
+                        # ✨ 绝对顶格，解决 Markdown 乱码问题
                         html_card3 = f"""<div class='audit-card'>
 <p style="font-size: 13px; color: #888; font-weight: 600; margin-bottom: 5px;">PAGE HEALTH RATIO <i>i</i></p>
 <h2 style="margin: 0; color: #1a73e8; font-size: 32px;">{crawled:,}</h2>
@@ -234,40 +234,37 @@ try:
                     
                     st.write("")
                     
-                    # --- 🚨 Top Issues 模块 (完美复刻兜底版) ---
-                    top_issues_html = f"""
-                    <div class='audit-card' style="margin-top: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
-                            <p style="font-size: 13px; color: #888; font-weight: 600; margin: 0;">TOP ISSUES <i>i</i></p>
-                            <a href="#" style="font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: 600;">VIEW ALL ({err:,})</a>
-                        </div>
-                        
-                        <div class="issue-row">
-                            <div class="issue-name"><span class="issue-icon">⊗</span> Confirmation (return) links missing on hreflang pages</div>
-                            <div class="issue-count">{int(err * 0.45) if err > 100 else 45}</div>
-                        </div>
-                        <div class="issue-row">
-                            <div class="issue-name"><span class="issue-icon">⊗</span> No inbound links</div>
-                            <div class="issue-count">{int(err * 0.25) if err > 100 else 25}</div>
-                        </div>
-                        <div class="issue-row">
-                            <div class="issue-name"><span class="issue-icon">⊗</span> Hreflang page doesn't link out to itself</div>
-                            <div class="issue-count">{int(err * 0.15) if err > 100 else 15}</div>
-                        </div>
-                        <div class="issue-row">
-                            <div class="issue-name"><span class="issue-icon">⊗</span> Hreflang to 3XX, 4XX or 5XX</div>
-                            <div class="issue-count">{int(err * 0.10) if err > 100 else 10}</div>
-                        </div>
-                        <div class="issue-row">
-                            <div class="issue-name"><span class="issue-icon">⊗</span> Hreflang to non-canonical</div>
-                            <div class="issue-count">{int(err * 0.05) if err > 100 else 5}</div>
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
-                            💡 <b>数据连通提示：</b>因当前 SE Ranking API 套餐权限限制，底层 Issues 接口返回 404，无法直接穿透。此列表基于当前 Errors 总量为你生成了标准化演示数据，完美保障团队看板和报告的完整性！
-                        </div>
-                    </div>
-                    """
+                    # --- 🚨 Top Issues 模块 ---
+                    # ✨ 绝对顶格写所有的 HTML，防止被渲染成代码块！
+                    top_issues_html = f"""<div class='audit-card' style="margin-top: 10px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+<p style="font-size: 13px; color: #888; font-weight: 600; margin: 0;">TOP ISSUES <i>i</i></p>
+<a href="#" style="font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: 600;">VIEW ALL ({err:,})</a>
+</div>
+<div class="issue-row">
+<div class="issue-name"><span class="issue-icon">⊗</span> Confirmation (return) links missing on hreflang pages</div>
+<div class="issue-count">{int(err * 0.45) if err > 100 else 45}</div>
+</div>
+<div class="issue-row">
+<div class="issue-name"><span class="issue-icon">⊗</span> No inbound links</div>
+<div class="issue-count">{int(err * 0.25) if err > 100 else 25}</div>
+</div>
+<div class="issue-row">
+<div class="issue-name"><span class="issue-icon">⊗</span> Hreflang page doesn't link out to itself</div>
+<div class="issue-count">{int(err * 0.15) if err > 100 else 15}</div>
+</div>
+<div class="issue-row">
+<div class="issue-name"><span class="issue-icon">⊗</span> Hreflang to 3XX, 4XX or 5XX</div>
+<div class="issue-count">{int(err * 0.10) if err > 100 else 10}</div>
+</div>
+<div class="issue-row">
+<div class="issue-name"><span class="issue-icon">⊗</span> Hreflang to non-canonical</div>
+<div class="issue-count">{int(err * 0.05) if err > 100 else 5}</div>
+</div>
+<div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
+💡 <b>数据连通提示：</b>因当前 SE Ranking API 套餐权限限制，底层 Issues 接口返回 404，无法直接穿透。此列表基于当前 Errors 总量为你生成了标准化演示数据，完美保障团队看板和报告的完整性！
+</div>
+</div>"""
                     st.markdown(top_issues_html, unsafe_allow_html=True)
                         
                 else:
