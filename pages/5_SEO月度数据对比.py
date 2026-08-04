@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 
 # 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
-CACHE_FILE = "seo_monthly_sales_v10.pkl"
+CACHE_FILE = "seo_monthly_sales_v11.pkl"
 
 # ==========================================
 # 🎨 UI Refinements V3 - Enterprise SaaS Style
@@ -31,6 +31,15 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 .stButton button[kind="secondary"]{background:#FFFFFF!important;color:#374151!important;border:1px solid #D1D5DB!important}
 .stButton button[kind="secondary"]:hover{background:#F9FAFB!important;border-color:#9CA3AF!important;color:#111827!important}
 [data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
+
+/* KPI 卡片样式 */
+.kpi-card {background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; height: 100%;}
+.kpi-title {font-size: 14px; color: #64748B; font-weight: 600; margin-bottom: 8px;}
+.kpi-value {font-size: 30px; font-weight: 700; color: #0F172A; margin: 0;}
+.kpi-value.blue {color: #2563EB;}
+.kpi-value.green {color: #10B981;}
+.kpi-value.purple {color: #8B5CF6;}
+.kpi-value.orange {color: #F59E0B;}
 
 /* Expander (下拉面板) 样式 */
 [data-testid="stExpander"]{border:1px solid #EEF2F6!important;border-radius:16px!important;background-color:#ffffff!important;box-shadow:0 4px 20px rgba(0,0,0,0.02)!important;margin-bottom:24px!important;overflow:hidden}
@@ -59,7 +68,7 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 [data-testid="stHeader"]{display:none!important}
 </style>""", unsafe_allow_html=True)
 
-_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 0.1])
+_nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 1, 0.1])
 with _nc[0]: pass
 with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
 with _nc[2]: st.page_link("pages/1_SEO目标概览.py", label="SEO 目标概览", icon="🎯")
@@ -67,6 +76,7 @@ with _nc[3]: st.page_link("pages/2_SEO站点明细.py", label="SEO 站点明细"
 with _nc[4]: st.page_link("pages/3_SEO需求管理.py", label="SEO 需求管理", icon="📋")
 with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事件记录", icon="📅")
 with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
+with _nc[7]: st.page_link("pages/6_AI来源数据.py", label="AI 来源数据", icon="🤖")
 st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
 st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
@@ -146,7 +156,6 @@ def extract_table(df_raw, start_idx, end_idx):
     monthly_detail = df.groupby('Month')[country_cols].sum().reset_index() if country_cols else pd.DataFrame()
     return monthly_total, monthly_detail
 
-# 🔥 升级版：加入异常保护的流量表解析引擎
 def _parse_traffic_sheet(raw2, result):
     import pandas as _pd
     _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
@@ -188,7 +197,6 @@ def _parse_traffic_sheet(raw2, result):
         except: pass
     result['traffic_blog'] = _blog
 
-# 🔥🔥🔥 终极修复：动态雷达扫描式 GSC 解析引擎 (取代写死的固定行数)
 def _parse_gsc_sheet(raw2, result):
     import pandas as _pd
     _gsc = {}
@@ -244,7 +252,7 @@ def _parse_gsc_sheet(raw2, result):
 col_h_left, col_h_right = st.columns([1.8, 1.2])
 with col_h_left:
     st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>SEO 月度数据对比</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与站点表现</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>掌握SEO核心指标与各站点年度/月度表现</div>", unsafe_allow_html=True)
 with col_h_right:
     st.markdown(f"<div style='color:#9CA3AF;font-size:11px;text-align:right;margin-bottom:2px;line-height:1;'>更新时间：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
     col_b1, col_b2, col_b3 = st.columns([1, 1, 1.8])
@@ -348,7 +356,15 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             df_merge['All_Growth'] = df_merge['Total_All'].pct_change() * 100
             df_merge['Site_Growth'] = df_merge['Total_Site'].pct_change() * 100
 
-            st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+            # --- 🔥 新增：全站 2026 累计 KPI ---
+            df_2026_sales = df_merge[df_merge['Month'] >= '2026-01']
+            st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
+            k1, k2, k3 = st.columns(3)
+            with k1: st.markdown(f'<div class="kpi-card"><div class="kpi-title">💰 2026 非品牌词总销售额</div><div class="kpi-value blue">${df_2026_sales["Total_NB"].sum():,.2f}</div></div>', unsafe_allow_html=True)
+            with k2: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🌐 2026 ALL SEO总销售额</div><div class="kpi-value purple">${df_2026_sales["Total_All"].sum():,.2f}</div></div>', unsafe_allow_html=True)
+            with k3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🏪 2026 网站总销售额</div><div class="kpi-value orange">${df_2026_sales["Total_Site"].sum():,.2f}</div></div>', unsafe_allow_html=True)
+
+            st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
             st.markdown("#### ⚡ 1. 销售额月度涨降幅 (Growth Rate) 对比")
             with st.container(border=True):
                 fig3 = go.Figure()
@@ -419,13 +435,25 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
                 st.plotly_chart(fig_site, use_container_width=True)
             
-            st.markdown("### 🏬 各站点详细数据")
-            
+            st.markdown("<hr style='margin:32px 0;'/>", unsafe_allow_html=True)
+            st.markdown("### 🏬 各站点详细销售额数据")
             st.markdown(get_nav_html('jump', '📍', '快速定位'), unsafe_allow_html=True)
 
             for target_site in ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']:
                 st.markdown(f'<div id="jump-{target_site}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
-                with st.expander(f"📌 {target_site} 站点 — 4维度详情", expanded=True):
+                with st.expander(f"📌 {target_site} 站点 — 销售详情", expanded=True):
+                    
+                    # --- 🔥 新增：分站点 2026 累计 KPI ---
+                    nb_2026 = nb_detail[nb_detail['Month'] >= '2026-01'][target_site].sum()
+                    all_2026 = all_detail[all_detail['Month'] >= '2026-01'][target_site].sum()
+                    site_2026 = site_detail[site_detail['Month'] >= '2026-01'][target_site].sum()
+                    
+                    sc1, sc2, sc3 = st.columns(3)
+                    with sc1: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 非品牌词 ({target_site})</div><div class="kpi-value blue" style="font-size:24px;">${nb_2026:,.2f}</div></div>', unsafe_allow_html=True)
+                    with sc2: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 ALL SEO ({target_site})</div><div class="kpi-value purple" style="font-size:24px;">${all_2026:,.2f}</div></div>', unsafe_allow_html=True)
+                    with sc3: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 总销售额 ({target_site})</div><div class="kpi-value orange" style="font-size:24px;">${site_2026:,.2f}</div></div>', unsafe_allow_html=True)
+                    st.write("")
+                    
                     x1, x2 = st.columns(2)
                     with x1:
                         st.markdown(f"**① {target_site} 销售额月度涨降幅对比**")
@@ -479,11 +507,22 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             if not traffic_months:
                 st.warning("⚠️ 流量数据未找到。请检查Excel是否包含「SEO月度流量数据汇总」表单，或点击「清空本地缓存」后重新上传。")
             else:
-                st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-                
                 tf = pd.DataFrame(traffic_total)
                 tf["Month"] = traffic_months
                 tf["Total"] = tf[["DE","FR","ES","IT","NL","NO","SE","FI","PL"]].sum(axis=1)
+                
+                # --- 🔥 新增：全站 2026 累计 KPI ---
+                df_2026_traffic = tf[tf['Month'] >= '2026-01']
+                global_onsite_sum = sum([sum([v for i, v in enumerate(traffic_onsite[s]) if traffic_months[i] >= '2026-01']) for s in ['DE','FR','IT'] if s in traffic_onsite])
+                global_blog_sum = sum([sum([v for i, v in enumerate(traffic_blog[s]) if traffic_months[i] >= '2026-01']) for s in ['DE','FR','IT'] if s in traffic_blog])
+                
+                st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
+                k1, k2, k3 = st.columns(3)
+                with k1: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🚀 2026 全站总流量</div><div class="kpi-value green">{df_2026_traffic["Total"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+                with k2: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🏠 2026 站内总流量 (三大主站)</div><div class="kpi-value orange">{global_onsite_sum:,.0f}</div></div>', unsafe_allow_html=True)
+                with k3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">📝 2026 Blog总流量 (三大主站)</div><div class="kpi-value purple">{global_blog_sum:,.0f}</div></div>', unsafe_allow_html=True)
+
+                st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
                 
                 st.markdown("### 🌐 全站流量汇总大盘 (不分站点)")
                 
@@ -534,6 +573,18 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 for _tsite in ["DE","FR","ES","IT","NL","NO","SE","FI","PL"]:
                     st.markdown(f'<div id="tjump-{_tsite}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                     with st.expander(f"📌 {_tsite} 站点 — 流量详情", expanded=True):
+                        
+                        # --- 🔥 新增：分站点 2026 累计 KPI ---
+                        t_2026 = sum([v for m, v in zip(traffic_months, traffic_total[_tsite]) if m >= '2026-01'])
+                        o_2026 = sum([v for m, v in zip(traffic_months, traffic_onsite.get(_tsite, [])) if m >= '2026-01']) if _tsite in traffic_onsite else 0
+                        b_2026 = sum([v for m, v in zip(traffic_months, traffic_blog.get(_tsite, [])) if m >= '2026-01']) if _tsite in traffic_blog else 0
+                        
+                        sc1, sc2, sc3 = st.columns(3)
+                        with sc1: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 总流量 ({_tsite})</div><div class="kpi-value green" style="font-size:24px;">{t_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        with sc2: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 站内流量 ({_tsite})</div><div class="kpi-value orange" style="font-size:24px;">{o_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        with sc3: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 Blog流量 ({_tsite})</div><div class="kpi-value purple" style="font-size:24px;">{b_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        st.write("")
+                        
                         x1,x2=st.columns(2)
                         with x1:
                             st.markdown(f"**① {_tsite} 月度总流量趋势**")
@@ -596,11 +647,19 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                                 'Onsite': d2['onsite'][i] if i < len(d2['onsite']) else 0
                             })
                 
-                st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-                
                 if all_gsc_records:
                     df_gsc_all = pd.DataFrame(all_gsc_records)
                     df_gsc_agg = df_gsc_all.groupby('Month').sum().reset_index().sort_values('Month')
+                    
+                    # --- 🔥 新增：全站 2026 累计 KPI ---
+                    df_2026_gsc = df_gsc_agg[df_gsc_agg['Month'] >= '2026-01']
+                    st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
+                    k1, k2, k3 = st.columns(3)
+                    with k1: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🖱️ 2026 全站总点击</div><div class="kpi-value blue">{df_2026_gsc["Total"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+                    with k2: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🏷️ 2026 品牌词点击</div><div class="kpi-value purple">{df_2026_gsc["Brand"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+                    with k3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">📝 2026 Blog点击</div><div class="kpi-value orange">{df_2026_gsc["Blog"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+                    
+                    st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
                     
                     st.markdown("### 🌐 全站 GSC 汇总大盘 (不分站点)")
                     st.markdown("#### 全站 GSC 总点击走势")
@@ -612,9 +671,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     
                     st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                     
-                    # ==========================================
-                    # 🔥 新增：全站总点击年度同比走势 (各月对比)
-                    # ==========================================
                     st.markdown("#### 全站总点击年度同比 (各月对比)")
                     with st.container(border=True):
                         df_gsc_yoy = df_gsc_agg.copy()
@@ -693,6 +749,18 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     if not _d2: continue
                     st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                     with st.expander(f"📌 GSC {_s2} 站点 — 点击详情", expanded=True):
+                        
+                        # --- 🔥 新增：分站点 2026 累计 KPI ---
+                        g_t_2026 = sum([v for m, v in zip(_d2['months'], _d2['total']) if m >= '2026-01'])
+                        g_b_2026 = sum([v for m, v in zip(_d2['months'], _d2['brand']) if m >= '2026-01'])
+                        g_l_2026 = sum([v for m, v in zip(_d2['months'], _d2['blog']) if m >= '2026-01'])
+                        
+                        sc1, sc2, sc3 = st.columns(3)
+                        with sc1: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 总点击 ({_s2})</div><div class="kpi-value blue" style="font-size:24px;">{g_t_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        with sc2: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 品牌词 ({_s2})</div><div class="kpi-value purple" style="font-size:24px;">{g_b_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        with sc3: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 Blog ({_s2})</div><div class="kpi-value orange" style="font-size:24px;">{g_l_2026:,.0f}</div></div>', unsafe_allow_html=True)
+                        st.write("")
+                        
                         x1,x2=st.columns(2)
                         with x1:
                             st.markdown(f"**① {_s2} 总点击趋势**")
