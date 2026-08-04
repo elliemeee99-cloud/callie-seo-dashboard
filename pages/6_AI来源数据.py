@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import datetime
 import plotly.express as px
-import plotly.graph_objects as go
+import re
 
 st.set_page_config(page_title="AI 来源数据监控", page_icon="🤖", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 UI 样式与导航 (企业 SaaS 级风格)
+# 🎨 UI 样式与导航
 # ==========================================
 st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
 st.markdown("""<style>
@@ -58,8 +58,16 @@ with col_h_right:
         st.rerun()
 
 # ==========================================
-# ⚙️ 核心解析引擎：游标穿透提取法 (加入异常护盾)
+# ⚙️ 核心解析引擎：游标穿透与正则提取
 # ==========================================
+def extract_ym(text):
+    """提取日期，兼容 '2025年1月', '2025-01', '2025/1' 等各种怪异格式"""
+    text = str(text).strip()
+    match = re.search(r'(202\d)[年\-/]\s*(\d{1,2})', text)
+    if match:
+        return f"{match.group(1)}-{int(match.group(2)):02d}"
+    return None
+
 @st.cache_data(ttl=600)
 def load_and_parse_ai_data():
     url = "https://docs.google.com/spreadsheets/d/1cXuEZoa8o6fF3H9ycMIgvd3iKKY1tvmBrZHl7gnw2Gk/export?format=csv&gid=0"
@@ -71,41 +79,41 @@ def load_and_parse_ai_data():
     records = []
     # 遍历行寻找站点块
     for i in range(len(df_raw)):
-        val0 = str(df_raw.iloc[i, 0]).strip()
-        if 'Session source' in val0 and 'medium' in val0:
-            # 提取站点名称，例如 "DE Session source / medium" -> "DE"
-            site = val0.split(' ')[0]
+        val0 = str(df_raw.iloc[i, 0]).strip().lower()
+        # 只要这一行第一列同时包含 source 和 medium，就是站点的发令枪
+        if 'source' in val0 and 'medium' in val0:
+            site = str(df_raw.iloc[i, 0]).strip().split(' ')[0].upper()
             
-            # 🔥 修复报错点：如果顶格了，防止取到空列表导致 index out of range
-            month_row = df_raw.iloc[i-1].tolist() if i > 0 else [''] * len(df_raw.columns)
+            # 🔥 智能上溯：向上搜寻 3 行，只要看到 202x年x月 就锁定为日期行
+            month_row = []
+            for offset in range(1, 4):
+                if i - offset < 0: continue
+                row_vals = df_raw.iloc[i - offset].tolist()
+                if any(extract_ym(x) for x in row_vals):
+                    month_row = row_vals
+                    break
+            
             metric_row = df_raw.iloc[i].tolist()
             
             col_map = {}
             current_month = None
             for col_idx in range(1, len(df_raw.columns)):
-                # 安全获取日期
                 if col_idx < len(month_row):
-                    m_val = str(month_row[col_idx]).strip()
-                    if '年' in m_val and '月' in m_val:
-                        m_str = m_val.replace('年', '-').replace('月', '')
-                        parts = m_str.split('-')
-                        if len(parts) >= 2:
-                            try:
-                                current_month = f"{parts[0]}-{int(parts[1]):02d}"
-                            except:
-                                pass
+                    ym = extract_ym(month_row[col_idx])
+                    if ym:
+                        current_month = ym
                 
-                # 安全获取指标分类
                 if col_idx < len(metric_row):
-                    metric_val = str(metric_row[col_idx]).strip().lower()
+                    # 消除一切多余空格和换行符带来的隐患
+                    metric_val = ' '.join(str(metric_row[col_idx]).lower().split())
                     if current_month and metric_val in ['sessions', 'pages', 'total revenue']:
                         col_map[col_idx] = (current_month, metric_val)
             
-            # 往下读取 AI 渠道的具体数据，探测深度加到 15 行
-            for j in range(i+1, min(i+15, len(df_raw))):
+            # 往下读取 AI 渠道的具体数据 (最多探测 50 个工具)
+            for j in range(i+1, min(i+50, len(df_raw))):
                 src_val = str(df_raw.iloc[j, 0]).strip()
-                if not src_val or src_val == 'nan': break
-                if 'Session source' in src_val: break  # 撞到下一个站点了
+                if not src_val or src_val.lower() == 'nan': break
+                if 'source' in src_val.lower() and 'medium' in src_val.lower(): break
                 
                 for col_idx, (m_str, metric) in col_map.items():
                     if col_idx < len(df_raw.columns):
@@ -124,44 +132,39 @@ def load_and_parse_ai_data():
                         })
                         
     df_flat = pd.DataFrame(records)
-    if df_flat.empty: return pd.DataFrame()
-    
-    # 将长表透视为宽表
-    df_pivot = df_flat.pivot_table(index=['Site', 'Source', 'Month'], columns='Metric', values='Value', aggfunc='sum').reset_index()
-    
-    # 统一列名
-    rename_dict = {}
-    for c in df_pivot.columns:
-        if c.lower() == 'sessions': rename_dict[c] = 'Sessions'
-        elif c.lower() == 'pages': rename_dict[c] = 'Pages'
-        elif c.lower() == 'total revenue': rename_dict[c] = 'Revenue'
-    df_pivot = df_pivot.rename(columns=rename_dict)
-    
-    for col in ['Sessions', 'Pages', 'Revenue']:
-        if col not in df_pivot.columns: df_pivot[col] = 0.0
-            
-    return df_pivot
+    # 把原始数据表也一同返回，便于后续 DEBUG
+    return df_flat, df_raw
 
 # ==========================================
 # 📊 渲染图表大盘
 # ==========================================
 try:
     with st.spinner("🚀 正在通过 API 直连 Google Sheets 解析数据..."):
-        df_ai = load_and_parse_ai_data()
+        df_flat, df_raw = load_and_parse_ai_data()
 
-    if df_ai.empty:
-        st.warning("⚠️ 表格连接成功，但未解析到符合要求的数据块。请检查表格的第一列是否包含 'DE Session source / medium' 等标识。")
+    if df_flat.empty:
+        st.warning("⚠️ 警告：表格成功连通，但未从内容中提取出有效数据。")
+        st.markdown("👇 **调试分析诊断器：** 这是系统抓取到的【原始数据前 15 行】。如果这里满屏幕全是 HTML 代码 (例如 `<DOCTYPE html>`)，说明该 Google Sheet 处于**私密状态**。请将其设置为**「知道链接的人均可查看」**。")
+        st.dataframe(df_raw.head(15), width="stretch")
     else:
-        st.markdown("### 🏆 2026年至今 AI 来源核心成果 (全站汇总)")
-        st.markdown("<p style='font-size:12px; margin-top:-10px;'>*注：计算总和时已自动剔除 `ai-assistant` 数据，避免渠道数据重复计算。</p>", unsafe_allow_html=True)
+        # 透视转换为宽表格式
+        df_ai = df_flat.pivot_table(index=['Site', 'Source', 'Month'], columns='Metric', values='Value', aggfunc='sum').reset_index()
+        rename_dict = {c: c.capitalize() for c in df_ai.columns}
+        if 'total revenue' in df_ai.columns: df_ai = df_ai.rename(columns={'total revenue': 'Revenue'})
+        df_ai.rename(columns={'sessions': 'Sessions', 'pages': 'Pages'}, inplace=True)
         
-        # 过滤 2026 年以后的数据，并去除 ai-assistant
+        # =========================================================
+        # 模块 1：2026年至今的全局核心数据 (剔除 ai-assistant)
+        # =========================================================
+        st.markdown("### 🏆 2026年至今 AI 来源核心成果 (全站汇总)")
+        st.markdown("<p style='font-size:12px; margin-top:-10px;'>*注：计算总和时已自动剔除 `ai-assistant` 数据，避免与细分渠道数据发生重复计算。</p>", unsafe_allow_html=True)
+        
         df_2026 = df_ai[(df_ai['Month'] >= '2026-01') & (df_ai['Source'] != 'ai-assistant')]
         
         if not df_2026.empty:
-            total_rev = df_2026['Revenue'].sum()
-            total_ses = df_2026['Sessions'].sum()
-            total_pag = df_2026['Pages'].sum()
+            total_rev = df_2026['Revenue'].sum() if 'Revenue' in df_2026 else 0
+            total_ses = df_2026['Sessions'].sum() if 'Sessions' in df_2026 else 0
+            total_pag = df_2026['Pages'].sum() if 'Pages' in df_2026 else 0
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -195,14 +198,13 @@ try:
         # =========================================================
         st.markdown("### 🏬 站点细分月度趋势图")
         
-        # 提取全局去除 ai-assistant 的数据用于绘图
         df_clean = df_ai[df_ai['Source'] != 'ai-assistant'].copy()
         
-        # 按月按站点汇总
-        df_trend = df_clean.groupby(['Site', 'Month'])[['Revenue', 'Sessions', 'Pages']].sum().reset_index()
+        # 聚合运算
+        metrics_available = [m for m in ['Revenue', 'Sessions', 'Pages'] if m in df_clean.columns]
+        df_trend = df_clean.groupby(['Site', 'Month'])[metrics_available].sum().reset_index()
         df_trend = df_trend.sort_values('Month')
 
-        # 站点选择器
         sites_available = sorted(df_trend['Site'].unique().tolist())
         sites_display = ['全部站点 (All)'] + sites_available
         
@@ -223,49 +225,49 @@ try:
             with col_chart1:
                 with st.container(border=True):
                     st.markdown(f"**📈 {title_prefix} 流量趋势 (Sessions)**")
-                    fig_ses = px.line(
-                        plot_df, x='Month', y='Sessions', color=color_col, 
-                        markers=True, template="plotly_white",
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    fig_ses.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
-                    st.plotly_chart(fig_ses, width="stretch")
+                    if 'Sessions' in plot_df:
+                        fig_ses = px.line(
+                            plot_df, x='Month', y='Sessions', color=color_col, 
+                            markers=True, template="plotly_white",
+                            color_discrete_sequence=px.colors.qualitative.Pastel
+                        )
+                        fig_ses.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
+                                            xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(fig_ses, width="stretch")
             
             with col_chart2:
                 with st.container(border=True):
                     st.markdown(f"**💰 {title_prefix} 销售额趋势 (Revenue)**")
-                    if color_col:
-                        fig_rev = px.line(plot_df, x='Month', y='Revenue', color=color_col, markers=True, template="plotly_white")
-                    else:
-                        fig_rev = px.bar(plot_df, x='Month', y='Revenue', text_auto='.2s', template="plotly_white")
-                        fig_rev.update_traces(marker_color='#2563EB')
-                        
-                    fig_rev.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(tickprefix="$", showgrid=True, gridcolor='#f1f5f9'))
-                    st.plotly_chart(fig_rev, width="stretch")
+                    if 'Revenue' in plot_df:
+                        if color_col:
+                            fig_rev = px.line(plot_df, x='Month', y='Revenue', color=color_col, markers=True, template="plotly_white")
+                        else:
+                            fig_rev = px.bar(plot_df, x='Month', y='Revenue', text_auto='.2s', template="plotly_white")
+                            fig_rev.update_traces(marker_color='#2563EB')
+                            
+                        fig_rev.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
+                                            xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(tickprefix="$", showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(fig_rev, width="stretch")
             
             st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown(f"**🤖 {title_prefix} 各大 AI 引擎流量贡献占比 (Sessions)**")
-                if selected_site == '全部站点 (All)':
-                    df_source_trend = df_clean.groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
-                else:
-                    df_source_trend = df_clean[df_clean['Site'] == selected_site].groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
-                
-                fig_src = px.bar(
-                    df_source_trend, x='Month', y='Sessions', color='Source', 
-                    template="plotly_white", text_auto='.2s',
-                    color_discrete_sequence=px.colors.qualitative.Bold
-                )
-                fig_src.update_layout(height=400, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                    xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
-                st.plotly_chart(fig_src, width="stretch")
+                if 'Sessions' in df_clean:
+                    if selected_site == '全部站点 (All)':
+                        df_source_trend = df_clean.groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
+                    else:
+                        df_source_trend = df_clean[df_clean['Site'] == selected_site].groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
+                    
+                    fig_src = px.bar(
+                        df_source_trend, x='Month', y='Sessions', color='Source', 
+                        template="plotly_white", text_auto='.2s',
+                        color_discrete_sequence=px.colors.qualitative.Bold
+                    )
+                    fig_src.update_layout(height=400, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
+                                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                    st.plotly_chart(fig_src, width="stretch")
         else:
             st.info(f"暂无 {selected_site} 的数据。")
             
 except Exception as e:
-    st.error(f"❌ 读取 Google Sheets 失败，请检查以下设置：")
-    st.markdown("1. 确保该 Google Sheet 的分享权限已设置为**「知道链接的人均可查看 (Anyone with the link can view)」**。")
-    st.markdown("2. 确认你是否在公司内网，是否存在网络拦截。")
-    st.code(str(e))
+    st.error(f"❌ 读取异常：{e}")
