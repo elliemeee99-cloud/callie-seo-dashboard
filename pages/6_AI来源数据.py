@@ -58,68 +58,75 @@ with col_h_right:
         st.rerun()
 
 # ==========================================
-# ⚙️ 核心解析引擎：游标穿透提取法
+# ⚙️ 核心解析引擎：游标穿透提取法 (加入异常护盾)
 # ==========================================
 @st.cache_data(ttl=600)
 def load_and_parse_ai_data():
-    # 替换为 CSV 下载直链，无视权限弹窗
     url = "https://docs.google.com/spreadsheets/d/1cXuEZoa8o6fF3H9ycMIgvd3iKKY1tvmBrZHl7gnw2Gk/export?format=csv&gid=0"
-    df_raw = pd.read_csv(url, header=None)
+    try:
+        df_raw = pd.read_csv(url, header=None)
+    except Exception as e:
+        raise RuntimeError(f"CSV read failed: {e}")
     
     records = []
     # 遍历行寻找站点块
     for i in range(len(df_raw)):
         val0 = str(df_raw.iloc[i, 0]).strip()
-        if 'Session source / medium' in val0:
+        if 'Session source' in val0 and 'medium' in val0:
             # 提取站点名称，例如 "DE Session source / medium" -> "DE"
             site = val0.split(' ')[0]
             
-            # 定位时间行 (上一行) 和 指标行 (当前行)
-            month_row = df_raw.iloc[i-1].tolist() if i > 0 else []
+            # 🔥 修复报错点：如果顶格了，防止取到空列表导致 index out of range
+            month_row = df_raw.iloc[i-1].tolist() if i > 0 else [''] * len(df_raw.columns)
             metric_row = df_raw.iloc[i].tolist()
             
-            # 构建列索引映射：找出哪些列属于哪个月份、哪个指标
             col_map = {}
             current_month = None
             for col_idx in range(1, len(df_raw.columns)):
-                m_val = str(month_row[col_idx]).strip()
-                if '年' in m_val:
-                    # 将 "2025年1月" 转换为标准 "2025-01"
-                    m_str = m_val.replace('年', '-').replace('月', '')
-                    parts = m_str.split('-')
-                    if len(parts) == 2:
-                        current_month = f"{parts[0]}-{int(parts[1]):02d}"
+                # 安全获取日期
+                if col_idx < len(month_row):
+                    m_val = str(month_row[col_idx]).strip()
+                    if '年' in m_val and '月' in m_val:
+                        m_str = m_val.replace('年', '-').replace('月', '')
+                        parts = m_str.split('-')
+                        if len(parts) >= 2:
+                            try:
+                                current_month = f"{parts[0]}-{int(parts[1]):02d}"
+                            except:
+                                pass
                 
-                metric_val = str(metric_row[col_idx]).strip().lower()
-                if current_month and metric_val in ['sessions', 'pages', 'total revenue']:
-                    col_map[col_idx] = (current_month, metric_val)
+                # 安全获取指标分类
+                if col_idx < len(metric_row):
+                    metric_val = str(metric_row[col_idx]).strip().lower()
+                    if current_month and metric_val in ['sessions', 'pages', 'total revenue']:
+                        col_map[col_idx] = (current_month, metric_val)
             
-            # 往下读取 AI 渠道的具体数据，直到遇到空行
-            for j in range(i+1, min(i+12, len(df_raw))):
+            # 往下读取 AI 渠道的具体数据，探测深度加到 15 行
+            for j in range(i+1, min(i+15, len(df_raw))):
                 src_val = str(df_raw.iloc[j, 0]).strip()
                 if not src_val or src_val == 'nan': break
-                if 'Session source' in src_val: break
+                if 'Session source' in src_val: break  # 撞到下一个站点了
                 
-                # 读取该渠道下各个列的数据
                 for col_idx, (m_str, metric) in col_map.items():
-                    raw_val = str(df_raw.iloc[j, col_idx]).replace('$', '').replace(',', '').strip()
-                    try:
-                        val_num = float(raw_val)
-                    except:
-                        val_num = 0.0
+                    if col_idx < len(df_raw.columns):
+                        raw_val = str(df_raw.iloc[j, col_idx]).replace('$', '').replace(',', '').strip()
+                        try:
+                            val_num = float(raw_val)
+                        except:
+                            val_num = 0.0
+                            
+                        records.append({
+                            'Site': site,
+                            'Source': src_val,
+                            'Month': m_str,
+                            'Metric': metric,
+                            'Value': val_num
+                        })
                         
-                    records.append({
-                        'Site': site,
-                        'Source': src_val,
-                        'Month': m_str,
-                        'Metric': metric,
-                        'Value': val_num
-                    })
-                    
     df_flat = pd.DataFrame(records)
     if df_flat.empty: return pd.DataFrame()
     
-    # 将长表透视为宽表 (Month, Source, Metric -> Columns)
+    # 将长表透视为宽表
     df_pivot = df_flat.pivot_table(index=['Site', 'Source', 'Month'], columns='Metric', values='Value', aggfunc='sum').reset_index()
     
     # 统一列名
@@ -130,7 +137,6 @@ def load_and_parse_ai_data():
         elif c.lower() == 'total revenue': rename_dict[c] = 'Revenue'
     df_pivot = df_pivot.rename(columns=rename_dict)
     
-    # 防止因源表无数据导致的列缺失
     for col in ['Sessions', 'Pages', 'Revenue']:
         if col not in df_pivot.columns: df_pivot[col] = 0.0
             
@@ -146,9 +152,6 @@ try:
     if df_ai.empty:
         st.warning("⚠️ 表格连接成功，但未解析到符合要求的数据块。请检查表格的第一列是否包含 'DE Session source / medium' 等标识。")
     else:
-        # =========================================================
-        # 模块 1：2026年至今的全局核心数据 (剔除 ai-assistant)
-        # =========================================================
         st.markdown("### 🏆 2026年至今 AI 来源核心成果 (全站汇总)")
         st.markdown("<p style='font-size:12px; margin-top:-10px;'>*注：计算总和时已自动剔除 `ai-assistant` 数据，避免渠道数据重复计算。</p>", unsafe_allow_html=True)
         
@@ -206,12 +209,10 @@ try:
         selected_site = st.radio("请选择查看的站点维度：", options=sites_display, horizontal=True)
         
         if selected_site == '全部站点 (All)':
-            # 如果选了全部站点，就在图里画出所有站点的线条对比
             plot_df = df_trend.copy()
             title_prefix = "全球各站点"
             color_col = 'Site'
         else:
-            # 单独筛选某个站点
             plot_df = df_trend[df_trend['Site'] == selected_site].copy()
             title_prefix = f"{selected_site} 站点"
             color_col = None
@@ -219,7 +220,6 @@ try:
         if not plot_df.empty:
             col_chart1, col_chart2 = st.columns(2)
             
-            # 图1：流量与页面趋势
             with col_chart1:
                 with st.container(border=True):
                     st.markdown(f"**📈 {title_prefix} 流量趋势 (Sessions)**")
@@ -232,14 +232,12 @@ try:
                                         xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
                     st.plotly_chart(fig_ses, width="stretch")
             
-            # 图2：销售额趋势
             with col_chart2:
                 with st.container(border=True):
                     st.markdown(f"**💰 {title_prefix} 销售额趋势 (Revenue)**")
                     if color_col:
                         fig_rev = px.line(plot_df, x='Month', y='Revenue', color=color_col, markers=True, template="plotly_white")
                     else:
-                        # 单站点用柱状图展示销售额更直观
                         fig_rev = px.bar(plot_df, x='Month', y='Revenue', text_auto='.2s', template="plotly_white")
                         fig_rev.update_traces(marker_color='#2563EB')
                         
@@ -247,7 +245,6 @@ try:
                                         xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(tickprefix="$", showgrid=True, gridcolor='#f1f5f9'))
                     st.plotly_chart(fig_rev, width="stretch")
             
-            # 附加图：查看具体的 AI 工具来源拆解 (按月堆叠)
             st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown(f"**🤖 {title_prefix} 各大 AI 引擎流量贡献占比 (Sessions)**")
