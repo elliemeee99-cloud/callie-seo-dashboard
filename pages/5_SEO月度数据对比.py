@@ -10,15 +10,14 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 
 # 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
-CACHE_FILE = "seo_monthly_sales_v9.pkl"
+CACHE_FILE = "seo_monthly_sales_v10.pkl"
 
 # ==========================================
-# 🎨 UI Refinements V3 - Enterprise SaaS Style (修复左侧导航过宽问题)
+# 🎨 UI Refinements V3 - Enterprise SaaS Style
 # ==========================================
 st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
 st.markdown("""<style>
 .stApp{background-color:#F8FAFC!important}
-/* 🔥 核心修复：把左边距从 270px 缩小到 140px，给右侧图表释放巨大空间 */
 .block-container{padding-top:.8rem!important;max-width:96%!important;padding-left:140px!important}
 h1{font-size:30px!important;font-weight:700!important;color:#111827!important}
 h2{font-size:24px!important;font-weight:700!important;color:#111827!important}
@@ -38,7 +37,7 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 [data-testid="stExpander"] summary{padding:20px 24px!important;background-color:#ffffff!important}
 [data-testid="stExpander"] summary p{font-size:18px!important;font-weight:800!important;color:#111827!important;letter-spacing:-0.5px}
 
-/* 🔥 核心修复：左侧浮动导航菜单，宽度压缩为 100px，瘦身拉长 */
+/* 左侧浮动导航菜单 */
 .country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:100px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:12px 10px!important;border-radius:12px!important;border:1px solid #EEF2F6!important;box-shadow:0 8px 24px rgba(0,0,0,0.04)!important}
 .country-nav::-webkit-scrollbar{width:0;background:transparent}
 .country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:6px 6px!important;margin-bottom:6px!important;border-radius:6px!important;color:#1e293b!important;font-weight:600!important;text-decoration:none!important;transition:all .15s ease!important}
@@ -72,7 +71,7 @@ st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></d
 st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 辅助模块：左侧挂件生成器 (补回丢失的国旗)
+# ⚙️ 辅助模块：左侧挂件生成器
 # ==========================================
 def get_nav_html(prefix, icon, title):
     sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
@@ -111,7 +110,6 @@ def extract_table(df_raw, start_idx, end_idx):
     df = df_raw.iloc[start_idx:end_idx].copy().reset_index(drop=True)
     if df.empty: return pd.DataFrame(), pd.DataFrame()
     
-    # 强制将第一行设为列名
     df.columns = [str(c).replace('\n', '').strip() for c in df.iloc[0]]
     df = df.iloc[1:].dropna(how='all')
     if len(df) == 0: return pd.DataFrame(), pd.DataFrame()
@@ -120,7 +118,6 @@ def extract_table(df_raw, start_idx, end_idx):
     cols[0] = 'RawDate'
     df.columns = cols
     
-    # 剔除底部的多余汇总行
     df = df[~df['RawDate'].astype(str).str.contains('总计|合计', na=False, case=False)]
     
     df['Date'] = parse_excel_dates(df['RawDate'].tolist()).values
@@ -130,13 +127,11 @@ def extract_table(df_raw, start_idx, end_idx):
     if total_col:
         s = df[total_col].copy()
         if isinstance(s, pd.DataFrame): s = s.iloc[:, 0]
-        # 剥离金额符号
         s = s.astype(str).str.replace(r'[$,\s]', '', regex=True)
         df['Total'] = pd.to_numeric(s, errors='coerce').fillna(0)
     else:
         df['Total'] = 0.0
     
-    # 解析各站点列
     country_keywords = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
     country_cols = [c for c in df.columns if c in country_keywords]
     for col in country_cols:
@@ -151,6 +146,7 @@ def extract_table(df_raw, start_idx, end_idx):
     monthly_detail = df.groupby('Month')[country_cols].sum().reset_index() if country_cols else pd.DataFrame()
     return monthly_total, monthly_detail
 
+# 🔥 升级版：加入异常保护的流量表解析引擎
 def _parse_traffic_sheet(raw2, result):
     import pandas as _pd
     _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
@@ -158,53 +154,93 @@ def _parse_traffic_sheet(raw2, result):
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 0]
         if _pd.isna(d): continue
-        dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else d
-        _months.append(dt.strftime('%Y-%m'))
-        for idx, s in enumerate(_sites):
-            v = raw2.iloc[ri, 1+idx]
-            _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
+        if isinstance(d, str) and ('合计' in d or '总计' in d): continue
+        try:
+            dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else _pd.to_datetime(d)
+            _months.append(dt.strftime('%Y-%m'))
+            for idx, s in enumerate(_sites):
+                v = raw2.iloc[ri, 1+idx]
+                _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
+        except: pass
     result['traffic_months'] = _months; result['traffic_total'] = _traffic_total
+    
     _onsite = {'DE':[],'FR':[],'IT':[]}
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 11]
         if _pd.isna(d): continue
-        for idx, s in enumerate(['DE','FR','IT']):
-            v = raw2.iloc[ri, 12+idx]
-            _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
+        if isinstance(d, str) and ('合计' in d or '总计' in d): continue
+        try:
+            for idx, s in enumerate(['DE','FR','IT']):
+                v = raw2.iloc[ri, 12+idx]
+                _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
+        except: pass
     result['traffic_onsite'] = _onsite
+    
     _blog = {'DE':[],'FR':[],'IT':[]}
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 16]
         if _pd.isna(d): continue
-        for idx, s in enumerate(['DE','FR','IT']):
-            v = raw2.iloc[ri, 17+idx]
-            _blog[s].append(float(v) if _pd.notna(v) else 0.0)
+        if isinstance(d, str) and ('合计' in d or '总计' in d): continue
+        try:
+            for idx, s in enumerate(['DE','FR','IT']):
+                v = raw2.iloc[ri, 17+idx]
+                _blog[s].append(float(v) if _pd.notna(v) else 0.0)
+        except: pass
     result['traffic_blog'] = _blog
 
+# 🔥🔥🔥 终极修复：动态雷达扫描式 GSC 解析引擎 (取代写死的固定行数)
 def _parse_gsc_sheet(raw2, result):
     import pandas as _pd
-    _segments = [
-        (0, [('DE',0), ('FR',7), ('ES',14)]),
-        (28, [('IT',0), ('NL',7)]),
-        (55, [('NO',0), ('SE',7)]),
-        (71, [('FI',0), ('PL',7)]),
-    ]
     _gsc = {}
-    for _hr, _sites in _segments:
-        for _sc, _base in _sites:
-            _m=[]; _tv=[]; _bv=[]; _lv=[]; _uv=[]; _ov=[]
-            for _ri in range(_hr+1, len(raw2)):
-                _v = raw2.iloc[_ri, _base]
-                if not isinstance(_v, (int,float)) or _pd.isna(_v):
-                    break
-                _dt = _pd.to_datetime(_v, origin='1899-12-30', unit='D')
-                _m.append(_dt.strftime('%Y-%m'))
-                _tv.append(float(raw2.iloc[_ri,_base+1]) if _pd.notna(raw2.iloc[_ri,_base+1]) else 0.0)
-                _bv.append(float(raw2.iloc[_ri,_base+2]) if _pd.notna(raw2.iloc[_ri,_base+2]) else 0.0)
-                _lv.append(float(raw2.iloc[_ri,_base+3]) if _pd.notna(raw2.iloc[_ri,_base+3]) else 0.0)
-                _uv.append(float(raw2.iloc[_ri,_base+4]) if _pd.notna(raw2.iloc[_ri,_base+4]) else 0.0)
-                _ov.append(float(raw2.iloc[_ri,_base+5]) if _pd.notna(raw2.iloc[_ri,_base+5]) else 0.0)
-            _gsc[_sc] = {'months':_m,'total':_tv,'brand':_bv,'blog':_lv,'utm':_uv,'onsite':_ov}
+    
+    # 定义表头可能出现的国家及其在行内对应的相对列号
+    _col0_targets = {
+        'DE': [('DE', 0), ('FR', 7), ('ES', 14)],
+        'IT': [('IT', 0), ('NL', 7)],
+        'NO': [('NO', 0), ('SE', 7)],
+        'FI': [('FI', 0), ('PL', 7)]
+    }
+    
+    for _ri in range(len(raw2)):
+        val0 = raw2.iloc[_ri, 0]
+        # 如果第一列扫描到了特定的国家名称，说明这一行是表头！
+        if isinstance(val0, str) and val0.strip() in _col0_targets:
+            _hr = _ri
+            _sites = _col0_targets[val0.strip()]
+            
+            # 开始读取该板块下各国家的数据
+            for _sc, _base in _sites:
+                _m=[]; _tv=[]; _bv=[]; _lv=[]; _uv=[]; _ov=[]
+                for _r_data in range(_hr+1, len(raw2)):
+                    _v = raw2.iloc[_r_data, _base]
+                    
+                    # 碰到空行或包含汇总文字的底栏，代表该区域的数据读完了，停止
+                    if _pd.isna(_v) or (isinstance(_v, str) and ('总计' in _v or '非品牌' in _v or '品牌' in _v)):
+                        break
+                        
+                    try:
+                        # 解析日期
+                        if isinstance(_v, (int, float)):
+                            _dt = _pd.to_datetime(_v, origin='1899-12-30', unit='D')
+                        else:
+                            _dt = _pd.to_datetime(_v)
+                        _m.append(_dt.strftime('%Y-%m'))
+                    except:
+                        break
+                    
+                    # 安全读取数值
+                    def _safe_float(v):
+                        try: return float(v) if _pd.notna(v) else 0.0
+                        except: return 0.0
+                    
+                    _tv.append(_safe_float(raw2.iloc[_r_data, _base+1]))
+                    _bv.append(_safe_float(raw2.iloc[_r_data, _base+2]))
+                    _lv.append(_safe_float(raw2.iloc[_r_data, _base+3]))
+                    _uv.append(_safe_float(raw2.iloc[_r_data, _base+4]))
+                    _ov.append(_safe_float(raw2.iloc[_r_data, _base+5]))
+                    
+                _gsc[_sc] = {'months':_m,'total':_tv,'brand':_bv,'blog':_lv,'utm':_uv,'onsite':_ov}
+
     result['gsc_data'] = _gsc
 
 
@@ -264,7 +300,7 @@ with col_h_right:
                     _parse_gsc_sheet(df_gsc_raw, data_dict)
                 pd.to_pickle(data_dict, CACHE_FILE)
                 st.session_state['monthly_data'] = data_dict
-                msg_area.success("✅ 数据解析成功！")
+                msg_area.success("✅ 数据解析成功！所有站点数据均已重新装载！")
             else:
                 msg_area.error("❌ 表格结构不匹配，请检查。")
                 
@@ -289,7 +325,7 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
     if df_nb.empty or df_all.empty or df_site.empty:
         st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
     else:
-        # 🎴 看板切换 (销售额 / 流量)
+        # 🎴 看板切换 (销售额 / 流量 / GSC)
         tab_selected = st.session_state.get('tab_selected', 'sales')
         col_ts1, col_ts2, col_ts3 = st.columns(3)
         with col_ts1:
@@ -391,7 +427,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             
             st.markdown("### 🏬 各站点详细数据")
             
-            # 🔥 插入左侧精简悬浮窗 (包含国旗)
             st.markdown(get_nav_html('jump', '📍', '快速定位'), unsafe_allow_html=True)
 
             for target_site in ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']:
@@ -452,9 +487,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
             else:
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 
-                # ------------------------------------------
-                # 🔥 新增：全站流量汇总大盘计算与渲染
-                # ------------------------------------------
                 tf = pd.DataFrame(traffic_total)
                 tf["Month"] = traffic_months
                 tf["Total"] = tf[["DE","FR","ES","IT","NL","NO","SE","FI","PL"]].sum(axis=1)
@@ -487,9 +519,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
                 st.markdown("<hr style='margin:32px 0; border-color:#e2e8f0;'/>", unsafe_allow_html=True)
                 
-                # ------------------------------------------
-                # 各站点分列明细
-                # ------------------------------------------
                 st.markdown("### 🏬 各站点流量数据对比与详情")
                 
                 st.markdown("#### 1. 各站点月度总流量对比趋势 (2025.01 ~ 至今)")
@@ -506,7 +535,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### 2. 各站点独立数据下钻")
-                # 🔥 插入左侧精简悬浮窗 (包含国旗)
                 st.markdown(get_nav_html('tjump', '🌊', '流量站点'), unsafe_allow_html=True)
                 
                 for _tsite in ["DE","FR","ES","IT","NL","NO","SE","FI","PL"]:
@@ -554,20 +582,16 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                                 st.markdown("<div style='color:#94a3b8;text-align:center;padding:40px 0;'>暂无Blog流量数据</div>",unsafe_allow_html=True)
 
         # ==========================================
-        # 🖱️ GSC 点击数据看板 (加入全站汇总大盘)
+        # 🖱️ GSC 点击数据看板
         # ==========================================
         elif tab_selected == 'gsc':
             gsc_data = st.session_state['monthly_data'].get('gsc_data', {})
             if not gsc_data:
                 st.warning("⚠️ GSC 点击数据未找到，请确认Excel包含「SEO GSC月度点击数据汇总」表单。")
             else:
-                # ------------------------------------------
-                # 🔥 全站 GSC 汇总大盘计算与渲染
-                # ------------------------------------------
                 all_gsc_records = []
                 for site, d2 in gsc_data.items():
                     for i, m in enumerate(d2['months']):
-                        # 安全检查以防数据缺失导致索引越界
                         if i < len(d2['total']):
                             all_gsc_records.append({
                                 'Site': site,
@@ -582,12 +606,9 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                 
                 if all_gsc_records:
                     df_gsc_all = pd.DataFrame(all_gsc_records)
-                    # 针对月份分组并求和全站数据
                     df_gsc_agg = df_gsc_all.groupby('Month').sum().reset_index().sort_values('Month')
                     
                     st.markdown("### 🌐 全站 GSC 汇总大盘 (不分站点)")
-                    
-                    # 1. 全站总点击
                     st.markdown("#### 全站 GSC 总点击走势")
                     with st.container(border=True):
                         f_agg_total = go.Figure()
@@ -597,7 +618,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                     
                     st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                     
-                    # 2. 三个细分维度的总和
                     st.markdown("#### 全站各细分维度点击走势")
                     c1, c2, c3 = st.columns(3)
                     with c1:
@@ -624,9 +644,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
 
                     st.markdown("<hr style='margin:32px 0; border-color:#e2e8f0;'/>", unsafe_allow_html=True)
                 
-                # ------------------------------------------
-                # 各站点分列明细
-                # ------------------------------------------
                 st.markdown("### 🏬 各站点 GSC 数据对比与详情")
                 st.markdown("#### 1. 各站点GSC总点击趋势 (2024.06 ~ 至今)")
                 with st.container(border=True):
@@ -643,7 +660,6 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                     st.plotly_chart(f_g,use_container_width=True)
                 
-                # 🔥 插入左侧精简悬浮窗 (包含国旗)
                 st.markdown(get_nav_html('gjump', '🖱️', 'GSC站点'), unsafe_allow_html=True)
                 
                 for _s2 in ['DE','FR','ES','IT','NL','NO','SE','FI','PL']:
