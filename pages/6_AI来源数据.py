@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 import datetime
 import plotly.express as px
+import plotly.graph_objects as go
 import re
 
 st.set_page_config(page_title="AI 来源数据监控", page_icon="🤖", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 🎨 UI 样式与导航
+# 🎨 UI 样式与左侧悬浮导航
 # ==========================================
 st.markdown("""<div id="top-anchor"></div>""", unsafe_allow_html=True)
 st.markdown("""<style>
@@ -17,12 +18,23 @@ h1, h2, h3, h4, h5, h6 {color:#111827!important}
 p {color:#6B7280!important;font-size:14px!important}
 hr{border-color:#E5E7EB!important;margin:8px 0!important}
 [data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;border:1px solid #E5E7EB!important;background-color:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.06)!important;padding:16px!important;margin-bottom:12px!important}
-.kpi-card {background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center;}
+
+/* KPI 卡片 */
+.kpi-card {background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; height: 100%;}
 .kpi-title {font-size: 14px; color: #64748B; font-weight: 600; margin-bottom: 8px;}
-.kpi-value {font-size: 32px; font-weight: 700; color: #0F172A; margin: 0;}
+.kpi-value {font-size: 30px; font-weight: 700; color: #0F172A; margin: 0;}
 .kpi-value.blue {color: #2563EB;}
 .kpi-value.green {color: #10B981;}
 .kpi-value.purple {color: #8B5CF6;}
+.kpi-value.orange {color: #F59E0B;}
+
+/* 左侧浮动导航菜单 */
+.country-nav{position:fixed!important;top:11rem!important;left:1.2rem!important;width:100px!important;max-height:calc(100vh - 10rem)!important;overflow-y:auto!important;z-index:9999!important;background:#FFFFFF!important;padding:12px 10px!important;border-radius:12px!important;border:1px solid #EEF2F6!important;box-shadow:0 8px 24px rgba(0,0,0,0.04)!important}
+.country-nav::-webkit-scrollbar{width:0;background:transparent}
+.country-nav a{display:flex!important;align-items:center!important;gap:6px!important;padding:6px 6px!important;margin-bottom:6px!important;border-radius:6px!important;color:#1e293b!important;font-weight:600!important;text-decoration:none!important;transition:all .15s ease!important}
+.country-nav a:hover{transform:translateX(2px)!important;background-color:#F1F5F9!important}
+.c-flag { font-size: 16px; line-height: 1; }
+.c-name { display:inline-block; color:#fff; font-size:11px; font-weight:700; border-radius:3px; padding:2px 4px; line-height:1.2; }
 
 /* 顶部导航 Tabs */
 [data-testid="stPageLink-NavLink"]{background:transparent!important;border:none!important;border-radius:0!important;padding:8px 14px!important;border-bottom:2px solid transparent!important;margin-bottom:-1px}
@@ -33,9 +45,20 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 [data-testid="stSidebar"]{display:none!important}
 [data-testid="collapsedControl"]{display:none!important}
 [data-testid="stHeader"]{display:none!important}
+.back-to-top{position:fixed;bottom:32px;right:32px;background:#2563EB;color:#fff!important;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;text-decoration:none!important;z-index:99999}
+.back-to-top:hover{background:#1D4ED8}
 </style>""", unsafe_allow_html=True)
 
-# --- 导航栏 ---
+# 导航辅助组件
+def get_nav_html(prefix, icon, title):
+    sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
+             ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
+             ('SE', '🇸🇪', '#FBBC05'), ('FI', '🇫🇮', '#34A853'), ('PL', '🇵🇱', '#4285F4')]
+    links = ""
+    for site, flag, color in sites:
+        links += f'<a href="#{prefix}-{site}" style="border-left:4px solid {color};"><span class="c-flag">{flag}</span><span class="c-name" style="background:{color};">{site}</span></a>'
+    return f'<div class="country-nav"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><span style="font-size:14px;">{icon}</span> {title}</div><div style="display:flex;flex-direction:column;">{links}</div></div>'
+
 _nc = st.columns([0.1, 1, 1, 1, 1, 1, 1, 1, 0.1])
 with _nc[0]: pass
 with _nc[1]: st.page_link("app.py", label="App 首页", icon="🏠")
@@ -46,11 +69,12 @@ with _nc[5]: st.page_link("pages/4_SEO重点事件记录.py", label="重点事�
 with _nc[6]: st.page_link("pages/5_SEO月度数据对比.py", label="月度数据对比", icon="📊")
 with _nc[7]: st.page_link("pages/6_AI来源数据.py", label="AI 来源数据", icon="🤖")
 st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></div>", unsafe_allow_html=True)
+st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
 col_h_left, col_h_right = st.columns([1.8, 1.2])
 with col_h_left:
     st.markdown("<div style='font-size:30px;font-weight:700;color:#111827;letter-spacing:-.03em;margin-bottom:2px;'>🤖 AI 来源数据监控大盘</div>", unsafe_allow_html=True)
-    st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>直连 Google Sheets，分析 ChatGPT、Gemini 等 AI 引流与转化效果</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>直连 Google Sheets，多维度分析 AI 渠道引流与转化效果</div>", unsafe_allow_html=True)
 with col_h_right:
     st.markdown(f"<div style='color:#9CA3AF;font-size:11px;text-align:right;margin-bottom:2px;line-height:1;'>最后同步：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
     if st.button("🔄 从云端刷新数据", type="primary", use_container_width=True):
@@ -58,14 +82,12 @@ with col_h_right:
         st.rerun()
 
 # ==========================================
-# ⚙️ 核心解析引擎：精准多行游标 + 动态向前填充
+# ⚙️ 核心解析引擎
 # ==========================================
 def extract_ym(text):
-    """提取日期，兼容各种输入格式"""
     text = str(text).strip()
     match = re.search(r'(202\d)[年\-/]\s*(\d{1,2})', text)
-    if match:
-        return f"{match.group(1)}-{int(match.group(2)):02d}"
+    if match: return f"{match.group(1)}-{int(match.group(2)):02d}"
     return None
 
 @st.cache_data(ttl=600)
@@ -77,30 +99,20 @@ def load_and_parse_ai_data():
         raise RuntimeError(f"CSV read failed: {e}")
     
     records = []
-    # 遍历行寻找站点块
     for i in range(len(df_raw)):
         val0 = str(df_raw.iloc[i, 0]).strip().lower()
-        
-        # 匹配 "DE Session source / medium" 这一行
         if 'session source' in val0:
             site = str(df_raw.iloc[i, 0]).strip().split(' ')[0].upper()
-            
-            # 依据截图，日期在第 i 行，指标在第 i+1 行，数据在 i+2 及其之后
             month_row = df_raw.iloc[i].tolist()
-            
-            # 防止索引越界
             if i + 1 >= len(df_raw): break
             metric_row = df_raw.iloc[i+1].tolist()
             
             col_map = {}
             current_month = None
-            
-            # 建立列映射表（自动向右填补由于合并单元格带来的空日期）
             for col_idx in range(1, len(df_raw.columns)):
                 m_val = str(month_row[col_idx]).strip()
                 ym = extract_ym(m_val)
-                if ym:
-                    current_month = ym
+                if ym: current_month = ym
                 
                 metric_val = str(metric_row[col_idx]).strip().lower()
                 metric = None
@@ -111,32 +123,39 @@ def load_and_parse_ai_data():
                 if current_month and metric:
                     col_map[col_idx] = (current_month, metric)
             
-            # 从第 i+2 行开始往下读取 AI 渠道的具体数据
             for j in range(i+2, min(i+50, len(df_raw))):
                 src_val = str(df_raw.iloc[j, 0]).strip()
-                
-                # 撞到空行、"None" 或者进入下一个站点，停止当前站点的循环
-                if not src_val or src_val.lower() == 'nan' or src_val.lower() == 'none': break
+                if not src_val or src_val.lower() in ['nan', 'none']: break
                 if 'session source' in src_val.lower(): break
                 
                 for col_idx, (m_str, metric) in col_map.items():
                     if col_idx < len(df_raw.columns):
                         raw_val = str(df_raw.iloc[j, col_idx]).replace('$', '').replace(',', '').strip()
-                        try:
-                            val_num = float(raw_val)
-                        except:
-                            val_num = 0.0
-                            
-                        records.append({
-                            'Site': site,
-                            'Source': src_val,
-                            'Month': m_str,
-                            'Metric': metric,
-                            'Value': val_num
-                        })
+                        try: val_num = float(raw_val)
+                        except: val_num = 0.0
+                        records.append({'Site': site, 'Source': src_val, 'Month': m_str, 'Metric': metric, 'Value': val_num})
                         
     df_flat = pd.DataFrame(records)
     return df_flat, df_raw
+
+# 通用的 YoY 绘图函数
+def plot_yoy(df, metric, title, is_currency=False):
+    fig = go.Figure()
+    cs = ['#10B981', '#3B82F6', '#F59E0B'] # 2025绿, 2026蓝
+    for i, year in enumerate(sorted(df['Year'].unique())):
+        dy = df[df['Year'] == year].sort_values('Mnum')
+        fig.add_trace(go.Scatter(
+            x=dy['Mnum'], y=dy[metric], mode='lines+markers', name=f'{year}年',
+            line=dict(width=3, color=cs[i % len(cs)]), marker=dict(size=8)
+        ))
+    fig.update_layout(
+        height=320, hovermode='x unified', margin=dict(l=10, r=10, t=40, b=10),
+        title=dict(text=title, font=dict(size=14, color="#374151")),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]),
+        yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$" if is_currency else "")
+    )
+    return fig
 
 # ==========================================
 # 📊 渲染图表大盘
@@ -147,132 +166,151 @@ try:
 
     if df_flat.empty:
         st.warning("⚠️ 警告：表格成功连通，但未从内容中提取出有效数据。")
-        st.markdown("👇 **调试分析诊断器：** 这是系统抓取到的原始数据。")
         st.dataframe(df_raw.head(20), width="stretch")
     else:
-        # 将长表转为宽表以便制图
         df_ai = df_flat.pivot_table(index=['Site', 'Source', 'Month'], columns='Metric', values='Value', aggfunc='sum').reset_index()
-        
-        # 统一规范列名
-        rename_dict = {c: c.capitalize() for c in df_ai.columns}
         if 'total revenue' in df_ai.columns: df_ai = df_ai.rename(columns={'total revenue': 'Revenue'})
         df_ai.rename(columns={'sessions': 'Sessions', 'pages': 'Pages'}, inplace=True)
-        
-        # 补充防报错机制
         for req_col in ['Sessions', 'Pages', 'Revenue']:
             if req_col not in df_ai.columns: df_ai[req_col] = 0.0
-        
-        # =========================================================
-        # 模块 1：2026年至今的全局核心数据 (剔除 ai-assistant)
-        # =========================================================
-        st.markdown("### 🏆 2026年至今 AI 来源核心成果 (全站汇总)")
-        st.markdown("<p style='font-size:12px; margin-top:-10px;'>*注：计算总和时已自动剔除 `ai-assistant` 数据，避免与细分渠道数据发生重复计算。</p>", unsafe_allow_html=True)
-        
-        df_2026 = df_ai[(df_ai['Month'] >= '2026-01') & (df_ai['Source'] != 'ai-assistant')]
-        
-        if not df_2026.empty:
-            total_rev = df_2026['Revenue'].sum()
-            total_ses = df_2026['Sessions'].sum()
-            total_pag = df_2026['Pages'].sum()
             
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.markdown(f"""
-                <div class="kpi-card">
-                    <div class="kpi-title">💰 2026 累计 AI 贡献销售额</div>
-                    <div class="kpi-value blue">${total_rev:,.2f}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with c2:
-                st.markdown(f"""
-                <div class="kpi-card">
-                    <div class="kpi-title">🚀 2026 累计 AI 来源流量 (Sessions)</div>
-                    <div class="kpi-value green">{total_ses:,.0f}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with c3:
-                st.markdown(f"""
-                <div class="kpi-card">
-                    <div class="kpi-title">📄 2026 累计 AI 页面浏览 (Pages)</div>
-                    <div class="kpi-value purple">{total_pag:,.0f}</div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("尚未发现 2026 年的数据记录。")
+        # =========================================================
+        # 模块 1：全局全站汇总 (剔除 ai-assistant)
+        # =========================================================
+        st.markdown("### 🏆 1. 全局 AI 来源成果 (全站汇总, 不含 ai-assistant)")
+        
+        df_global = df_ai[df_ai['Source'] != 'ai-assistant']
+        df_2026_global = df_global[df_global['Month'] >= '2026-01']
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-title">💰 2026 累计 AI 贡献销售额</div><div class="kpi-value blue">${df_2026_global["Revenue"].sum():,.2f}</div></div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-title">🚀 2026 累计 AI 来源流量</div><div class="kpi-value green">{df_2026_global["Sessions"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+        with c3:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-title">📄 2026 累计 AI 引用页面</div><div class="kpi-value purple">{df_2026_global["Pages"].sum():,.0f}</div></div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+        
+        # 1.1 全站年度对比 (YoY)
+        df_global_yoy = df_global.groupby('Month')[['Revenue', 'Sessions', 'Pages']].sum().reset_index()
+        df_global_yoy['Year'] = df_global_yoy['Month'].str[:4]
+        df_global_yoy['Mnum'] = df_global_yoy['Month'].str[5:].astype(int)
+        
+        with st.container(border=True):
+            st.markdown("**📉 2025 vs 2026 全站年度对比 (YoY)**")
+            yoy1, yoy2, yoy3 = st.columns(3)
+            with yoy1: st.plotly_chart(plot_yoy(df_global_yoy, 'Revenue', "销售额同比对比", True), use_container_width=True)
+            with yoy2: st.plotly_chart(plot_yoy(df_global_yoy, 'Sessions', "流量同比对比", False), use_container_width=True)
+            with yoy3: st.plotly_chart(plot_yoy(df_global_yoy, 'Pages', "引用页面同比对比", False), use_container_width=True)
+
+        st.markdown("<hr style='margin:32px 0;'/>", unsafe_allow_html=True)
 
         # =========================================================
-        # 模块 2：站点细分维度 & 月度趋势图
+        # 模块 2：AI-Assistant 单独大盘
         # =========================================================
-        st.markdown("### 🏬 站点细分月度趋势图")
+        st.markdown("### 🤖 2. ai-assistant 单独监控大盘")
+        df_ast = df_ai[df_ai['Source'] == 'ai-assistant']
         
-        # 去除 ai-assistant 计算趋势图
-        df_clean = df_ai[df_ai['Source'] != 'ai-assistant'].copy()
-        
-        df_trend = df_clean.groupby(['Site', 'Month'])[['Revenue', 'Sessions', 'Pages']].sum().reset_index()
-        df_trend = df_trend.sort_values('Month')
-
-        sites_available = sorted(df_trend['Site'].unique().tolist())
-        sites_display = ['全部站点 (All)'] + sites_available
-        
-        selected_site = st.radio("请选择查看的站点维度：", options=sites_display, horizontal=True)
-        
-        if selected_site == '全部站点 (All)':
-            plot_df = df_trend.copy()
-            title_prefix = "全球各站点"
-            color_col = 'Site'
-        else:
-            plot_df = df_trend[df_trend['Site'] == selected_site].copy()
-            title_prefix = f"{selected_site} 站点"
-            color_col = None
-
-        if not plot_df.empty:
-            col_chart1, col_chart2 = st.columns(2)
+        if not df_ast.empty:
+            df_2026_ast = df_ast[df_ast['Month'] >= '2026-01']
             
-            with col_chart1:
-                with st.container(border=True):
-                    st.markdown(f"**📈 {title_prefix} 流量趋势 (Sessions)**")
-                    fig_ses = px.line(
-                        plot_df, x='Month', y='Sessions', color=color_col, 
-                        markers=True, template="plotly_white",
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    fig_ses.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
-                    st.plotly_chart(fig_ses, width="stretch")
-            
-            with col_chart2:
-                with st.container(border=True):
-                    st.markdown(f"**💰 {title_prefix} 销售额趋势 (Revenue)**")
-                    if color_col:
-                        fig_rev = px.line(plot_df, x='Month', y='Revenue', color=color_col, markers=True, template="plotly_white")
-                    else:
-                        fig_rev = px.bar(plot_df, x='Month', y='Revenue', text_auto='.2s', template="plotly_white")
-                        fig_rev.update_traces(marker_color='#2563EB')
-                        
-                    fig_rev.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                        xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(tickprefix="$", showgrid=True, gridcolor='#f1f5f9'))
-                    st.plotly_chart(fig_rev, width="stretch")
-            
-            st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+            # 第一张总图（按月度加总趋势）
             with st.container(border=True):
-                st.markdown(f"**🤖 {title_prefix} 各大 AI 引擎流量贡献占比 (Sessions)**")
-                if selected_site == '全部站点 (All)':
-                    df_source_trend = df_clean.groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
-                else:
-                    df_source_trend = df_clean[df_clean['Site'] == selected_site].groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
-                
-                fig_src = px.bar(
-                    df_source_trend, x='Month', y='Sessions', color='Source', 
-                    template="plotly_white", text_auto='.2s',
-                    color_discrete_sequence=px.colors.qualitative.Bold
-                )
-                fig_src.update_layout(height=400, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10),
-                                    xaxis=dict(showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
-                st.plotly_chart(fig_src, width="stretch")
-        else:
-            st.info(f"暂无 {selected_site} 的数据。")
+                st.markdown("**📈 ai-assistant 历年月度发展总趋势图**")
+                df_ast_trend = df_ast.groupby('Month')[['Revenue', 'Sessions', 'Pages']].sum().reset_index().sort_values('Month')
+                fig_ast_trend = go.Figure()
+                fig_ast_trend.add_trace(go.Scatter(x=df_ast_trend['Month'], y=df_ast_trend['Sessions'], name="流量", line=dict(color="#10B981", width=3), mode='lines+markers'))
+                fig_ast_trend.add_trace(go.Scatter(x=df_ast_trend['Month'], y=df_ast_trend['Pages'], name="页面数", line=dict(color="#8B5CF6", width=3), mode='lines+markers'))
+                fig_ast_trend.update_layout(height=350, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                st.plotly_chart(fig_ast_trend, use_container_width=True)
+
+            # YoY
+            df_ast_yoy = df_ast_trend.copy()
+            df_ast_yoy['Year'] = df_ast_yoy['Month'].str[:4]
+            df_ast_yoy['Mnum'] = df_ast_yoy['Month'].str[5:].astype(int)
             
+            with st.container(border=True):
+                st.markdown("**📉 ai-assistant 2025 vs 2026 年度对比 (YoY)**")
+                ayoy1, ayoy2, ayoy3 = st.columns(3)
+                with ayoy1: st.plotly_chart(plot_yoy(df_ast_yoy, 'Revenue', "销售额同比对比", True), use_container_width=True)
+                with ayoy2: st.plotly_chart(plot_yoy(df_ast_yoy, 'Sessions', "流量同比对比", False), use_container_width=True)
+                with ayoy3: st.plotly_chart(plot_yoy(df_ast_yoy, 'Pages', "引用页面同比对比", False), use_container_width=True)
+        else:
+            st.info("数据表中尚未检测到 'ai-assistant' 数据。")
+
+        st.markdown("<hr style='margin:32px 0;'/>", unsafe_allow_html=True)
+
+        # =========================================================
+        # 模块 3：各大 AI 引擎流量贡献占比 (全局)
+        # =========================================================
+        st.markdown("### 🧩 3. 各大 AI 引擎引流贡献占比 (全站合并)")
+        with st.container(border=True):
+            df_source_trend = df_global.groupby(['Month', 'Source'])['Sessions'].sum().reset_index()
+            fig_src = px.bar(
+                df_source_trend, x='Month', y='Sessions', color='Source', 
+                template="plotly_white", text_auto='.2s', color_discrete_sequence=px.colors.qualitative.Bold
+            )
+            fig_src.update_layout(height=400, hovermode='x unified', margin=dict(l=10, r=10, t=10, b=10))
+            st.plotly_chart(fig_src, use_container_width=True)
+
+        st.markdown("<hr style='margin:32px 0;'/>", unsafe_allow_html=True)
+
+        # =========================================================
+        # 模块 4：各分站点独立看板 (带左侧导航)
+        # =========================================================
+        st.markdown("### 🏬 4. 各分站点详细数据 (不含 ai-assistant)")
+        
+        # 插入左侧导航
+        st.markdown(get_nav_html('site', '📍', '分站导航'), unsafe_allow_html=True)
+        
+        sites_list = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+        
+        for site in sites_list:
+            df_site = df_global[df_global['Site'] == site].copy()
+            if df_site.empty: continue
+            
+            st.markdown(f'<div id="site-{site}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
+            with st.expander(f"📌 {site} 站点 — AI 来源详细大盘", expanded=True):
+                
+                # <1> 2026 YTD KPI
+                df_site_2026 = df_site[df_site['Month'] >= '2026-01']
+                s_rev = df_site_2026['Revenue'].sum()
+                s_ses = df_site_2026['Sessions'].sum()
+                s_pag = df_site_2026['Pages'].sum()
+                
+                sc1, sc2, sc3 = st.columns(3)
+                with sc1: st.markdown(f'<div class="kpi-card"><div class="kpi-title">2026 销售额</div><div class="kpi-value blue">${s_rev:,.2f}</div></div>', unsafe_allow_html=True)
+                with sc2: st.markdown(f'<div class="kpi-card"><div class="kpi-title">2026 流量</div><div class="kpi-value green">{s_ses:,.0f}</div></div>', unsafe_allow_html=True)
+                with sc3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">2026 页面数</div><div class="kpi-value purple">{s_pag:,.0f}</div></div>', unsafe_allow_html=True)
+                
+                st.write("")
+                
+                # 计算月度趋势
+                df_site_trend = df_site.groupby('Month')[['Revenue', 'Sessions', 'Pages']].sum().reset_index().sort_values('Month')
+                
+                chart1, chart2, chart3 = st.columns(3)
+                
+                # <2> 销售额趋势
+                with chart1:
+                    fig_s_rev = px.bar(df_site_trend, x='Month', y='Revenue', template="plotly_white", title="💰 销售额月度走势")
+                    fig_s_rev.update_traces(marker_color='#2563EB')
+                    fig_s_rev.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10), yaxis=dict(tickprefix="$"))
+                    st.plotly_chart(fig_s_rev, use_container_width=True)
+                    
+                # <3> 流量趋势
+                with chart2:
+                    fig_s_ses = px.line(df_site_trend, x='Month', y='Sessions', markers=True, template="plotly_white", title="🚀 流量月度走势")
+                    fig_s_ses.update_traces(line_color='#10B981', line_width=3)
+                    fig_s_ses.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+                    st.plotly_chart(fig_s_ses, use_container_width=True)
+                    
+                # <4> 页面趋势
+                with chart3:
+                    fig_s_pag = px.line(df_site_trend, x='Month', y='Pages', markers=True, template="plotly_white", title="📄 引用页面月度走势")
+                    fig_s_pag.update_traces(line_color='#8B5CF6', line_width=3)
+                    fig_s_pag.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+                    st.plotly_chart(fig_s_pag, use_container_width=True)
+                    
 except Exception as e:
     st.error(f"❌ 读取异常：{e}")
