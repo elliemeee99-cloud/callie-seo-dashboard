@@ -193,7 +193,6 @@ def _parse_gsc_sheet(raw2, result):
     import pandas as _pd
     _gsc = {}
     
-    # 定义表头可能出现的国家及其在行内对应的相对列号
     _col0_targets = {
         'DE': [('DE', 0), ('FR', 7), ('ES', 14)],
         'IT': [('IT', 0), ('NL', 7)],
@@ -203,23 +202,19 @@ def _parse_gsc_sheet(raw2, result):
     
     for _ri in range(len(raw2)):
         val0 = raw2.iloc[_ri, 0]
-        # 如果第一列扫描到了特定的国家名称，说明这一行是表头！
         if isinstance(val0, str) and val0.strip() in _col0_targets:
             _hr = _ri
             _sites = _col0_targets[val0.strip()]
             
-            # 开始读取该板块下各国家的数据
             for _sc, _base in _sites:
                 _m=[]; _tv=[]; _bv=[]; _lv=[]; _uv=[]; _ov=[]
                 for _r_data in range(_hr+1, len(raw2)):
                     _v = raw2.iloc[_r_data, _base]
                     
-                    # 碰到空行或包含汇总文字的底栏，代表该区域的数据读完了，停止
                     if _pd.isna(_v) or (isinstance(_v, str) and ('总计' in _v or '非品牌' in _v or '品牌' in _v)):
                         break
                         
                     try:
-                        # 解析日期
                         if isinstance(_v, (int, float)):
                             _dt = _pd.to_datetime(_v, origin='1899-12-30', unit='D')
                         else:
@@ -228,7 +223,6 @@ def _parse_gsc_sheet(raw2, result):
                     except:
                         break
                     
-                    # 安全读取数值
                     def _safe_float(v):
                         try: return float(v) if _pd.notna(v) else 0.0
                         except: return 0.0
@@ -616,6 +610,38 @@ if 'monthly_data' in st.session_state and isinstance(st.session_state['monthly_d
                         f_agg_total.update_layout(height=350, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
                         st.plotly_chart(f_agg_total, use_container_width=True)
                     
+                    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                    
+                    # ==========================================
+                    # 🔥 新增：全站总点击年度同比走势 (各月对比)
+                    # ==========================================
+                    st.markdown("#### 全站总点击年度同比 (各月对比)")
+                    with st.container(border=True):
+                        df_gsc_yoy = df_gsc_agg.copy()
+                        df_gsc_yoy['Date'] = pd.to_datetime(df_gsc_yoy['Month'] + '-01')
+                        df_gsc_yoy['Year'] = df_gsc_yoy['Date'].dt.year.astype(str)
+                        df_gsc_yoy['Mnum'] = df_gsc_yoy['Date'].dt.month
+                        
+                        f_gsc_yoy = go.Figure()
+                        cs_gsc_yoy = ["#10b981", "#f59e0b", "#3b82f6", "#8b5cf6"]
+                        
+                        for i, y in enumerate(sorted(df_gsc_yoy['Year'].unique())):
+                            dy = df_gsc_yoy[df_gsc_yoy['Year'] == y].sort_values('Mnum')
+                            f_gsc_yoy.add_trace(go.Scatter(
+                                x=dy['Mnum'], y=dy['Total'], 
+                                mode="lines+markers", name=f'{y}年', 
+                                line=dict(width=3, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]),
+                                marker=dict(size=8)
+                            ))
+                            
+                        f_gsc_yoy.update_layout(
+                            height=350, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10),
+                            legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                            xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]),
+                            yaxis=dict(showgrid=True, gridcolor="#f1f5f9")
+                        )
+                        st.plotly_chart(f_gsc_yoy, use_container_width=True)
+
                     st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                     
                     st.markdown("#### 全站各细分维度点击走势")
