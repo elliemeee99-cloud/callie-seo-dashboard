@@ -311,18 +311,19 @@ if df_nb.empty or df_all.empty or df_site.empty:
     st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
 else:
     # 🎴 看板切换 (销售额 / 流量 / GSC)
+    # 💥 已修复：恢复 use_container_width=True 确保按钮填满宽度
     tab_selected = st.session_state.get('tab_selected', 'sales')
     col_ts1, col_ts2, col_ts3 = st.columns(3)
     with col_ts1:
-        if st.button('销售额对比', key='tab_switch_sales', type='primary' if tab_selected == 'sales' else 'secondary'):
+        if st.button('销售额对比', key='tab_switch_sales', use_container_width=True, type='primary' if tab_selected == 'sales' else 'secondary'):
             st.session_state.tab_selected = 'sales'
             st.rerun()
     with col_ts2:
-        if st.button('流量数据对比', key='tab_switch_traffic', type='primary' if tab_selected == 'traffic' else 'secondary'):
+        if st.button('流量数据对比', key='tab_switch_traffic', use_container_width=True, type='primary' if tab_selected == 'traffic' else 'secondary'):
             st.session_state.tab_selected = 'traffic'
             st.rerun()
     with col_ts3:
-        if st.button('GSC点击数据对比', key='tab_switch_gsc', type='primary' if tab_selected == 'gsc' else 'secondary'):
+        if st.button('GSC点击数据对比', key='tab_switch_gsc', use_container_width=True, type='primary' if tab_selected == 'gsc' else 'secondary'):
             st.session_state.tab_selected = 'gsc'
             st.rerun()
     st.markdown('<hr style="margin-top:6px;margin-bottom:20px;border-color:#e2e8f0;"/>', unsafe_allow_html=True)
