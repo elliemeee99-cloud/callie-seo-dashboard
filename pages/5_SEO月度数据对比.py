@@ -82,10 +82,9 @@ st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></d
 st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 全地形日期解析器 (核心修复区)
+# ⚙️ 全地形日期解析器
 # ==========================================
 def safe_parse_ym(val):
-    """超级日期嗅探器：专门对付 Google Sheets 导出时的畸形中文日期格式"""
     if pd.isna(val) or str(val).strip() == '': return None
     if isinstance(val, datetime.datetime): return val.strftime('%Y-%m')
     if isinstance(val, (int, float)):
@@ -97,7 +96,6 @@ def safe_parse_ym(val):
     try: return pd.to_datetime(v_str).strftime('%Y-%m')
     except: return None
 
-# 导航辅助组件
 def get_nav_html(prefix, icon, title):
     sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
              ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
@@ -105,7 +103,6 @@ def get_nav_html(prefix, icon, title):
     links = ""
     for site, flag, color in sites:
         links += f'<a href="#{prefix}-{site}" style="border-left:4px solid {color};"><span class="c-flag">{flag}</span><span class="c-name" style="background:{color};">{site}</span></a>'
-        
     return f'<div class="country-nav"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><span style="font-size:14px;">{icon}</span> {title}</div><div style="display:flex;flex-direction:column;">{links}</div></div>'
 
 # ==========================================
@@ -134,7 +131,6 @@ def extract_table(df_raw, start_idx, end_idx):
     df.columns = cols
     
     df = df[~df['RawDate'].astype(str).str.contains('总计|合计', na=False, case=False)]
-    
     df['Date'] = parse_excel_dates(df['RawDate'].tolist()).values
     df = df.dropna(subset=['Date'])
     
@@ -274,9 +270,8 @@ def load_all_seo_data():
         
     return data_dict
 
-
 # ==========================================
-# 🎯 页面头部 (彻底移除上传框)
+# 🎯 页面头部
 # ==========================================
 col_h_left, col_h_right = st.columns([1.8, 1.2])
 with col_h_left:
@@ -288,7 +283,6 @@ with col_h_right:
         st.cache_data.clear()
         st.rerun()
 
-# 加载数据
 try:
     with st.spinner("🚀 正在通过 API 直连 Google Sheets 解析多维度数据..."):
         monthly_data = load_all_seo_data()
@@ -308,10 +302,8 @@ all_detail = monthly_data['all_detail']
 site_detail = monthly_data['site_detail']
 
 if df_nb.empty or df_all.empty or df_site.empty:
-    st.warning("⚠️ 提取到的核心数据为空（非品牌/ALL/网站总销售额至少一张表无数据），请检查报表内数据格式是否正确。")
+    st.warning("⚠️ 提取到的核心数据为空，请检查报表数据格式是否正确。")
 else:
-    # 🎴 看板切换 (销售额 / 流量 / GSC)
-    # 💥 已修复：恢复 use_container_width=True 确保按钮填满宽度
     tab_selected = st.session_state.get('tab_selected', 'sales')
     col_ts1, col_ts2, col_ts3 = st.columns(3)
     with col_ts1:
@@ -340,7 +332,6 @@ else:
         df_merge['All_Growth'] = df_merge['Total_All'].pct_change() * 100
         df_merge['Site_Growth'] = df_merge['Total_Site'].pct_change() * 100
 
-        # --- 全站 2026 累计 KPI ---
         df_2026_sales = df_merge[df_merge['Month'] >= '2026-01']
         st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
         k1, k2, k3 = st.columns(3)
@@ -352,28 +343,11 @@ else:
         st.markdown("#### ⚡ 1. 销售额月度涨降幅 (Growth Rate) 对比")
         with st.container(border=True):
             fig3 = go.Figure()
-            fig3.add_trace(go.Scatter(
-                x=df_merge['Month'], y=df_merge['NB_Growth'],
-                mode='lines+markers', name='非品牌词涨跌幅(%)',
-                line=dict(width=3, color='#f43f5e'), marker=dict(size=8),
-                hovertemplate='<b>%{x}</b><br>非品牌词涨跌: %{y:+.2f}%<extra></extra>'
-            ))
-            fig3.add_trace(go.Scatter(
-                x=df_merge['Month'], y=df_merge['All_Growth'],
-                mode='lines+markers', name='ALL SEO涨跌幅(%)',
-                line=dict(width=3, color='#10b981'), marker=dict(size=8),
-                hovertemplate='<b>%{x}</b><br>ALL SEO涨跌: %{y:+.2f}%<extra></extra>'
-            ))
-            fig3.add_trace(go.Scatter(
-                x=df_merge['Month'], y=df_merge['Site_Growth'],
-                mode='lines+markers', name='网站总销售额涨跌幅(%)',
-                line=dict(width=3, color='#6366f1'), marker=dict(size=8),
-                hovertemplate='<b>%{x}</b><br>网站总销售额涨跌: %{y:+.2f}%<extra></extra>'
-            ))
-            
-            fig3.add_hline(y=0, line_dash="dash", line_color="#94a3b8", annotation_text="0% 基准线")
-            fig3.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
-                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%", tickformat='.2f'))
+            fig3.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['NB_Growth'], mode='lines+markers', name='非品牌词涨跌幅(%)', line=dict(width=3, color='#f43f5e'), marker=dict(size=8)))
+            fig3.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['All_Growth'], mode='lines+markers', name='ALL SEO涨跌幅(%)', line=dict(width=3, color='#10b981'), marker=dict(size=8)))
+            fig3.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Site_Growth'], mode='lines+markers', name='网站总销售额涨跌幅(%)', line=dict(width=3, color='#6366f1'), marker=dict(size=8)))
+            fig3.add_hline(y=0, line_dash="dash", line_color="#94a3b8")
+            fig3.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', ticksuffix="%"))
             st.plotly_chart(fig3, use_container_width=True)
 
         st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
@@ -388,35 +362,25 @@ else:
             colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6']
             for i, year in enumerate(sorted(df_yoy['Year'].unique())):
                 df_year = df_yoy[df_yoy['Year'] == year].sort_values('Month_Num')
-                fig1.add_trace(go.Scatter(
-                    x=df_year['Month_Num'], y=df_year['Total'],
-                    mode='lines+markers', name=f'{year}年',
-                    line=dict(width=3, color=colors[i % len(colors)]),
-                    marker=dict(size=8, color='#ffffff', line=dict(color=colors[i % len(colors)], width=2)),
-                    hovertemplate='<b>%{data.name} %{x}</b><br>非品牌词总计: $%{y:,.2f}<extra></extra>'
-                ))
-                
-            fig1.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
-                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1, 13)), ticktext=[f"{i}月" for i in range(1, 13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                fig1.add_trace(go.Scatter(x=df_year['Month_Num'], y=df_year['Total'], mode='lines+markers', name=f'{year}年', line=dict(width=3, color=colors[i % len(colors)]), marker=dict(size=8, color='#ffffff', line=dict(color=colors[i % len(colors)], width=2))))
+            fig1.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1, 13)), ticktext=[f"{i}月" for i in range(1, 13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
             st.plotly_chart(fig1, use_container_width=True)
 
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
         st.markdown("#### 📊 3. 【非品牌词】与【ALL SEO】销售额总计综合对比")
         with st.container(border=True):
             fig2 = go.Figure()
-            fig2.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_NB'], mode='lines+markers', name='非品牌词销售额总计', line=dict(width=3, color='#0ea5e9'), marker=dict(size=8), hovertemplate='<b>%{x}</b><br>非品牌词: $%{y:,.2f}<extra></extra>'))
-            fig2.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_All'], mode='lines+markers', name='ALL SEO销售额总计', line=dict(width=3, color='#8b5cf6'), marker=dict(size=8), hovertemplate='<b>%{x}</b><br>ALL SEO: $%{y:,.2f}<extra></extra>'))
-            fig2.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
-                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+            fig2.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_NB'], mode='lines+markers', name='非品牌词销售额', line=dict(width=3, color='#0ea5e9'), marker=dict(size=8)))
+            fig2.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_All'], mode='lines+markers', name='ALL SEO销售额', line=dict(width=3, color='#8b5cf6'), marker=dict(size=8)))
+            fig2.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
             st.plotly_chart(fig2, use_container_width=True)
 
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
         st.markdown("#### 🏪 4. 网站总销售额月度趋势")
         with st.container(border=True):
             fig_site = go.Figure()
-            fig_site.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_Site'], mode='lines+markers', name='网站总销售额', line=dict(width=3, color='#f59e0b'), marker=dict(size=8), hovertemplate='<b>%{x}</b><br>网站总销售额: $%{y:,.2f}<extra></extra>'))
-            fig_site.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20),
-                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+            fig_site.add_trace(go.Scatter(x=df_merge['Month'], y=df_merge['Total_Site'], mode='lines+markers', name='网站总销售额', line=dict(width=3, color='#f59e0b'), marker=dict(size=8)))
+            fig_site.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
             st.plotly_chart(fig_site, use_container_width=True)
         
         st.markdown("<hr style='margin:32px 0;'/>", unsafe_allow_html=True)
@@ -426,8 +390,6 @@ else:
         for target_site in ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']:
             st.markdown(f'<div id="jump-{target_site}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
             with st.expander(f"📌 {target_site} 站点 — 销售详情", expanded=True):
-                
-                # 分站点 2026 累计 KPI
                 nb_2026 = nb_detail[nb_detail['Month'] >= '2026-01'][target_site].sum()
                 all_2026 = all_detail[all_detail['Month'] >= '2026-01'][target_site].sum()
                 site_2026 = site_detail[site_detail['Month'] >= '2026-01'][target_site].sum()
@@ -442,16 +404,14 @@ else:
                 with x1:
                     st.markdown(f"**① {target_site} 销售额月度涨降幅对比**")
                     f = go.Figure()
-                    for lb, src, cl in [(f'{target_site} NB', nb_detail[target_site], '#f43f5e'), 
-                                        (f'{target_site} ALL', all_detail[target_site], '#10b981'), 
-                                        (f'{target_site} Total', site_detail[target_site], '#6366f1')]:
+                    for lb, src, cl in [(f'{target_site} NB', nb_detail[target_site], '#f43f5e'), (f'{target_site} ALL', all_detail[target_site], '#10b981'), (f'{target_site} Total', site_detail[target_site], '#6366f1')]:
                         g = src.pct_change() * 100
                         f.add_trace(go.Scatter(x=nb_detail['Month'], y=g, mode='lines+markers', name=lb, line=dict(width=2, color=cl), marker=dict(size=5)))
                     f.add_hline(y=0, line_dash="dash", line_color="#94a3b8")
                     f.update_layout(height=300, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
                     st.plotly_chart(f, use_container_width=True)
                 with x2:
-                    st.markdown(f"**② {target_site} 历年非品牌词销售额年度同比走势**")
+                    st.markdown(f"**② {target_site} 历年非品牌词年度同比走势**")
                     ds = nb_detail[['Month', target_site]].copy()
                     ds['Date'] = pd.to_datetime(ds['Month'] + '-01')
                     ds['Year'] = ds['Date'].dt.year.astype(str)
@@ -466,14 +426,14 @@ else:
                 
                 x3, x4 = st.columns(2)
                 with x3:
-                    st.markdown(f"**③ {target_site} 非品牌词与 {target_site} ALL SEO 销售额综合对比**")
+                    st.markdown(f"**③ {target_site} 综合对比**")
                     f = go.Figure()
                     f.add_trace(go.Scatter(x=nb_detail['Month'], y=nb_detail[target_site], mode='lines+markers', name=f'{target_site} NB'))
                     f.add_trace(go.Scatter(x=all_detail['Month'], y=all_detail[target_site], mode='lines+markers', name=f'{target_site} ALL'))
                     f.update_layout(height=300, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
                     st.plotly_chart(f, use_container_width=True)
                 with x4:
-                    st.markdown(f"**④ {target_site} 网站总销售额月度趋势**")
+                    st.markdown(f"**④ {target_site} 总销售额月度趋势**")
                     f = go.Figure()
                     f.add_trace(go.Scatter(x=site_detail['Month'], y=site_detail[target_site], mode='lines+markers', name=f'{target_site} Total'))
                     f.update_layout(height=300, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
@@ -495,7 +455,6 @@ else:
             tf["Month"] = traffic_months
             tf["Total"] = tf[["DE","FR","ES","IT","NL","NO","SE","FI","PL"]].sum(axis=1)
             
-            # --- 全站 2026 累计 KPI ---
             df_2026_traffic = tf[tf['Month'] >= '2026-01']
             global_onsite_sum = sum([sum([v for i, v in enumerate(traffic_onsite[s]) if traffic_months[i] >= '2026-01']) for s in ['DE','FR','IT'] if s in traffic_onsite])
             global_blog_sum = sum([sum([v for i, v in enumerate(traffic_blog[s]) if traffic_months[i] >= '2026-01']) for s in ['DE','FR','IT'] if s in traffic_blog])
@@ -507,7 +466,6 @@ else:
             with k3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">📝 2026 Blog总流量 (三大主站)</div><div class="kpi-value purple">{global_blog_sum:,.0f}</div></div>', unsafe_allow_html=True)
 
             st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
-            
             st.markdown("### 🌐 全站流量汇总大盘 (不分站点)")
             
             st.markdown("#### 全站月度总流量趋势")
@@ -528,14 +486,10 @@ else:
                 for i, y in enumerate(sorted(tf["Year"].unique())):
                     dy = tf[tf["Year"] == y].sort_values("Mnum")
                     f_yoy.add_trace(go.Scatter(x=dy["Mnum"], y=dy["Total"], mode="lines+markers", name=f'{y}年', line=dict(width=3, color=cs_t[i])))
-                f_yoy.update_layout(height=350, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10),
-                    legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-                    xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]),
-                    yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
+                f_yoy.update_layout(height=350, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]), yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
                 st.plotly_chart(f_yoy, use_container_width=True)
 
             st.markdown("<hr style='margin:32px 0; border-color:#e2e8f0;'/>", unsafe_allow_html=True)
-            
             st.markdown("### 🏬 各站点流量数据对比与详情")
             
             st.markdown("#### 1. 各站点月度总流量对比趋势 (2025.01 ~ 至今)")
@@ -544,10 +498,7 @@ else:
                 colors_t = ["#3b82f6","#ef4444","#f59e0b","#22c55e","#06b6d4","#ec4899","#8b5cf6","#14b8a6","#f97316"]
                 for i,sc in enumerate(["DE","FR","ES","IT","NL","NO","SE","FI","PL"]):
                     f_t.add_trace(go.Scatter(x=traffic_months,y=traffic_total[sc],mode="lines+markers",name=sc,line=dict(width=2,color=colors_t[i]),marker=dict(size=5)))
-                f_t.update_layout(height=400,hovermode="x unified",plot_bgcolor="rgba(0,0,0,0)",margin=dict(l=20,r=20,t=20,b=20),
-                    legend=dict(orientation="h",yanchor="top",y=-0.15,xanchor="center",x=0.5),
-                    xaxis=dict(showgrid=True,gridcolor="#f1f5f9",type="category",tickangle=-45,nticks=18),
-                    yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
+                f_t.update_layout(height=400,hovermode="x unified",plot_bgcolor="rgba(0,0,0,0)",margin=dict(l=20,r=20,t=20,b=20), legend=dict(orientation="h",yanchor="top",y=-0.15,xanchor="center",x=0.5), xaxis=dict(showgrid=True,gridcolor="#f1f5f9",type="category",tickangle=-45,nticks=18), yaxis=dict(showgrid=True,gridcolor="#f1f5f9"))
                 st.plotly_chart(f_t,use_container_width=True)
 
             st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
@@ -557,8 +508,6 @@ else:
             for _tsite in ["DE","FR","ES","IT","NL","NO","SE","FI","PL"]:
                 st.markdown(f'<div id="tjump-{_tsite}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                 with st.expander(f"📌 {_tsite} 站点 — 流量详情", expanded=True):
-                    
-                    # 分站点 2026 累计 KPI
                     t_2026 = sum([v for m, v in zip(traffic_months, traffic_total[_tsite]) if m >= '2026-01'])
                     o_2026 = sum([v for m, v in zip(traffic_months, traffic_onsite.get(_tsite, [])) if m >= '2026-01']) if _tsite in traffic_onsite else 0
                     b_2026 = sum([v for m, v in zip(traffic_months, traffic_blog.get(_tsite, [])) if m >= '2026-01']) if _tsite in traffic_blog else 0
@@ -635,7 +584,6 @@ else:
                 df_gsc_all = pd.DataFrame(all_gsc_records)
                 df_gsc_agg = df_gsc_all.groupby('Month').sum().reset_index().sort_values('Month')
                 
-                # --- 全站 2026 累计 KPI ---
                 df_2026_gsc = df_gsc_agg[df_gsc_agg['Month'] >= '2026-01']
                 st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
                 k1, k2, k3 = st.columns(3)
@@ -664,22 +612,10 @@ else:
                     
                     f_gsc_yoy = go.Figure()
                     cs_gsc_yoy = ["#10b981", "#f59e0b", "#3b82f6", "#8b5cf6"]
-                    
                     for i, y in enumerate(sorted(df_gsc_yoy['Year'].unique())):
                         dy = df_gsc_yoy[df_gsc_yoy['Year'] == y].sort_values('Mnum')
-                        f_gsc_yoy.add_trace(go.Scatter(
-                            x=dy['Mnum'], y=dy['Total'], 
-                            mode="lines+markers", name=f'{y}年', 
-                            line=dict(width=3, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]),
-                            marker=dict(size=8)
-                        ))
-                        
-                    f_gsc_yoy.update_layout(
-                        height=350, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10),
-                        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-                        xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]),
-                        yaxis=dict(showgrid=True, gridcolor="#f1f5f9")
-                    )
+                        f_gsc_yoy.add_trace(go.Scatter(x=dy['Mnum'], y=dy['Total'], mode="lines+markers", name=f'{y}年', line=dict(width=3, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]), marker=dict(size=8)))
+                    f_gsc_yoy.update_layout(height=350, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]), yaxis=dict(showgrid=True, gridcolor="#f1f5f9"))
                     st.plotly_chart(f_gsc_yoy, use_container_width=True)
 
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
@@ -707,6 +643,41 @@ else:
                         f_agg_onsite.add_trace(go.Scatter(x=df_gsc_agg['Month'], y=df_gsc_agg['Onsite'], mode='lines+markers', name='全站站内', line=dict(width=2, color='#10B981'), marker=dict(size=6)))
                         f_agg_onsite.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
                         st.plotly_chart(f_agg_onsite, use_container_width=True)
+                
+                # --- 🔥 新增：全站各细分维度年度同比 (YoY) ---
+                st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                st.markdown("#### 全站各细分维度年度同比 (YoY)")
+                cy1, cy2, cy3 = st.columns(3)
+                
+                with cy1:
+                    with st.container(border=True):
+                        st.markdown("**① 品牌词年度同比**")
+                        f_yoy_brand = go.Figure()
+                        for i, y in enumerate(sorted(df_gsc_yoy['Year'].unique())):
+                            dy = df_gsc_yoy[df_gsc_yoy['Year'] == y].sort_values('Mnum')
+                            f_yoy_brand.add_trace(go.Scatter(x=dy['Mnum'], y=dy['Brand'], mode='lines+markers', name=f'{y}年', line=dict(width=2, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]), marker=dict(size=6)))
+                        f_yoy_brand.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(f_yoy_brand, use_container_width=True)
+                
+                with cy2:
+                    with st.container(border=True):
+                        st.markdown("**② Blog 年度同比**")
+                        f_yoy_blog = go.Figure()
+                        for i, y in enumerate(sorted(df_gsc_yoy['Year'].unique())):
+                            dy = df_gsc_yoy[df_gsc_yoy['Year'] == y].sort_values('Mnum')
+                            f_yoy_blog.add_trace(go.Scatter(x=dy['Mnum'], y=dy['Blog'], mode='lines+markers', name=f'{y}年', line=dict(width=2, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]), marker=dict(size=6)))
+                        f_yoy_blog.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(f_yoy_blog, use_container_width=True)
+                        
+                with cy3:
+                    with st.container(border=True):
+                        st.markdown("**③ 站内年度同比**")
+                        f_yoy_onsite = go.Figure()
+                        for i, y in enumerate(sorted(df_gsc_yoy['Year'].unique())):
+                            dy = df_gsc_yoy[df_gsc_yoy['Year'] == y].sort_values('Mnum')
+                            f_yoy_onsite.add_trace(go.Scatter(x=dy['Mnum'], y=dy['Onsite'], mode='lines+markers', name=f'{y}年', line=dict(width=2, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]), marker=dict(size=6)))
+                        f_yoy_onsite.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
+                        st.plotly_chart(f_yoy_onsite, use_container_width=True)
 
                 st.markdown("<hr style='margin:32px 0; border-color:#e2e8f0;'/>", unsafe_allow_html=True)
             
@@ -734,7 +705,6 @@ else:
                 st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                 with st.expander(f"📌 GSC {_s2} 站点 — 点击详情", expanded=True):
                     
-                    # 分站点 2026 累计 KPI
                     g_t_2026 = sum([v for m, v in zip(_d2['months'], _d2['total']) if m >= '2026-01'])
                     g_b_2026 = sum([v for m, v in zip(_d2['months'], _d2['brand']) if m >= '2026-01'])
                     g_l_2026 = sum([v for m, v in zip(_d2['months'], _d2['blog']) if m >= '2026-01'])
