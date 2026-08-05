@@ -1,12 +1,17 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import os
 import plotly.graph_objects as go
+import re
 
 # ==========================================
 # 网页基础设置
 # ==========================================
 st.set_page_config(page_title="SEO月度数据对比", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
+
+# 强制使用新缓存名称，避免旧的崩溃数据引发 KeyError
+CACHE_FILE = "seo_monthly_sales_v12.pkl"
 
 # ==========================================
 # 🎨 UI Refinements V3 - Enterprise SaaS Style
@@ -77,8 +82,22 @@ st.markdown("<div style='height:1px;background:#E2E8F0;margin:2px 0 14px 0;'></d
 st.markdown("<a href='#top-anchor' class='back-to-top' title='\u56de\u5230\u9876\u90e8'>\u2191</a>", unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ 辅助模块：左侧挂件生成器
+# ⚙️ 全地形日期解析器 (核心修复区)
 # ==========================================
+def safe_parse_ym(val):
+    """超级日期嗅探器：专门对付 Google Sheets 导出时的畸形中文日期格式"""
+    if pd.isna(val) or str(val).strip() == '': return None
+    if isinstance(val, datetime.datetime): return val.strftime('%Y-%m')
+    if isinstance(val, (int, float)):
+        try: return pd.to_datetime(val, origin='1899-12-30', unit='D').strftime('%Y-%m')
+        except: return None
+    v_str = str(val).strip()
+    match = re.search(r'(202\d)[年\-/]\s*(\d{1,2})', v_str)
+    if match: return f"{match.group(1)}-{int(match.group(2)):02d}"
+    try: return pd.to_datetime(v_str).strftime('%Y-%m')
+    except: return None
+
+# 导航辅助组件
 def get_nav_html(prefix, icon, title):
     sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
              ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
@@ -90,25 +109,15 @@ def get_nav_html(prefix, icon, title):
     return f'<div class="country-nav"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><span style="font-size:14px;">{icon}</span> {title}</div><div style="display:flex;flex-direction:column;">{links}</div></div>'
 
 # ==========================================
-# ⚙️ 核心解析引擎 (直连 Google Sheets)
+# ⚙️ 核心解析引擎
 # ==========================================
 def parse_excel_dates(date_list):
     parsed_dates = []
     for val in date_list:
-        if pd.isna(val) or str(val).strip() == '':
-            parsed_dates.append(pd.NaT)
-            continue
-        if isinstance(val, datetime.datetime):
-            parsed_dates.append(val)
-            continue
-        try:
-            if isinstance(val, (int, float)):
-                parsed_dates.append(pd.to_datetime(val, origin='1899-12-30', unit='D'))
-            else:
-                v_str = str(val).strip().replace('年', '-').replace('月', '-').replace('日', '')
-                if v_str.endswith('-'): v_str = v_str[:-1]
-                parsed_dates.append(pd.to_datetime(v_str))
-        except:
+        ym = safe_parse_ym(val)
+        if ym:
+            parsed_dates.append(pd.to_datetime(ym + '-01'))
+        else:
             parsed_dates.append(pd.NaT)
     return pd.Series(parsed_dates)
 
@@ -153,48 +162,42 @@ def extract_table(df_raw, start_idx, end_idx):
     return monthly_total, monthly_detail
 
 def _parse_traffic_sheet(raw2, result):
-    import pandas as _pd
     _sites = ['DE','FR','ES','IT','NL','NO','SE','FI','PL']
     _months = []; _traffic_total = {s: [] for s in _sites}
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 0]
-        if _pd.isna(d): continue
+        ym = safe_parse_ym(d)
+        if not ym: continue
         if isinstance(d, str) and ('合计' in d or '总计' in d): continue
-        try:
-            dt = _pd.to_datetime(d, origin='1899-12-30', unit='D') if isinstance(d, (int,float)) else _pd.to_datetime(d)
-            _months.append(dt.strftime('%Y-%m'))
-            for idx, s in enumerate(_sites):
-                v = raw2.iloc[ri, 1+idx]
-                _traffic_total[s].append(float(v) if _pd.notna(v) else 0.0)
-        except: pass
+        _months.append(ym)
+        for idx, s in enumerate(_sites):
+            v = raw2.iloc[ri, 1+idx]
+            _traffic_total[s].append(float(str(v).replace(',', '').replace('$', '')) if pd.notna(v) else 0.0)
     result['traffic_months'] = _months; result['traffic_total'] = _traffic_total
     
     _onsite = {'DE':[],'FR':[],'IT':[]}
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 11]
-        if _pd.isna(d): continue
+        ym = safe_parse_ym(d)
+        if not ym: continue
         if isinstance(d, str) and ('合计' in d or '总计' in d): continue
-        try:
-            for idx, s in enumerate(['DE','FR','IT']):
-                v = raw2.iloc[ri, 12+idx]
-                _onsite[s].append(float(v) if _pd.notna(v) else 0.0)
-        except: pass
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 12+idx]
+            _onsite[s].append(float(str(v).replace(',', '').replace('$', '')) if pd.notna(v) else 0.0)
     result['traffic_onsite'] = _onsite
     
     _blog = {'DE':[],'FR':[],'IT':[]}
     for ri in range(1, len(raw2)):
         d = raw2.iloc[ri, 16]
-        if _pd.isna(d): continue
+        ym = safe_parse_ym(d)
+        if not ym: continue
         if isinstance(d, str) and ('合计' in d or '总计' in d): continue
-        try:
-            for idx, s in enumerate(['DE','FR','IT']):
-                v = raw2.iloc[ri, 17+idx]
-                _blog[s].append(float(v) if _pd.notna(v) else 0.0)
-        except: pass
+        for idx, s in enumerate(['DE','FR','IT']):
+            v = raw2.iloc[ri, 17+idx]
+            _blog[s].append(float(str(v).replace(',', '').replace('$', '')) if pd.notna(v) else 0.0)
     result['traffic_blog'] = _blog
 
 def _parse_gsc_sheet(raw2, result):
-    import pandas as _pd
     _gsc = {}
     _col0_targets = {
         'DE': [('DE', 0), ('FR', 7), ('ES', 14)],
@@ -211,19 +214,15 @@ def _parse_gsc_sheet(raw2, result):
                 _m=[]; _tv=[]; _bv=[]; _lv=[]; _uv=[]; _ov=[]
                 for _r_data in range(_hr+1, len(raw2)):
                     _v = raw2.iloc[_r_data, _base]
-                    if _pd.isna(_v) or (isinstance(_v, str) and ('总计' in _v or '非品牌' in _v or '品牌' in _v)):
-                        break
-                    try:
-                        if isinstance(_v, (int, float)):
-                            _dt = _pd.to_datetime(_v, origin='1899-12-30', unit='D')
-                        else:
-                            _dt = _pd.to_datetime(_v)
-                        _m.append(_dt.strftime('%Y-%m'))
-                    except:
+                    if pd.isna(_v) or (isinstance(_v, str) and ('总计' in _v or '非品牌' in _v or '品牌' in _v)):
                         break
                     
+                    ym = safe_parse_ym(_v)
+                    if not ym: break
+                    _m.append(ym)
+                    
                     def _safe_float(v):
-                        try: return float(v) if _pd.notna(v) else 0.0
+                        try: return float(str(v).replace('$', '').replace(',', '').strip()) if pd.notna(v) else 0.0
                         except: return 0.0
                     
                     _tv.append(_safe_float(raw2.iloc[_r_data, _base+1]))
@@ -231,19 +230,18 @@ def _parse_gsc_sheet(raw2, result):
                     _lv.append(_safe_float(raw2.iloc[_r_data, _base+3]))
                     _uv.append(_safe_float(raw2.iloc[_r_data, _base+4]))
                     _ov.append(_safe_float(raw2.iloc[_r_data, _base+5]))
-                _gsc[_sc] = {'months':_m,'total':_tv,'brand':_bv,'blog':_lv,'utm':_uv,'onsite':_ov}
+                if _m:
+                    _gsc[_sc] = {'months':_m,'total':_tv,'brand':_bv,'blog':_lv,'utm':_uv,'onsite':_ov}
     result['gsc_data'] = _gsc
 
 @st.cache_data(ttl=600)
 def load_all_seo_data():
     url = "https://docs.google.com/spreadsheets/d/10DB_7RHk12mqZB-f40mH279J6a1S_MWLgjqJlh2xqM4/export?format=xlsx"
     try:
-        # 直接解析为全量 Excel 数据字典
         xls_dict = pd.read_excel(url, sheet_name=None, header=None)
     except Exception as e:
-        raise RuntimeError(f"无法读取 Google Sheets，请检查网络或分享权限 (需设为'知道链接的人均可查看'): {e}")
+        raise RuntimeError(f"无法读取 Google Sheets，请检查网络或分享权限: {e}")
 
-    # 动态匹配表名 (容忍名称更改)
     sales_sheet = next((name for name in xls_dict.keys() if '销售' in name), list(xls_dict.keys())[0])
     traffic_sheet = next((name for name in xls_dict.keys() if '流量' in name), None)
     gsc_sheet = next((name for name in xls_dict.keys() if 'gsc' in name.lower() or '点击' in name), None)
@@ -286,7 +284,7 @@ with col_h_left:
     st.markdown("<div style='color:#6B7280;font-size:14px;margin-bottom:16px;'>直连 Google Sheets，掌握 SEO 核心指标与各站点年度/月度表现</div>", unsafe_allow_html=True)
 with col_h_right:
     st.markdown(f"<div style='color:#9CA3AF;font-size:11px;text-align:right;margin-bottom:2px;line-height:1;'>最后同步：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
-    if st.button("🔄 从云端刷新数据", type="primary", use_container_width=True):
+    if st.button("🔄 从云端刷新数据", type="primary"):
         st.cache_data.clear()
         st.rerun()
 
@@ -316,15 +314,15 @@ else:
     tab_selected = st.session_state.get('tab_selected', 'sales')
     col_ts1, col_ts2, col_ts3 = st.columns(3)
     with col_ts1:
-        if st.button('销售额对比', key='tab_switch_sales', use_container_width=True, type='primary' if tab_selected == 'sales' else 'secondary'):
+        if st.button('销售额对比', key='tab_switch_sales', type='primary' if tab_selected == 'sales' else 'secondary'):
             st.session_state.tab_selected = 'sales'
             st.rerun()
     with col_ts2:
-        if st.button('流量数据对比', key='tab_switch_traffic', use_container_width=True, type='primary' if tab_selected == 'traffic' else 'secondary'):
+        if st.button('流量数据对比', key='tab_switch_traffic', type='primary' if tab_selected == 'traffic' else 'secondary'):
             st.session_state.tab_selected = 'traffic'
             st.rerun()
     with col_ts3:
-        if st.button('GSC点击数据对比', key='tab_switch_gsc', use_container_width=True, type='primary' if tab_selected == 'gsc' else 'secondary'):
+        if st.button('GSC点击数据对比', key='tab_switch_gsc', type='primary' if tab_selected == 'gsc' else 'secondary'):
             st.session_state.tab_selected = 'gsc'
             st.rerun()
     st.markdown('<hr style="margin-top:6px;margin-bottom:20px;border-color:#e2e8f0;"/>', unsafe_allow_html=True)
