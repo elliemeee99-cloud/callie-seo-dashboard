@@ -644,7 +644,7 @@ else:
                         f_agg_onsite.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
                         st.plotly_chart(f_agg_onsite, use_container_width=True)
                 
-                # --- 🔥 新增：全站各细分维度年度同比 (YoY) ---
+                # 全站各细分维度年度同比 (YoY)
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### 全站各细分维度年度同比 (YoY)")
                 cy1, cy2, cy3 = st.columns(3)
@@ -705,6 +705,7 @@ else:
                 st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                 with st.expander(f"📌 GSC {_s2} 站点 — 点击详情", expanded=True):
                     
+                    # 分站点 2026 累计 KPI
                     g_t_2026 = sum([v for m, v in zip(_d2['months'], _d2['total']) if m >= '2026-01'])
                     g_b_2026 = sum([v for m, v in zip(_d2['months'], _d2['brand']) if m >= '2026-01'])
                     g_l_2026 = sum([v for m, v in zip(_d2['months'], _d2['blog']) if m >= '2026-01'])
@@ -741,3 +742,30 @@ else:
                         f2.add_trace(go.Scatter(x=_d2['months'],y=_d2['onsite'],mode='lines+markers',name=f'{_s2} 站内',line=dict(width=2,color='#8b5cf6'),marker=dict(size=5)))
                         f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                         st.plotly_chart(f2,use_container_width=True)
+                    
+                    # --- 🔥 动态新增：⑤ 分站点站内点击年度同比 (YoY) 大图 ---
+                    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                    st.markdown(f"**⑤ {_s2} 站内点击年度同比 (YoY)**")
+                    with st.container(border=True):
+                        site_gsc_df = pd.DataFrame({'Month': _d2['months'], 'Onsite': _d2['onsite']})
+                        site_gsc_df['Date'] = pd.to_datetime(site_gsc_df['Month'] + '-01')
+                        site_gsc_df['Year'] = site_gsc_df['Date'].dt.year.astype(str)
+                        site_gsc_df['Mnum'] = site_gsc_df['Date'].dt.month
+                        
+                        f_site_onsite_yoy = go.Figure()
+                        cs_gsc_yoy = ["#10b981", "#f59e0b", "#3b82f6", "#8b5cf6"]
+                        for i, y in enumerate(sorted(site_gsc_df['Year'].unique())):
+                            dy = site_gsc_df[site_gsc_df['Year'] == y].sort_values('Mnum')
+                            f_site_onsite_yoy.add_trace(go.Scatter(
+                                x=dy['Mnum'], y=dy['Onsite'], 
+                                mode="lines+markers", name=f'{y}年', 
+                                line=dict(width=3, color=cs_gsc_yoy[i % len(cs_gsc_yoy)]), 
+                                marker=dict(size=8)
+                            ))
+                        f_site_onsite_yoy.update_layout(
+                            height=320, hovermode="x unified", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10),
+                            legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                            xaxis=dict(showgrid=True, gridcolor="#f1f5f9", tickmode="array", tickvals=list(range(1,13)), ticktext=[f'{i}月' for i in range(1,13)]),
+                            yaxis=dict(showgrid=True, gridcolor="#f1f5f9")
+                        )
+                        st.plotly_chart(f_site_onsite_yoy, use_container_width=True)
