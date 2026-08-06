@@ -53,7 +53,8 @@ hr{border-color:#E5E7EB!important;margin:8px 0!important}
 def get_nav_html(prefix, icon, title):
     sites = [('DE', '🇩🇪', '#4285F4'), ('FR', '🇫🇷', '#EA4335'), ('ES', '🇪🇸', '#FBBC05'),
              ('IT', '🇮🇹', '#34A853'), ('NL', '🇳🇱', '#4285F4'), ('NO', '🇳🇴', '#EA4335'),
-             ('SE', '🇸🇪', '#FBBC05'), ('FI', '🇫🇮', '#34A853'), ('PL', '🇵🇱', '#4285F4')]
+             ('SE', '🇸🇪', '#FBBC05'), ('FI', '🇫🇮', '#34A853'), ('PL', '🇵🇱', '#4285F4'),
+             ('EN', '🇬🇧', '#111827')]
     links = ""
     for site, flag, color in sites:
         links += f'<a href="#{prefix}-{site}" style="border-left:4px solid {color};"><span class="c-flag">{flag}</span><span class="c-name" style="background:{color};">{site}</span></a>'
@@ -125,10 +126,8 @@ def load_conversion_data():
     for r in range(len(df_cart_raw)):
         for c in range(len(df_cart_raw.columns)):
             val = str(df_cart_raw.iloc[r, c]).strip()
-            # 找到 "加购数" 的单元格，它的左边就是站点名字
             if val == '加购数' and c > 0:
                 site = str(df_cart_raw.iloc[r, c-1]).strip().upper()
-                # 往下读日期和数据
                 for row_idx in range(r+1, len(df_cart_raw)):
                     date_val = df_cart_raw.iloc[row_idx, c-1]
                     if pd.isna(date_val) or str(date_val).strip() == '': break
@@ -148,7 +147,6 @@ def load_conversion_data():
     for r in range(len(df_click_raw)):
         for c in range(len(df_click_raw.columns)):
             val = str(df_click_raw.iloc[r, c]).strip()
-            # 找到 "总点击" 的单元格，它的左边就是站点名字
             if val == '总点击' and c > 0:
                 site = str(df_click_raw.iloc[r, c-1]).strip().upper()
                 for row_idx in range(r+1, len(df_click_raw)):
@@ -169,12 +167,9 @@ def load_conversion_data():
     df_click = pd.DataFrame(click_records)
 
     # --- 3. 合并大宽表 ---
-    if df_cart.empty and df_click.empty:
-        return pd.DataFrame()
-    elif df_click.empty:
-        return df_cart
-    elif df_cart.empty:
-        return df_click
+    if df_cart.empty and df_click.empty: return pd.DataFrame()
+    elif df_click.empty: return df_cart
+    elif df_cart.empty: return df_click
         
     df_final = pd.merge(df_cart, df_click, on=['Site', 'Month'], how='outer').fillna(0)
     return df_final
@@ -209,10 +204,11 @@ try:
         st.warning("⚠️ 表格连接成功，但未解析到有效数据。请检查表格结构是否符合规范。")
         st.stop()
         
-    # 添加年份和月份列以供分析
+    # 添加年份和月份列以供分析，并计算合并字段 UTM + 品牌词点击
     df_all['Date'] = pd.to_datetime(df_all['Month'] + '-01')
     df_all['Year'] = df_all['Date'].dt.year.astype(str)
     df_all['Mnum'] = df_all['Date'].dt.month
+    df_all['UTM_Brand_Click'] = df_all['UTM_Click'] + df_all['Brand_Click']
     
     # ------------------------------------------
     # 模块 1：全站汇总 KPI (2026 YTD)
@@ -228,18 +224,23 @@ try:
     st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
     
     # ------------------------------------------
-    # 模块 2：全站 YoY 同比折线图
+    # 模块 2：全站 YoY 同比折线图 (2x2 宫格)
     # ------------------------------------------
-    df_global_yoy = df_all.groupby(['Year', 'Mnum'])[['Cart', 'Order', 'Total_Click']].sum().reset_index()
+    df_global_yoy = df_all.groupby(['Year', 'Mnum'])[['Cart', 'Order', 'Onsite_Click', 'UTM_Brand_Click']].sum().reset_index()
     
     st.markdown("#### 📉 全站年度转化同比趋势 (2025 vs 2026)")
     with st.container(border=True):
-        yoy1, yoy2, yoy3 = st.columns(3)
-        with yoy1: st.plotly_chart(plot_yoy(df_global_yoy, 'Cart', "🛒 加购数 YoY"), use_container_width=True)
-        with yoy2: st.plotly_chart(plot_yoy(df_global_yoy, 'Order', "📦 订单数 YoY"), use_container_width=True)
-        with yoy3: st.plotly_chart(plot_yoy(df_global_yoy, 'Total_Click', "🖱️ 总点击 YoY"), use_container_width=True)
+        # 第一行：加购数 和 订单数
+        r1_c1, r1_c2 = st.columns(2)
+        with r1_c1: st.plotly_chart(plot_yoy(df_global_yoy, 'Cart', "🛒 加购数 YoY"), use_container_width=True)
+        with r1_c2: st.plotly_chart(plot_yoy(df_global_yoy, 'Order', "📦 订单数 YoY"), use_container_width=True)
+        
+        # 第二行：站内点击 和 UTM+品牌词点击
+        r2_c1, r2_c2 = st.columns(2)
+        with r2_c1: st.plotly_chart(plot_yoy(df_global_yoy, 'Onsite_Click', "🏠 SEO 站内点击 YoY"), use_container_width=True)
+        with r2_c2: st.plotly_chart(plot_yoy(df_global_yoy, 'UTM_Brand_Click', "🏷️ UTM + 品牌词点击 YoY"), use_container_width=True)
 
-    # 全站细分各项点击堆叠图 (Brand, Blog, UTM, Onsite)
+    # 全站细分各项点击堆叠图
     st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown("**🧩 全站各项点击流量结构趋势 (品牌词/Blog/UTM/站内)**")
@@ -279,11 +280,15 @@ try:
             
             st.write("")
             
-            # 站点 YoY 图
-            sy1, sy2, sy3 = st.columns(3)
-            with sy1: st.plotly_chart(plot_yoy(df_site, 'Cart', f"🛒 {site} 加购数 YoY"), use_container_width=True)
-            with sy2: st.plotly_chart(plot_yoy(df_site, 'Order', f"📦 {site} 订单数 YoY"), use_container_width=True)
-            with sy3: st.plotly_chart(plot_yoy(df_site, 'Total_Click', f"🖱️ {site} 总点击 YoY"), use_container_width=True)
+            # 站点 YoY 图 (2x2 宫格)
+            st.markdown(f"**📉 {site} 年度转化同比趋势**")
+            sy_r1_c1, sy_r1_c2 = st.columns(2)
+            with sy_r1_c1: st.plotly_chart(plot_yoy(df_site, 'Cart', f"🛒 {site} 加购数 YoY"), use_container_width=True)
+            with sy_r1_c2: st.plotly_chart(plot_yoy(df_site, 'Order', f"📦 {site} 订单数 YoY"), use_container_width=True)
+            
+            sy_r2_c1, sy_r2_c2 = st.columns(2)
+            with sy_r2_c1: st.plotly_chart(plot_yoy(df_site, 'Onsite_Click', f"🏠 {site} 站内点击 YoY"), use_container_width=True)
+            with sy_r2_c2: st.plotly_chart(plot_yoy(df_site, 'UTM_Brand_Click', f"🏷️ {site} UTM+品牌词点击 YoY"), use_container_width=True)
             
             # 站点各项点击结构走势
             st.markdown(f"**🧩 {site} 站点各项点击流量结构趋势**")
