@@ -114,7 +114,6 @@ def load_conversion_data():
     except Exception as e:
         raise RuntimeError(f"无法读取表格，请检查网络或分享权限(需知道链接的人可查看): {e}")
 
-    # 模糊匹配表名
     cart_sheet_name = next((k for k in xls_dict.keys() if '加购' in k), list(xls_dict.keys())[0])
     click_sheet_name = next((k for k in xls_dict.keys() if '点击' in k), list(xls_dict.keys())[-1] if len(xls_dict)>1 else list(xls_dict.keys())[0])
 
@@ -204,22 +203,34 @@ try:
         st.warning("⚠️ 表格连接成功，但未解析到有效数据。请检查表格结构是否符合规范。")
         st.stop()
         
-    # 添加年份和月份列以供分析，并计算合并字段 UTM + 品牌词点击
+    # 添加年份和月份列以供分析
     df_all['Date'] = pd.to_datetime(df_all['Month'] + '-01')
     df_all['Year'] = df_all['Date'].dt.year.astype(str)
     df_all['Mnum'] = df_all['Date'].dt.month
     df_all['UTM_Brand_Click'] = df_all['UTM_Click'] + df_all['Brand_Click']
     
+    # 获取 2026 年的最大可用月份，以供同期对比
+    df_2026 = df_all[df_all['Month'] >= '2026-01']
+    max_month_26 = df_2026['Mnum'].max() if not df_2026.empty else 7
+    df_2025_ytd = df_all[(df_all['Year'] == '2025') & (df_all['Mnum'] <= max_month_26)]
+    
     # ------------------------------------------
-    # 模块 1：全站汇总 KPI (2026 YTD)
+    # 模块 1：全站汇总 KPI
     # ------------------------------------------
     st.markdown("### 🏆 2026 vs 2025 同期转化对决 (全站大盘)")
-    df_2026 = df_all[df_all['Month'] >= '2026-01']
     
+    # 2026 累计行
     c1, c2, c3 = st.columns(3)
     with c1: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🛒 2026 全站累计加购数</div><div class="kpi-value blue">{df_2026["Cart"].sum():,.0f}</div></div>', unsafe_allow_html=True)
     with c2: st.markdown(f'<div class="kpi-card"><div class="kpi-title">📦 2026 全站累计订单数</div><div class="kpi-value green">{df_2026["Order"].sum():,.0f}</div></div>', unsafe_allow_html=True)
     with c3: st.markdown(f'<div class="kpi-card"><div class="kpi-title">🖱️ 2026 全站累计总点击</div><div class="kpi-value purple">{df_2026["Total_Click"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+    
+    # 2025 同期基准行
+    st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+    c4, c5, c6 = st.columns(3)
+    with c4: st.markdown(f'<div class="kpi-card" style="background:#F8FAFC; border-style:dashed; padding:15px;"><div class="kpi-title">🛒 2025 同期累计加购数 (1-{max_month_26}月)</div><div class="kpi-value" style="color:#64748B; font-size:24px;">{df_2025_ytd["Cart"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+    with c5: st.markdown(f'<div class="kpi-card" style="background:#F8FAFC; border-style:dashed; padding:15px;"><div class="kpi-title">📦 2025 同期累计订单数 (1-{max_month_26}月)</div><div class="kpi-value" style="color:#64748B; font-size:24px;">{df_2025_ytd["Order"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+    with c6: st.markdown(f'<div class="kpi-card" style="background:#F8FAFC; border-style:dashed; padding:15px;"><div class="kpi-title">🖱️ 2025 同期各项点击总计 (1-{max_month_26}月)</div><div class="kpi-value" style="color:#64748B; font-size:24px;">{df_2025_ytd["Total_Click"].sum():,.0f}</div></div>', unsafe_allow_html=True)
     
     st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
     
@@ -230,12 +241,10 @@ try:
     
     st.markdown("#### 📉 全站年度转化同比趋势 (2025 vs 2026)")
     with st.container(border=True):
-        # 第一行：加购数 和 订单数
         r1_c1, r1_c2 = st.columns(2)
         with r1_c1: st.plotly_chart(plot_yoy(df_global_yoy, 'Cart', "🛒 加购数 YoY"), use_container_width=True)
         with r1_c2: st.plotly_chart(plot_yoy(df_global_yoy, 'Order', "📦 订单数 YoY"), use_container_width=True)
         
-        # 第二行：站内点击 和 UTM+品牌词点击
         r2_c1, r2_c2 = st.columns(2)
         with r2_c1: st.plotly_chart(plot_yoy(df_global_yoy, 'Onsite_Click', "🏠 SEO 站内点击 YoY"), use_container_width=True)
         with r2_c2: st.plotly_chart(plot_yoy(df_global_yoy, 'UTM_Brand_Click', "🏷️ UTM + 品牌词点击 YoY"), use_container_width=True)
@@ -277,6 +286,14 @@ try:
             with sc1: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 加购数 ({site})</div><div class="kpi-value blue" style="font-size:24px;">{df_site_2026["Cart"].sum():,.0f}</div></div>', unsafe_allow_html=True)
             with sc2: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 订单数 ({site})</div><div class="kpi-value green" style="font-size:24px;">{df_site_2026["Order"].sum():,.0f}</div></div>', unsafe_allow_html=True)
             with sc3: st.markdown(f'<div class="kpi-card" style="padding:15px;"><div class="kpi-title">2026 总点击 ({site})</div><div class="kpi-value purple" style="font-size:24px;">{df_site_2026["Total_Click"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+            
+            # 站点 2025 同期 KPI
+            df_site_2025_ytd = df_site[(df_site['Year'] == '2025') & (df_site['Mnum'] <= max_month_26)]
+            st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+            sc4, sc5, sc6 = st.columns(3)
+            with sc4: st.markdown(f'<div class="kpi-card" style="padding:15px; background:#F8FAFC; border-style:dashed;"><div class="kpi-title">2025 同期加购数 (1-{max_month_26}月)</div><div class="kpi-value" style="font-size:24px; color:#64748B;">{df_site_2025_ytd["Cart"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+            with sc5: st.markdown(f'<div class="kpi-card" style="padding:15px; background:#F8FAFC; border-style:dashed;"><div class="kpi-title">2025 同期订单数 (1-{max_month_26}月)</div><div class="kpi-value" style="font-size:24px; color:#64748B;">{df_site_2025_ytd["Order"].sum():,.0f}</div></div>', unsafe_allow_html=True)
+            with sc6: st.markdown(f'<div class="kpi-card" style="padding:15px; background:#F8FAFC; border-style:dashed;"><div class="kpi-title">2025 同期总点击 (1-{max_month_26}月)</div><div class="kpi-value" style="font-size:24px; color:#64748B;">{df_site_2025_ytd["Total_Click"].sum():,.0f}</div></div>', unsafe_allow_html=True)
             
             st.write("")
             
