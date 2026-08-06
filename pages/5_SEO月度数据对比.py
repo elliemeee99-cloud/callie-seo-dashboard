@@ -332,6 +332,7 @@ else:
         df_merge['All_Growth'] = df_merge['Total_All'].pct_change() * 100
         df_merge['Site_Growth'] = df_merge['Total_Site'].pct_change() * 100
 
+        # --- 全站 2026 累计 KPI ---
         df_2026_sales = df_merge[df_merge['Month'] >= '2026-01']
         st.markdown("### 🏆 2026年累计核心指标 (全站大盘)")
         k1, k2, k3 = st.columns(3)
@@ -365,6 +366,34 @@ else:
                 fig1.add_trace(go.Scatter(x=df_year['Month_Num'], y=df_year['Total'], mode='lines+markers', name=f'{year}年', line=dict(width=3, color=colors[i % len(colors)]), marker=dict(size=8, color='#ffffff', line=dict(color=colors[i % len(colors)], width=2))))
             fig1.update_layout(height=380, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickmode='array', tickvals=list(range(1, 13)), ticktext=[f"{i}月" for i in range(1, 13)]), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
             st.plotly_chart(fig1, use_container_width=True)
+
+        # --- 🔥 新增：非品牌词分站点 2026 和 2025 趋势图 ---
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### 📈 2.1 各分站点【非品牌词】历年趋势对比")
+        
+        _sites_nb = ['DE', 'FR', 'ES', 'IT', 'NL', 'NO', 'SE', 'FI', 'PL']
+        _colors_nb = ['#3b82f6','#ef4444','#f59e0b','#22c55e','#06b6d4','#ec4899','#8b5cf6','#14b8a6','#f97316']
+        
+        c_nb1, c_nb2 = st.columns(2)
+        with c_nb1:
+            with st.container(border=True):
+                st.markdown("**① 2026年各站点非品牌词趋势 (YTD)**")
+                df_nb_2026 = nb_detail[nb_detail['Month'] >= '2026-01']
+                f_nb_26 = go.Figure()
+                for i, sc in enumerate(_sites_nb):
+                    f_nb_26.add_trace(go.Scatter(x=df_nb_2026['Month'], y=df_nb_2026[sc], mode='lines+markers', name=sc, line=dict(width=2, color=_colors_nb[i]), marker=dict(size=5)))
+                f_nb_26.update_layout(height=320, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                st.plotly_chart(f_nb_26, use_container_width=True)
+                
+        with c_nb2:
+            with st.container(border=True):
+                st.markdown("**② 2025年各站点非品牌词趋势**")
+                df_nb_2025 = nb_detail[(nb_detail['Month'] >= '2025-01') & (nb_detail['Month'] <= '2025-12')]
+                f_nb_25 = go.Figure()
+                for i, sc in enumerate(_sites_nb):
+                    f_nb_25.add_trace(go.Scatter(x=df_nb_2025['Month'], y=df_nb_2025[sc], mode='lines+markers', name=sc, line=dict(width=2, color=_colors_nb[i]), marker=dict(size=5)))
+                f_nb_25.update_layout(height=320, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5), xaxis=dict(showgrid=True, gridcolor='#f1f5f9', type='category'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9', tickprefix="$"))
+                st.plotly_chart(f_nb_25, use_container_width=True)
 
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
         st.markdown("#### 📊 3. 【非品牌词】与【ALL SEO】销售额总计综合对比")
@@ -644,7 +673,6 @@ else:
                         f_agg_onsite.update_layout(height=280, hovermode='x unified', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', tickangle=-45, showgrid=True, gridcolor='#f1f5f9'), yaxis=dict(showgrid=True, gridcolor='#f1f5f9'))
                         st.plotly_chart(f_agg_onsite, use_container_width=True)
                 
-                # 全站各细分维度年度同比 (YoY)
                 st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### 全站各细分维度年度同比 (YoY)")
                 cy1, cy2, cy3 = st.columns(3)
@@ -705,7 +733,6 @@ else:
                 st.markdown(f'<div id="gjump-{_s2}" style="position:relative;top:-100px;"></div>', unsafe_allow_html=True)
                 with st.expander(f"📌 GSC {_s2} 站点 — 点击详情", expanded=True):
                     
-                    # 分站点 2026 累计 KPI
                     g_t_2026 = sum([v for m, v in zip(_d2['months'], _d2['total']) if m >= '2026-01'])
                     g_b_2026 = sum([v for m, v in zip(_d2['months'], _d2['brand']) if m >= '2026-01'])
                     g_l_2026 = sum([v for m, v in zip(_d2['months'], _d2['blog']) if m >= '2026-01'])
@@ -743,7 +770,6 @@ else:
                         f2.update_layout(height=300,margin=dict(l=10,r=10,t=10,b=10),xaxis=dict(type='category',tickangle=-45,nticks=12),yaxis=dict(showgrid=True,gridcolor='#f1f5f9'))
                         st.plotly_chart(f2,use_container_width=True)
                     
-                    # --- 🔥 动态新增：⑤ 分站点站内点击年度同比 (YoY) 大图 ---
                     st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
                     st.markdown(f"**⑤ {_s2} 站内点击年度同比 (YoY)**")
                     with st.container(border=True):
