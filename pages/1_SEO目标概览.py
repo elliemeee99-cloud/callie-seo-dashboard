@@ -46,21 +46,17 @@ st.markdown("""
 [aria-current="page"] [data-testid="stPageLink-NavLink"] { border-bottom: 2px solid #2563EB !important; }
 [aria-current="page"] [data-testid="stPageLink-NavLink"] p { color: #2563EB !important; font-weight: 600 !important; }
 
-/* 返回顶部按钮 (保留原有的多巴胺粉色) */
+/* 返回顶部按钮 */
 .back-to-top {
     position: fixed; bottom: 40px; right: 40px;
-    background-color: #FF8FAB; color: #ffffff !important; 
-    border: none; width: 50px; height: 50px; border-radius: 50%; 
+    background-color: #2563EB; color: #ffffff !important; 
+    border: none; width: 40px; height: 40px; border-radius: 10px; 
     display: flex; justify-content: center; align-items: center;
-    font-size: 24px; font-weight: 800;
-    box-shadow: 0 4px 15px rgba(255, 143, 171, 0.35);
+    font-size: 18px; font-weight: 800;
     text-decoration: none !important; z-index: 99999; 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
 }
-.back-to-top:hover {
-    background-color: #FF5D8F; transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(255, 143, 171, 0.55); color: #ffffff !important;
-}
+.back-to-top:hover { background-color: #1D4ED8; }
 
 /* 原有底层定制 CSS */
 [data-testid="stVerticalBlockBorderWrapper"] {
@@ -150,7 +146,6 @@ def load_and_transform_google_sheet():
                 if not headers_2:
                     headers_2 = raw_data_2[0] 
                 
-                found_curr_sales = False
                 for row in raw_data_2:
                     if not row or not row[0]: continue
                     first_col = str(row[0]).strip()
@@ -166,21 +161,17 @@ def load_and_transform_google_sheet():
                             clean_str = re.sub(r'[^\d\.-]', '', val_str)
                             sales_data[clean_site] = float(clean_str) if clean_str else 0.0
                             
-                    elif "目标" in first_col or "Target" in first_col: 
-                        # 🔥 动态智能目标匹配
-                        is_curr_month = f"{current_month}月" in first_col
-                        if is_curr_month or not found_curr_sales:
-                            for i in range(1, min(len(headers_2), len(row))):
-                                raw_site = headers_2[i].strip()
-                                clean_site = raw_site.replace("Callie ", "").strip()
-                                if clean_site in cn_to_en: clean_site = cn_to_en[clean_site]
-                                if clean_site not in fixed_sites_order: continue
-                                
-                                val_str = row[i].strip()
-                                clean_str = re.sub(r'[^\d\.-]', '', val_str)
-                                target_sales_data[clean_site] = float(clean_str) if clean_str else 0.0
-                            if is_curr_month:
-                                found_curr_sales = True
+                    # 🔥 修复 1：销售额目标只认准“分站点目标”这几个字，防止被下方的“8月SEO总目标”污染
+                    elif first_col == "分站点目标": 
+                        for i in range(1, min(len(headers_2), len(row))):
+                            raw_site = headers_2[i].strip()
+                            clean_site = raw_site.replace("Callie ", "").strip()
+                            if clean_site in cn_to_en: clean_site = cn_to_en[clean_site]
+                            if clean_site not in fixed_sites_order: continue
+                            
+                            val_str = row[i].strip()
+                            clean_str = re.sub(r'[^\d\.-]', '', val_str)
+                            target_sales_data[clean_site] = float(clean_str) if clean_str else 0.0
                             
                     elif re.search(r'\d', first_col): 
                         try:
@@ -223,8 +214,8 @@ def load_and_transform_google_sheet():
                     for row in raw_data_3:
                         if not row or not row[0]: continue
                         first_col = str(row[0]).strip()
+                        # 流量目标保留智能寻找当前月份（例如 "8月份目标"）的逻辑
                         if "目标" in first_col or "Target" in first_col: 
-                            # 🔥 动态智能目标匹配
                             is_curr_month = f"{current_month}月" in first_col
                             if is_curr_month or not found_curr_traffic:
                                 for i in range(1, min(len(headers_3), len(row))):
@@ -316,10 +307,11 @@ def load_and_transform_google_sheet():
 
 
 # ==========================================
-# 📐 数据流初始化与双轨时间基准锁定
+# 📐 数据流初始化与双轨时间基准锁定 (严格剥离延迟)
 # ==========================================
 real_today = pd.Timestamp(datetime.datetime.now().date())
 start_of_current_month = real_today.replace(day=1)
+days_in_current_month = calendar.monthrange(real_today.year, real_today.month)[1]
 
 with st.spinner("✨ 正在深度清洗多表数据资产..."):
     data_dict = load_and_transform_google_sheet()
@@ -337,20 +329,24 @@ if data_dict:
         "NL": "🇳🇱 荷兰", "NO": "🇳🇴 挪威", "SE": "🇸🇪 瑞典", "FI": "🇫🇮 芬兰", "PL": "🇵🇱 波兰"
     }
 
-    # 🔥 核心升级：双轨探测分别获取销售额和流量的真实最新日期
-    max_s_date = df_hist['Date'].max() if not df_hist.empty else (real_today - pd.Timedelta(days=1))
-    max_t_date = df_traffic['Date'].max() if not df_traffic.empty else (real_today - pd.Timedelta(days=1))
+    # 🔥 修复 2：强行分离销售额和流量的真实截止日期，屏蔽空数据污染
+    # 销售额：严格规定以“昨天”作为计算终点
+    report_end_date_s = real_today - pd.Timedelta(days=1)
+    current_day_s = report_end_date_s.day
     
-    # 获取自然月总天数
-    days_in_current_month = calendar.monthrange(real_today.year, real_today.month)[1]
-    
-    # 分别计算独立的时间进度
-    current_day_s = max_s_date.day
+    # 流量：去明细表中扫描最后一天有流量数据 (>0) 的真实日期
+    if not df_traffic.empty:
+        valid_t = df_traffic[(df_traffic['Value'] > 0) & (df_traffic['Date'] <= report_end_date_s)]
+        report_end_date_t = valid_t['Date'].max() if not valid_t.empty else report_end_date_s
+    else:
+        report_end_date_t = report_end_date_s
+    current_day_t = report_end_date_t.day
+
+    # 分别计算独立的时间进度和剩余天数
     remaining_days_s = days_in_current_month - current_day_s
     if remaining_days_s <= 0: remaining_days_s = 1
     time_progress_rate_s = (current_day_s / days_in_current_month) * 100
     
-    current_day_t = max_t_date.day
     remaining_days_t = days_in_current_month - current_day_t
     if remaining_days_t <= 0: remaining_days_t = 1
     time_progress_rate_t = (current_day_t / days_in_current_month) * 100
@@ -360,7 +356,7 @@ if data_dict:
         st.markdown(f"""
         <div style="margin-bottom: 25px;">
             <h1 style="color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 4px;">🚀 SEO数据全局看板</h1>
-            <div style="color: #64748b; font-size: 14px;">报表数据同步至：销售额 {max_s_date.strftime('%Y-%m-%d')} | 流量 {max_t_date.strftime('%Y-%m-%d')}</div>
+            <div style="color: #64748b; font-size: 14px;">报表同步基准日：销售额 {report_end_date_s.strftime('%m-%d')} | 流量 {report_end_date_t.strftime('%m-%d')}</div>
         </div>
         """, unsafe_allow_html=True)
     with col_refresh:
@@ -378,14 +374,19 @@ if data_dict:
     # 🏆 第一大看板：SEO月度目标完成情况
     # ------------------------------------------
     with tab_dashboard:
-        total_sales_actual = sales_data.get("总计", sum([sales_data.get(s, 0) for s in fixed_sites_order]))
+        # 这里使用底层 df 加总确保逻辑绝对严密（防止手工表填错）
+        total_sales_actual = 0.0
+        if not df_hist.empty:
+            mask_mtd_s = (df_hist['Date'] >= pd.to_datetime(start_of_current_month)) & (df_hist['Date'] <= pd.to_datetime(report_end_date_s))
+            total_sales_actual = df_hist[mask_mtd_s]['Value'].sum()
+
         total_sales_target = sum([target_sales_data.get(s, 0) for s in fixed_sites_order])
         s_total_rate = (total_sales_actual / total_sales_target * 100) if total_sales_target > 0 else 0
         capped_s_rate = min(s_total_rate, 100) 
 
         actual_traffic_map = {}
         if not df_traffic.empty:
-            mask_mtd_traffic = (df_traffic['Date'] >= pd.to_datetime(start_of_current_month)) & (df_traffic['Date'] <= pd.to_datetime(max_t_date))
+            mask_mtd_traffic = (df_traffic['Date'] >= pd.to_datetime(start_of_current_month)) & (df_traffic['Date'] <= pd.to_datetime(report_end_date_t))
             mtd_traffic_df = df_traffic[mask_mtd_traffic]
             for s in fixed_sites_order:
                 actual_traffic_map[s] = mtd_traffic_df[mtd_traffic_df['Site'] == s]['Value'].sum()
@@ -421,7 +422,7 @@ if data_dict:
                     f'<div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>'
                     f'</div>'
                     f'<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-weight: 500; font-size: 13px;">'
-                    f'<span>⏳ 时间进度 ({current_day_s} / {days_in_current_month} 天)</span><span>{time_progress_rate_s:.1f}%</span>'
+                    f'<span>⏳ 时间进度 (本月截止到 {current_day_s} 日)</span><span>{time_progress_rate_s:.1f}%</span>'
                     f'</div>'
                     f'<div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 10px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">'
                     f'<div style="background: linear-gradient(90deg, #bae6fd 0%, #3b82f6 100%); border-radius: 30px; width: {time_progress_rate_s}%; height: 100%;"></div>'
@@ -433,7 +434,7 @@ if data_dict:
             cols = st.columns(9)
             for i, site in enumerate(fixed_sites_order):
                 with cols[i]:
-                    s_actual = sales_data.get(site, 0)
+                    s_actual = df_hist[(df_hist['Date'] >= pd.to_datetime(start_of_current_month)) & (df_hist['Date'] <= pd.to_datetime(report_end_date_s)) & (df_hist['Site'] == site)]['Value'].sum() if not df_hist.empty else 0
                     s_target = target_sales_data.get(site, 0)
                     s_rate = (s_actual / s_target * 100) if s_target > 0 else 0
                     color = "normal" if s_rate >= time_progress_rate_s else "off"
@@ -465,12 +466,9 @@ if data_dict:
         st.markdown("### 📈 全局 MTD 销售同环比")
         with st.container(border=True):
             if not df_hist.empty:
-                try:
-                    start_of_last_month_s = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
-                    end_of_last_month_mtd_s = start_of_last_month_s + pd.Timedelta(days=current_day_s - 1)
-                except:
-                    start_of_last_month_s = start_of_current_month - pd.DateOffset(months=1)
-                    end_of_last_month_mtd_s = start_of_last_month_s + pd.DateOffset(days=current_day_s - 1)
+                start_of_last_month_s = start_of_current_month - pd.DateOffset(months=1)
+                end_of_last_month_mtd_s = start_of_last_month_s + pd.DateOffset(days=current_day_s - 1)
+                
                 start_of_last_year_month_s = start_of_current_month - pd.DateOffset(years=1)
                 end_of_last_year_mtd_s = start_of_last_year_month_s + pd.DateOffset(days=current_day_s - 1)
                 
@@ -490,7 +488,7 @@ if data_dict:
         st.markdown("### 🗄️ 本月各站点每日销售明细")
         with st.container(border=True):
             if not df_hist.empty:
-                mask_mtd = (df_hist['Date'] >= pd.to_datetime(start_of_current_month)) & (df_hist['Date'] <= pd.to_datetime(max_s_date))
+                mask_mtd = (df_hist['Date'] >= pd.to_datetime(start_of_current_month)) & (df_hist['Date'] <= pd.to_datetime(report_end_date_s))
                 df_mtd_daily = df_hist[mask_mtd]
                 
                 if not df_mtd_daily.empty:
@@ -549,7 +547,7 @@ if data_dict:
                     f'<div style="position: absolute; top: 0px; right: 10px; line-height: 28px; font-size: 18px;">🏁</div>'
                     f'</div>'
                     f'<div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-weight: 500; font-size: 13px;">'
-                    f'<span>⏳ 时间进度 ({current_day_t} / {days_in_current_month} 天)</span><span>{time_progress_rate_t:.1f}%</span>'
+                    f'<span>⏳ 时间进度 (本月截止到 {current_day_t} 日)</span><span>{time_progress_rate_t:.1f}%</span>'
                     f'</div>'
                     f'<div style="background-color: #f1f5f9; border-radius: 30px; width: 100%; height: 10px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">'
                     f'<div style="background: linear-gradient(90deg, #cbd5e1 0%, #64748b 100%); border-radius: 30px; width: {time_progress_rate_t}%; height: 100%;"></div>'
@@ -589,16 +587,13 @@ if data_dict:
                     )
                     st.markdown(site_html, unsafe_allow_html=True)
 
-        # 🔥 全局 MTD 流量同环比 (使用独立流量基准天数)
+        # 全局 MTD 流量同环比
         st.markdown("### 📈 全局 MTD 流量同环比")
         with st.container(border=True):
             if not df_traffic.empty:
-                try:
-                    start_of_last_month_t = (start_of_current_month - pd.Timedelta(days=1)).replace(day=1)
-                    end_of_last_month_mtd_t = start_of_last_month_t + pd.Timedelta(days=current_day_t - 1)
-                except:
-                    start_of_last_month_t = start_of_current_month - pd.DateOffset(months=1)
-                    end_of_last_month_mtd_t = start_of_last_month_t + pd.DateOffset(days=current_day_t - 1)
+                start_of_last_month_t = start_of_current_month - pd.DateOffset(months=1)
+                end_of_last_month_mtd_t = start_of_last_month_t + pd.DateOffset(days=current_day_t - 1)
+                
                 start_of_last_year_month_t = start_of_current_month - pd.DateOffset(years=1)
                 end_of_last_year_mtd_t = start_of_last_year_month_t + pd.DateOffset(days=current_day_t - 1)
                 
@@ -619,7 +614,7 @@ if data_dict:
         st.markdown("### 🗄️ 本月各站点每日SEO流量明细")
         with st.container(border=True):
             if not df_traffic.empty:
-                mask_traffic = (df_traffic['Date'] >= pd.to_datetime(start_of_current_month)) & (df_traffic['Date'] <= pd.to_datetime(max_t_date))
+                mask_traffic = (df_traffic['Date'] >= pd.to_datetime(start_of_current_month)) & (df_traffic['Date'] <= pd.to_datetime(report_end_date_t))
                 df_t_daily = df_traffic[mask_traffic]
                 
                 if not df_t_daily.empty:
@@ -662,7 +657,7 @@ if data_dict:
                 time_grain = st.radio("⏱️ 时间聚合粒度", ["日", "周", "月"], index=0, horizontal=True)
             with col_ctrl2:
                 min_date_s = df_hist['Date'].min().date() if not df_hist.empty else start_of_current_month.date()
-                max_date_s = max_s_date.date()
+                max_date_s = report_end_date_s.date()
                 date_range = st.date_input("📅 自定义日期范围", value=(start_of_current_month.date(), max_date_s), max_value=max_date_s)
             with col_ctrl3:
                 selected_sites = st.multiselect("🌍 筛选站点", options=fixed_sites_order, default=fixed_sites_order, format_func=lambda x: en_to_cn.get(x, x))
